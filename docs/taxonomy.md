@@ -43,6 +43,11 @@ Sertanejo universitário, sofrência, agronejo. Mostly a "radio"/crowd-moment to
 rather than a beatmatched lane — but club edits and remixes exist.
 - **BPM:** song-dependent (~120–160 for edits) · **Energy:** 3–7 · **Feel:** singalong.
 
+### `axe`
+Axé and its retro / pagodão baiano cousins — festive, singalong Bahian party music.
+An **open-format** lane: joined to its neighbors by cuts and echo-outs, not blends.
+- **BPM:** ~100–115 · **Energy:** 6–8 · **Feel:** festive, singalong, party.
+
 ### `mpb-bossa`
 MPB, bossa nova, tropicália, and their downtempo/electronic reinterpretations.
 Warmup and cooldown gold; also `tecnobrega`/`brega` textures.
@@ -95,6 +100,12 @@ The percussive global-club umbrella: baile-influenced global bass, moombahton,
 reggaeton, dembow, guaracha. Shares rhythmic DNA with `brazilian-funk`.
 - **BPM:** ~90–130 · **Energy:** 6–9 · **Feel:** rhythmic, tropical, vocal.
 
+### `pop-dance`
+Commercial pop and dance — radio pop, dance-pop, eurodance, and the 2000s-throwback
+palette that powers themed parties. An **open-format** lane: play the hook, join
+blocks with cuts, echo-outs, and FX rather than long blends.
+- **BPM:** ~100–132 (often flat) · **Energy:** 5–9 · **Feel:** commercial, singalong, throwback.
+
 ---
 
 ## Extending the taxonomy
@@ -102,4 +113,6 @@ reggaeton, dembow, guaracha. Shares rhythmic DNA with `brazilian-funk`.
 Add a genre by adding a node to [`../genres/graph.yml`](../genres/graph.yml) and
 a short entry here. Keep `id`s in `kebab-case` and stable — tracks reference them.
 Prefer a handful of well-connected nodes over dozens of thin ones; use
-`subgenres` inside a node for finer detail.
+`subgenres` inside a node for finer detail. An edge's `via` can describe an
+**open-format bridge** (a hard cut, echo out, or FX pass), not only a beatmatched
+blend — see [mixing-styles.md](mixing-styles.md).

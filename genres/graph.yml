@@ -39,6 +39,8 @@ nodes:
       - {to: afro-house,      strength: medium, via: "double/half-time (150 <-> ~122); ride the percussion"}
       - {to: brazilian-bass,  strength: medium, via: "drop to ~126; keep BR identity, smooth the low end"}
       - {to: afro-brasileiro, strength: strong, via: "percussion bridge; a BR-native cooldown from peak"}
+      - {to: axe,             strength: strong, via: "drop to the axé party; echo out or hard cut"}
+      - {to: pop-dance,       strength: medium, via: "throwback crossover; hard cut on the hook"}
 
   - id: brazilian-bass
     name: Brazilian Bass
@@ -77,6 +79,7 @@ nodes:
       - {to: afro-brasileiro, strength: medium, via: "electronic edit; ramp tempo into afro percussion"}
       - {to: nu-disco-funk,   strength: medium, via: "shared swing/groove; vocal crossover"}
       - {to: mpb-bossa,       strength: strong, via: "acoustic/melodic cooldown, same lineage"}
+      - {to: axe,             strength: strong, via: "baiano party lift; ramp tempo or hard cut"}
 
   - id: forro-piseiro
     name: Forró / Piseiro
@@ -89,6 +92,7 @@ nodes:
       - {to: sertanejo,       strength: strong, via: "adjacent crowd + singalong energy"}
       - {to: brazilian-funk,  strength: medium, via: "regional crossover; lift to peak"}
       - {to: samba-pagode,    strength: weak,   via: "acoustic/party bridge, watch the tempo gap"}
+      - {to: axe,             strength: medium, via: "NE party crossover; keep the singalong"}
 
   - id: sertanejo
     name: Sertanejo
@@ -214,6 +218,7 @@ nodes:
       - {to: deep-house,      strength: strong, via: "tighten into a house groove"}
       - {to: samba-pagode,    strength: medium, via: "swing/vocal crossover, BR identity"}
       - {to: organic-house,   strength: medium, via: "warm, textured dip"}
+      - {to: pop-dance,       strength: strong, via: "pop/disco groove; blend or filter"}
 
   - id: global-bass
     name: Global Bass (baile / moombahton / reggaeton / guaracha)
@@ -226,3 +231,33 @@ nodes:
       - {to: brazilian-funk,  strength: strong, via: "shared rhythmic DNA; ramp to the baile"}
       - {to: tech-house,      strength: medium, via: "resolve to 4-on-the-floor, raise tempo"}
       - {to: afro-house,      strength: medium, via: "percussion bridge into deeper territory"}
+      - {to: pop-dance,       strength: medium, via: "party crossover; hard cut on the hook"}
+
+  # ------------------------ COMMERCIAL / PARTY --------------------------------
+
+  - id: axe
+    name: Axé
+    family: brazilian
+    bpm: [100, 115]
+    energy: [6, 8]
+    feel: [festive, singalong, party]
+    subgenres: [axe-music, axe-retro, pagodao-baiano]
+    neighbors:
+      - {to: brazilian-funk,  strength: strong, via: "lift to peak; hard cut on the downbeat"}
+      - {to: samba-pagode,    strength: strong, via: "acoustic party bridge; echo out across the BPM gap"}
+      - {to: forro-piseiro,   strength: medium, via: "shared NE party crowd; keep the singalong going"}
+      - {to: pop-dance,       strength: medium, via: "commercial crossover; echo out or hard cut"}
+
+  - id: pop-dance
+    name: Pop / Dance (commercial · 2000s throwback)
+    family: global
+    bpm: [100, 132]
+    energy: [5, 9]
+    feel: [commercial, singalong, throwback]
+    subgenres: [dance-pop, eurodance, dance-2000s, pop-radio]
+    neighbors:
+      - {to: brazilian-funk,  strength: strong, via: "shared party crowd; echo out into the baile"}
+      - {to: nu-disco-funk,   strength: strong, via: "disco/pop groove; blend or filter"}
+      - {to: global-bass,     strength: medium, via: "moombahton/reggaeton crossover; hard cut"}
+      - {to: axe,             strength: medium, via: "BR party crossover; hard cut on the hook"}
+      - {to: tech-house,      strength: medium, via: "resolve to 4-on-the-floor for a dance block"}

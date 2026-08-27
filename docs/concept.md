@@ -22,8 +22,11 @@ transition notes, the energy arcs, and the light-show intentions.
 - **Ordering lives in two places:** the *genre graph* (how families bridge into
   each other) and *blocks* (short, deliberate, time-boxed sequences).
 - **Brazilian styles are first-class.** Funk, brazilian bass, afro-brasileiro,
-  samba/pagode, forró/piseiro, sertanejo, and MPB sit next to house, techno,
-  amapiano, and global bass — same schema, same graph.
+  samba/pagode, forró/piseiro, sertanejo, axé, and MPB sit next to house, techno,
+  amapiano, dance-pop, and global bass — same schema, same graph.
+- **Two mixing styles are first-class.** Continuous blend (made-to-be-mixed music,
+  long harmonic transitions) and open-format (made-for-radio music, cuts/echo/FX,
+  play the hook). Blocks declare a `style`. See [mixing-styles.md](mixing-styles.md).
 - **Blocks are the atom.** A block is simultaneously the unit you *play*, the
   unit you *transition* within, and the unit a *light show* attaches to.
 - **Everything is reversible and legible.** Plain YAML/Markdown, small files,

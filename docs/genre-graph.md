@@ -34,7 +34,9 @@ follow an **edge** to a neighboring node. So:
 ## The starting map
 
 Solid = `strong`, dashed = `medium`. (`weak` edges are in `graph.yml` but omitted
-here to keep the picture readable.)
+here to keep the picture readable.) Some edges — especially into `axe` and
+`pop-dance` — are **open-format bridges**: you travel them with a cut, echo out, or
+FX, not a blend (see [mixing-styles.md](mixing-styles.md)).
 
 ```mermaid
 graph LR
@@ -46,6 +48,7 @@ graph LR
     FORRO["forro-piseiro"]
     SERT["sertanejo"]
     MPB["mpb-bossa"]
+    AXE["axe"]
   end
   subgraph GL["🌍 Global"]
     ORG["organic-house"]
@@ -57,6 +60,7 @@ graph LR
     TEKNO["techno-peak"]
     DISCO["nu-disco-funk"]
     GBASS["global-bass"]
+    POPD["pop-dance"]
   end
 
   FUNK --- GBASS
@@ -92,6 +96,15 @@ graph LR
   FORRO -.-> FUNK
   SAMBA -.-> DISCO
   GBASS -.-> TECH
+
+  AXE --- FUNK
+  AXE --- SAMBA
+  POPD --- FUNK
+  POPD --- DISCO
+  AXE -.-> POPD
+  AXE -.-> FORRO
+  POPD -.-> GBASS
+  POPD -.-> TECH
 ```
 
 ## Reading a journey off the map

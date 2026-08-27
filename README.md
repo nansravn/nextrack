@@ -31,7 +31,7 @@ into place:
 | **Radio** | a longer themed *program* made of blocks | yes |
 | **Set** | a full gig, assembled from blocks/radios for a venue/crowd | yes |
 
-**Two ideas do the heavy lifting:**
+**Three ideas do the heavy lifting:**
 
 1. **Genres are a graph, not a list.** `genres/graph.yml` models each genre as a
    node with edges to compatible genres (BPM path, rhythmic bridge, strength).
@@ -41,6 +41,10 @@ into place:
 2. **The track catalog is a pool, not a play-order.** You fluctuate within a
    genre/energy band based on the room. Ordering intelligence lives at the
    genre-transition level and inside **blocks** — never baked into the track list.
+
+3. **Two mixing styles are first-class.** Continuous blend (the EDM journey) and
+   open-format (recognition — cuts, echo-outs, FX between genre blocks). Each
+   [block](blocks/) declares its `style`. See [`docs/mixing-styles.md`](docs/mixing-styles.md).
 
 ---
 
@@ -52,8 +56,11 @@ nextrack/
 │   ├── concept.md         the vision
 │   ├── taxonomy.md        genre glossary (EDM + Brazilian)
 │   ├── genre-graph.md     the graph model + how to fluctuate within a genre
+│   ├── mixing-styles.md   continuous blend vs open-format — the two modes
+│   ├── transitions.md     technique catalog (blend, cut, echo out, FX…)
 │   ├── harmonic-mixing.md Camelot wheel + BPM cheat sheet
 │   ├── energy-arcs.md     warmup → peak → cooldown model
+│   ├── rig.md             gear → technique map (FLX6 + Serato)
 │   └── workflow.md        discover → document → download → organize
 ├── genres/          # the genre graph (nodes + edges)
 │   └── graph.yml

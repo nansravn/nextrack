@@ -43,6 +43,9 @@ transition, but not a blend.
 - **Half / double time** — e.g. funk 150 ↔ house 122-ish worlds. Feel the groove
   at half or double and the two lock together. This is how many `graph.yml` edges
   work (`via: "double/half-time..."`).
+- **Bigger gaps** — when tempos are too far apart to blend, *execute* the move with
+  an echo out, a half-time lock, or an accepted hard cut. See
+  [transitions.md](transitions.md#jumping-big-bpm-gaps).
 
 ## In practice
 

@@ -21,6 +21,7 @@ venue: Beach Club
 crowd: mixed, tourists + locals, sunset into night
 duration: 3h
 arc: single-peak           # single-peak | waves | slow-burn
+default_style: hybrid      # continuous | open-format | hybrid (blocks may override)
 energy: [2, 9]
 ---
 

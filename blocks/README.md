@@ -18,6 +18,7 @@ you can still fluctuate within the genre pool on the night.
 ---
 name: Sunset Warmup (Organic)
 function: warmup            # warmup | build | peak | plateau | breakdown | cooldown
+style: continuous          # continuous | open-format | hybrid — drives the transition palette
 duration: 30m              # target time frame
 genres: [organic-house, mpb-bossa]   # node ids from ../genres/graph.yml
 bpm: [108, 116]
@@ -35,8 +36,11 @@ One or two lines: the mood, the room, the moment this block is for.
 3. Artist — Title  · 9B · 114 · e5
 
 ## Transitions
-- 1→2: blend on the 2:30 break, EQ swap bass, +2 BPM.
+<!-- technique follows the block's `style`; see ../docs/transitions.md -->
+- 1→2: blend on the 2:30 break, EQ swap bass, +2 BPM.        # continuous
 - 2→3: relative-major lift (9A→9B); ride the percussion.
+<!-- open-format equivalent: hard-cut on the hook, or echo out across a BPM gap -->
+
 
 ## Swap options (fluctuate with the room)
 - Softer: Artist — Title (e3)
