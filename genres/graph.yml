@@ -41,6 +41,8 @@ nodes:
       - {to: afro-brasileiro, strength: strong, via: "percussion bridge; a BR-native cooldown from peak"}
       - {to: axe,             strength: strong, via: "drop to the axé party; echo out or hard cut"}
       - {to: pop-dance,       strength: medium, via: "throwback crossover; hard cut on the hook"}
+      - {to: funk-pop,        strength: strong, via: "same funk base gone commercial; play the hook"}
+      - {to: funk-anos-2000,  strength: strong, via: "same family, retro; nostalgia moment"}
 
   - id: brazilian-bass
     name: Brazilian Bass
@@ -232,6 +234,7 @@ nodes:
       - {to: tech-house,      strength: medium, via: "resolve to 4-on-the-floor, raise tempo"}
       - {to: afro-house,      strength: medium, via: "percussion bridge into deeper territory"}
       - {to: pop-dance,       strength: medium, via: "party crossover; hard cut on the hook"}
+      - {to: funk-pop,        strength: strong, via: "funk crossover; hard cut on the hook"}
 
   # ------------------------ COMMERCIAL / PARTY --------------------------------
 
@@ -247,6 +250,7 @@ nodes:
       - {to: samba-pagode,    strength: strong, via: "acoustic party bridge; echo out across the BPM gap"}
       - {to: forro-piseiro,   strength: medium, via: "shared NE party crowd; keep the singalong going"}
       - {to: pop-dance,       strength: medium, via: "commercial crossover; echo out or hard cut"}
+      - {to: funk-pop,        strength: medium, via: "party funk crossover; hard cut on the downbeat"}
 
   - id: pop-dance
     name: Pop / Dance (commercial · 2000s throwback)
@@ -261,3 +265,32 @@ nodes:
       - {to: global-bass,     strength: medium, via: "moombahton/reggaeton crossover; hard cut"}
       - {to: axe,             strength: medium, via: "BR party crossover; hard cut on the hook"}
       - {to: tech-house,      strength: medium, via: "resolve to 4-on-the-floor for a dance block"}
+      - {to: funk-pop,        strength: strong, via: "commercial funk crossover; hard cut on the hook"}
+      - {to: funk-anos-2000,  strength: medium, via: "2000s throwback party; hard cut"}
+
+  - id: funk-pop
+    name: Funk-Pop (commercial funk / crossover)
+    family: brazilian
+    bpm: [125, 150]
+    energy: [6, 9]
+    feel: [commercial, singalong, party, crossover]
+    subgenres: [funk-pop, comercial, mandelao-pop, dance-funk]
+    neighbors:
+      - {to: brazilian-funk,  strength: strong, via: "same funk base; pull into raw mandelão / baile"}
+      - {to: pop-dance,       strength: strong, via: "commercial hook; hard cut or echo out"}
+      - {to: global-bass,     strength: strong, via: "remix/reggaeton (e.g. Dançarina x Nicky Jam); hard cut"}
+      - {to: axe,             strength: medium, via: "party crossover; hard cut on the downbeat"}
+      - {to: funk-anos-2000,  strength: strong, via: "retro funk moment; hard cut"}
+
+  - id: funk-anos-2000
+    name: Funk Anos 2000 (Furacão 2000 / funk melody / passinho)
+    family: brazilian
+    bpm: [128, 150]
+    energy: [6, 9]
+    feel: [nostalgic, party, singalong, retro]
+    subgenres: [funk-melody, funk-de-bonde, passinho, montagem-2000]
+    neighbors:
+      - {to: brazilian-funk,  strength: strong, via: "same family; ramp to modern funk"}
+      - {to: funk-pop,        strength: strong, via: "nostalgia into commercial funk; play the hook"}
+      - {to: global-bass,     strength: medium, via: "miami-bass roots; hard cut"}
+      - {to: pop-dance,       strength: medium, via: "2000s throwback party; echo out"}

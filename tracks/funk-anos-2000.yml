@@ -1,0 +1,114 @@
+# tracks/funk-anos-2000.yml — Funk anos 2000 pool for the `funk-anos-2000` node (unordered).
+# A era Furacão 2000: funk melody, funk de bonde, passinho. Nostalgia de festa retrô.
+# status: downloaded = já está na sua pasta local (subpasta funk-anos-2000/).
+# bpm/key = null até analisar no Serato. energy = chute inicial, ajuste à vontade.
+
+# --- Furacão 2000 ---
+- title: "Tchu Tchuca"
+  artist: "Furacão 2000"
+  genre: funk-anos-2000
+  bpm: null
+  key: null
+  energy: 8
+  status: downloaded
+  tags: [funk-anos-2000, funk-melody, party, retro]
+
+- title: "Passinho do Volante"
+  artist: "Furacão 2000"
+  genre: funk-anos-2000
+  bpm: null
+  key: null
+  energy: 8
+  status: downloaded
+  tags: [funk-anos-2000, passinho, party, retro]
+
+- title: "Tira a Camisa"
+  artist: "Furacão 2000"
+  genre: funk-anos-2000
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [funk-anos-2000, party, retro]
+
+- title: "Tapinha"
+  artist: "Furacão 2000"
+  genre: funk-anos-2000
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [funk-anos-2000, retro]
+
+- title: "Mimosa 2000"
+  artist: "Furacão 2000"
+  genre: funk-anos-2000
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [funk-anos-2000, retro]
+
+- title: "Jonathan II"
+  artist: "Furacão 2000"
+  genre: funk-anos-2000
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [funk-anos-2000, retro]
+
+- title: "Dança da Motinha"
+  artist: "Furacão 2000"
+  genre: funk-anos-2000
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [funk-anos-2000, retro]
+
+- title: "Agarra"
+  artist: "Furacão 2000"
+  genre: funk-anos-2000
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [funk-anos-2000, retro]
+
+- title: "Lamba Funk"
+  artist: "Furacão 2000"
+  genre: funk-anos-2000
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [funk-anos-2000, retro]
+
+# --- Outros clássicos ---
+- title: "O Baile Todo"
+  artist: "Bonde do Tigrão"
+  genre: funk-anos-2000
+  bpm: null
+  key: null
+  energy: 8
+  status: downloaded
+  tags: [funk-anos-2000, funk-de-bonde, party, retro]
+
+- title: "Dança do Créu (Verso)"
+  artist: "MC Créu"
+  genre: funk-anos-2000
+  bpm: null
+  key: null
+  energy: 8
+  status: downloaded
+  tags: [funk-anos-2000, passinho, party, retro]
+
+- title: "Bigode Grosso"
+  artist: "MC Marcelly"
+  genre: funk-anos-2000
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [funk-anos-2000, retro]

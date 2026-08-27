@@ -77,16 +77,6 @@
   status: downloaded
   tags: [piseiro, pop, singalong]
 
-- title: "Gata (Barbie)"
-  artist: "Nattan"
-  genre: forro-piseiro
-  bpm: null
-  key: null
-  energy: 7
-  status: to-download
-  tags: [piseiro, party]
-  notes: "Você pediu; não achei na pasta. Confirme o título exato (Gata? Barbie?)."
-
 # --- DJ Ivis ---
 - title: "Esquema Preferido"
   artist: "DJ Ivis"
@@ -312,3 +302,32 @@
   status: downloaded
   tags: [pisadinha, funknejo, party]
   notes: "Colab Zé Felipe x Barões; leaninho pra funknejo — coloquei no piseiro pela pisadinha. Fala se prefere fora."
+
+# --- Xand Avião (forró eletrônico) ---
+- title: "Matadinha de Saudade"
+  artist: "Xand Avião"
+  genre: forro-piseiro
+  bpm: null
+  key: null
+  energy: 6
+  status: downloaded
+  tags: [forro, forro-eletronico, romantic]
+
+- title: "Basta Você Me Ligar"
+  artist: "Xand Avião"
+  genre: forro-piseiro
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [forro, forro-eletronico, singalong]
+  notes: "Versão Xand Avião; a de pico dos Barões da Pisadinha segue como to-download."
+
+- title: "Balanço da Rede"
+  artist: "Xand Avião"
+  genre: forro-piseiro
+  bpm: null
+  key: null
+  energy: 6
+  status: downloaded
+  tags: [forro, forro-eletronico]

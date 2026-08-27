@@ -48,6 +48,18 @@ Axé and its retro / pagodão baiano cousins — festive, singalong Bahian party
 An **open-format** lane: joined to its neighbors by cuts and echo-outs, not blends.
 - **BPM:** ~100–115 · **Energy:** 6–8 · **Feel:** festive, singalong, party.
 
+### `funk-pop`
+Funk comercial / crossover — o funk que virou pop de rádio e festa: Pedro Sampaio,
+Anitta, Lexa, Ludmilla, Kevinho, MC Zaac, MC G15, Gloria Groove, IZA, Dennis. Base de funk
+(às vezes mandelão) com produção pop; recognition-first, encaixa em bloco open-format.
+Ponte natural entre `brazilian-funk`, `pop-dance` e `global-bass`.
+- **BPM:** ~125–150 · **Energy:** 6–9 · **Feel:** comercial, cantar junto, festa.
+
+### `funk-anos-2000`
+Funk dos anos 2000 — a era Furacão 2000: funk melody, funk de bonde, passinho e
+montagens. Nostalgia pura de festa retrô (Bonde do Tigrão, MC Créu, Furacão 2000).
+- **BPM:** ~128–150 · **Energy:** 6–9 · **Feel:** nostálgico, festa, retrô.
+
 ### `mpb-bossa`
 MPB, bossa nova, tropicália, and their downtempo/electronic reinterpretations.
 Warmup and cooldown gold; also `tecnobrega`/`brega` textures.
