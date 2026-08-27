@@ -1,0 +1,14 @@
+# tracks/pop-dance.yml — Pop / Dance pool for the `pop-dance` node (unordered).
+# status: downloaded = já está na sua pasta local; to-download = ainda buscar.
+# bpm/key = null até analisar no Serato. energy = chute inicial, ajuste à vontade.
+
+- title: "Eu Gosto Assim (Dennis Remix)"
+  artist: "Mari Fernandez"
+  remixer: "Dennis"
+  genre: pop-dance
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [remix, dancefloor, br, singalong]
+  notes: "Remix dancefloor do piseiro da Mari; movido do forro-piseiro pra cá. Ponte natural piseiro <-> pop-dance."
