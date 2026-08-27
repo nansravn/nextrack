@@ -1,0 +1,228 @@
+# =============================================================================
+# NEXTRACK — GENRE GRAPH
+# =============================================================================
+# Genres are NODES. Edges (`neighbors`) describe how to travel between them:
+# the BPM path, the rhythmic/harmonic bridge, and how reliable the move is.
+# This is the navigation map — the track catalog is a separate, unordered pool.
+#
+# Node schema:
+#   id:         kebab-case, stable, referenced by tracks (`genre: <id>`)
+#   name:       human label
+#   family:     brazilian | global
+#   bpm:        [min, max] typical
+#   energy:     [min, max] on the 1-10 scale (see docs/energy-arcs.md)
+#   feel:       short mood tags
+#   subgenres:  finer detail within the node
+#   neighbors:  edges — how to move OUT of this node
+#     to:       target node id
+#     strength: strong | medium | weak   (how reliably it works)
+#     via:      the technique/bridge that makes the move work
+#
+# Edges are directional here for clarity but most are two-way in practice.
+# This is a STARTING map — refine strengths and add edges as you learn the room.
+# Visualize it in docs/genre-graph.md (Mermaid).
+# =============================================================================
+
+nodes:
+
+  # --------------------------- BRAZILIAN --------------------------------------
+
+  - id: brazilian-funk
+    name: Funk (carioca / mandelão)
+    family: brazilian
+    bpm: [125, 160]
+    energy: [6, 10]
+    feel: [peak, rhythmic, vocal]
+    subgenres: [funk-130, funk-150-mandelao, brega-funk, funk-melody, rasteirinha]
+    neighbors:
+      - {to: global-bass,     strength: strong, via: "shared rhythmic DNA; match dembow/baile groove"}
+      - {to: afro-house,      strength: medium, via: "double/half-time (150 <-> ~122); ride the percussion"}
+      - {to: brazilian-bass,  strength: medium, via: "drop to ~126; keep BR identity, smooth the low end"}
+      - {to: afro-brasileiro, strength: strong, via: "percussion bridge; a BR-native cooldown from peak"}
+
+  - id: brazilian-bass
+    name: Brazilian Bass
+    family: brazilian
+    bpm: [120, 128]
+    energy: [5, 8]
+    feel: [melodic, driving, radio-friendly]
+    subgenres: [festival, deep-brazilian-bass]
+    neighbors:
+      - {to: tech-house,           strength: strong, via: "same tempo band; swap bassline for groove"}
+      - {to: melodic-house-techno, strength: strong, via: "lift the melody, build energy"}
+      - {to: deep-house,           strength: medium, via: "ease down in energy, keep the groove"}
+      - {to: brazilian-funk,       strength: medium, via: "inject BR identity for a peak moment"}
+
+  - id: afro-brasileiro
+    name: Afro-Brasileiro
+    family: brazilian
+    bpm: [118, 125]
+    energy: [5, 8]
+    feel: [percussive, hypnotic, warm]
+    subgenres: [afro-batuque, berimbau-house, organic-br]
+    neighbors:
+      - {to: afro-house,      strength: strong, via: "near-identical tempo/feel; global<->BR percussion"}
+      - {to: organic-house,   strength: strong, via: "soften percussion, keep texture"}
+      - {to: amapiano,        strength: medium, via: "drop tempo, lean into log-drum space"}
+      - {to: samba-pagode,    strength: medium, via: "acoustic percussion bridge for an identity moment"}
+
+  - id: samba-pagode
+    name: Samba / Pagode
+    family: brazilian
+    bpm: [95, 105]
+    energy: [4, 7]
+    feel: [joyful, swung, vocal]
+    subgenres: [samba, pagode, samba-rock, samba-house, roda-eletronica]
+    neighbors:
+      - {to: afro-brasileiro, strength: medium, via: "electronic edit; ramp tempo into afro percussion"}
+      - {to: nu-disco-funk,   strength: medium, via: "shared swing/groove; vocal crossover"}
+      - {to: mpb-bossa,       strength: strong, via: "acoustic/melodic cooldown, same lineage"}
+
+  - id: forro-piseiro
+    name: Forró / Piseiro
+    family: brazilian
+    bpm: [120, 140]
+    energy: [5, 8]
+    feel: [danceable, romantic, regional]
+    subgenres: [forro-eletronico, piseiro, arrocha, forro-pe-de-serra]
+    neighbors:
+      - {to: sertanejo,       strength: strong, via: "adjacent crowd + singalong energy"}
+      - {to: brazilian-funk,  strength: medium, via: "regional crossover; lift to peak"}
+      - {to: samba-pagode,    strength: weak,   via: "acoustic/party bridge, watch the tempo gap"}
+
+  - id: sertanejo
+    name: Sertanejo
+    family: brazilian
+    bpm: [120, 160]
+    energy: [3, 7]
+    feel: [singalong, romantic, crowd-moment]
+    subgenres: [universitario, sofrencia, agronejo]
+    neighbors:
+      - {to: forro-piseiro,   strength: strong, via: "shared audience; keep the party going"}
+      - {to: mpb-bossa,       strength: medium, via: "slow it to a warm singalong cooldown"}
+
+  - id: mpb-bossa
+    name: MPB / Bossa / Tecnobrega
+    family: brazilian
+    bpm: [90, 115]
+    energy: [2, 5]
+    feel: [warm, nostalgic, melodic]
+    subgenres: [mpb, bossa-nova, tropicalia, tecnobrega, brega]
+    neighbors:
+      - {to: organic-house,   strength: strong, via: "downtempo electronic reinterpretation; warmup"}
+      - {to: samba-pagode,    strength: strong, via: "same lineage, lift the swing"}
+      - {to: amapiano,        strength: weak,   via: "spacious, patient bridge upward"}
+
+  # ----------------------------- GLOBAL ---------------------------------------
+
+  - id: organic-house
+    name: Organic House
+    family: global
+    bpm: [108, 122]
+    energy: [3, 6]
+    feel: [warm, textured, hypnotic]
+    subgenres: [downtempo, organic, sunset-house]
+    neighbors:
+      - {to: afro-house,      strength: strong, via: "add percussion, lift energy"}
+      - {to: deep-house,      strength: strong, via: "tighten the groove, raise tempo slightly"}
+      - {to: afro-brasileiro, strength: strong, via: "swap in BR percussion textures"}
+      - {to: mpb-bossa,       strength: strong, via: "pull down to a warm/acoustic moment"}
+
+  - id: deep-house
+    name: Deep House
+    family: global
+    bpm: [118, 124]
+    energy: [4, 7]
+    feel: [smooth, groovy]
+    subgenres: [soulful, deep, lo-fi-house]
+    neighbors:
+      - {to: tech-house,      strength: strong, via: "raise energy, punchier drums"}
+      - {to: afro-house,      strength: strong, via: "add percussion, keep the groove"}
+      - {to: organic-house,   strength: strong, via: "soften for a warmup dip"}
+      - {to: nu-disco-funk,   strength: medium, via: "vocal/disco crossover"}
+
+  - id: tech-house
+    name: Tech House
+    family: global
+    bpm: [122, 128]
+    energy: [6, 9]
+    feel: [driving, percussive]
+    subgenres: [tech-house, minimal, bass-house]
+    neighbors:
+      - {to: brazilian-bass,  strength: strong, via: "same tempo; swap groove for melodic bass"}
+      - {to: techno-peak,     strength: medium, via: "strip melody, push tempo up"}
+      - {to: deep-house,      strength: strong, via: "ease down between peaks"}
+      - {to: melodic-house-techno, strength: medium, via: "introduce melody for a lift"}
+
+  - id: afro-house
+    name: Afro House
+    family: global
+    bpm: [118, 125]
+    energy: [5, 8]
+    feel: [percussive, deep, emotive]
+    subgenres: [afro-house, afro-tech, 3-step]
+    neighbors:
+      - {to: afro-brasileiro, strength: strong, via: "swap global percussion for BR percussion"}
+      - {to: amapiano,        strength: strong, via: "drop tempo, lean into log-drum"}
+      - {to: melodic-house-techno, strength: medium, via: "raise the emotional melody"}
+      - {to: organic-house,   strength: strong, via: "soften into a warm plateau"}
+
+  - id: amapiano
+    name: Amapiano
+    family: global
+    bpm: [108, 118]
+    energy: [4, 7]
+    feel: [spacious, swung, hypnotic]
+    subgenres: [amapiano, private-school, afro-piano]
+    neighbors:
+      - {to: afro-house,      strength: strong, via: "lift tempo/energy into 4-on-the-floor"}
+      - {to: afro-brasileiro, strength: medium, via: "shared percussive space; BR flavor"}
+      - {to: organic-house,   strength: medium, via: "keep it spacious, add warmth"}
+
+  - id: melodic-house-techno
+    name: Melodic House & Techno
+    family: global
+    bpm: [120, 126]
+    energy: [6, 9]
+    feel: [cinematic, euphoric, dark]
+    subgenres: [melodic-house, melodic-techno, progressive]
+    neighbors:
+      - {to: techno-peak,     strength: strong, via: "darken, push tempo, drop the melody"}
+      - {to: tech-house,      strength: medium, via: "strip back to a groove between builds"}
+      - {to: brazilian-bass,  strength: strong, via: "shared melodic sensibility; add BR bass"}
+      - {to: afro-house,      strength: medium, via: "swap drive for percussion"}
+
+  - id: techno-peak
+    name: Techno (peak-time / driving)
+    family: global
+    bpm: [128, 145]
+    energy: [8, 10]
+    feel: [relentless, hypnotic, hard]
+    subgenres: [peak-time, driving, hard-groove]
+    neighbors:
+      - {to: melodic-house-techno, strength: strong, via: "bring melody back, ease tempo down"}
+      - {to: tech-house,      strength: medium, via: "half-time feel, lighten the drums"}
+
+  - id: nu-disco-funk
+    name: Nu-Disco / Funk (US) / Indie Dance
+    family: global
+    bpm: [110, 124]
+    energy: [4, 7]
+    feel: [groovy, joyful, retro]
+    subgenres: [nu-disco, french-touch, boogie, indie-dance]
+    neighbors:
+      - {to: deep-house,      strength: strong, via: "tighten into a house groove"}
+      - {to: samba-pagode,    strength: medium, via: "swing/vocal crossover, BR identity"}
+      - {to: organic-house,   strength: medium, via: "warm, textured dip"}
+
+  - id: global-bass
+    name: Global Bass (baile / moombahton / reggaeton / guaracha)
+    family: global
+    bpm: [90, 130]
+    energy: [6, 9]
+    feel: [rhythmic, tropical, vocal]
+    subgenres: [moombahton, reggaeton, dembow, baile-global, guaracha]
+    neighbors:
+      - {to: brazilian-funk,  strength: strong, via: "shared rhythmic DNA; ramp to the baile"}
+      - {to: tech-house,      strength: medium, via: "resolve to 4-on-the-floor, raise tempo"}
+      - {to: afro-house,      strength: medium, via: "percussion bridge into deeper territory"}

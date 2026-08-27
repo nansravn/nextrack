@@ -1,0 +1,43 @@
+# NEXTRACK — this repo documents and organizes music. It never stores audio.
+# The audio you download from Beatport / Tidal lives on your drive, in folders
+# that MIRROR this structure, but is git-ignored to keep the repo legal & light.
+
+# --- Audio files (never commit copyrighted downloads) ---
+*.mp3
+*.wav
+*.flac
+*.aiff
+*.aif
+*.m4a
+*.aac
+*.ogg
+*.wma
+*.alac
+
+# --- Video / lightshow renders ---
+*.mp4
+*.mov
+*.avi
+
+# --- DJ software exports / caches (rekordbox, Serato, Traktor, engine) ---
+*.pls
+*.m3u8
+/PIONEER/
+/Serato/
+/Contents/
+*.anlz
+*.DAT
+
+# --- Local audio drop folders (mirror the repo layout on disk) ---
+/audio/
+/downloads/
+/library/
+
+# --- OS / editor junk ---
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*~
+.idea/
+.vscode/
