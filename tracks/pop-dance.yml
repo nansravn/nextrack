@@ -12,3 +12,211 @@
   status: downloaded
   tags: [remix, dancefloor, br, singalong]
   notes: "Remix dancefloor do piseiro da Mari; movido do forro-piseiro pra cá. Ponte natural piseiro <-> pop-dance."
+
+# --- Eletrohits (clássicos da eletrônica, hits no BR) ---
+- title: "Love Generation"
+  artist: "Bob Sinclar"
+  genre: pop-dance
+  bpm: null
+  key: null
+  energy: 6
+  status: downloaded
+  tags: [eletrohits, house, summer, singalong]
+
+- title: "Rock This Party (Everybody Dance Now)"
+  artist: "Bob Sinclar"
+  genre: pop-dance
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [eletrohits, house, party]
+
+- title: "What A Feeling (Flashdance)"
+  artist: "Global Deejays"
+  genre: pop-dance
+  bpm: null
+  key: null
+  energy: 6
+  status: downloaded
+  tags: [eletrohits, eurodance, singalong]
+
+- title: "Movin On"
+  artist: "Ian Van Dahl"
+  genre: pop-dance
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [eletrohits, eurodance, trance]
+
+- title: "I Don't Know Why"
+  artist: "Moony"
+  genre: pop-dance
+  bpm: null
+  key: null
+  energy: 6
+  status: downloaded
+  tags: [eletrohits, eurodance]
+
+- title: "Call on Me"
+  artist: "Eric Prydz"
+  genre: pop-dance
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [eletrohits, house, singalong]
+
+- title: "Proper Education"
+  artist: "Eric Prydz"
+  genre: pop-dance
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [eletrohits, house]
+
+- title: "Sexy Bitch"
+  artist: "David Guetta"
+  genre: pop-dance
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [eletrohits, dance-pop, singalong]
+
+- title: "Titanium"
+  artist: "David Guetta"
+  genre: pop-dance
+  bpm: null
+  key: null
+  energy: 8
+  status: downloaded
+  tags: [eletrohits, dance-pop, singalong]
+
+- title: "Love Is Gone"
+  artist: "David Guetta"
+  genre: pop-dance
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [eletrohits, house]
+
+- title: "Where Them Girls At"
+  artist: "David Guetta"
+  genre: pop-dance
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [eletrohits, dance-pop]
+
+- title: "Axel F"
+  artist: "Crazy Frog"
+  genre: pop-dance
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [eletrohits, novelty, nostalgia]
+
+- title: "All I Ever Wanted"
+  artist: "Basshunter"
+  genre: pop-dance
+  bpm: null
+  key: null
+  energy: 8
+  status: downloaded
+  tags: [eletrohits, eurodance, singalong]
+
+- title: "Pump It Up"
+  artist: "Danzel"
+  genre: pop-dance
+  bpm: null
+  key: null
+  energy: 8
+  status: downloaded
+  tags: [eletrohits, eurodance, party]
+
+- title: "Don't You Worry Child"
+  artist: "Swedish House Mafia"
+  genre: pop-dance
+  bpm: null
+  key: null
+  energy: 9
+  status: downloaded
+  tags: [eletrohits, house, euphoric, singalong]
+
+- title: "One (Your Name)"
+  artist: "Swedish House Mafia"
+  genre: pop-dance
+  bpm: null
+  key: null
+  energy: 8
+  status: downloaded
+  tags: [eletrohits, house, peak]
+
+- title: "Barbra Streisand"
+  artist: "Duck Sauce"
+  genre: pop-dance
+  bpm: null
+  key: null
+  energy: 8
+  status: downloaded
+  tags: [eletrohits, house, fun]
+
+- title: "Shining Star"
+  artist: "Get Far"
+  genre: pop-dance
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [eletrohits, eurodance]
+
+- title: "Get Up (In The Club)"
+  artist: "DJ Ross"
+  genre: pop-dance
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [eletrohits, eurodance]
+
+- title: "California Dreamin'"
+  artist: "Royal Gigolos"
+  genre: pop-dance
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [eletrohits, eurodance]
+
+- title: "The Killer's Song"
+  artist: "Carolina Marquez"
+  genre: pop-dance
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [eletrohits, eurodance]
+
+- title: "Like A G6"
+  artist: "Far East Movement"
+  genre: pop-dance
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [eletrohits, dance-pop]
+
+- title: "Astronomia"
+  artist: "Tony Igy"
+  genre: pop-dance
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [eletrohits, house]

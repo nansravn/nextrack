@@ -361,3 +361,12 @@
   energy: 7
   status: downloaded
   tags: [funk-pop, tiktok]
+
+- title: "Malemolência"
+  artist: "Dynho Alves"
+  genre: funk-pop
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [funk-pop, funk]

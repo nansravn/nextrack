@@ -1,0 +1,50 @@
+# tracks/pagodao-baiano.yml — Pagodão baiano pool for the `pagodao-baiano` node (unordered).
+# Swingueira / arrocha-pagode da Bahia (Léo Santana, Parangolé...).
+# status: downloaded = já está na pasta local. bpm/key = null até analisar no Serato.
+
+- title: "Vai no Cavalinho"
+  artist: "Banda Gasparzinho"
+  genre: pagodao-baiano
+  bpm: null
+  key: null
+  energy: 8
+  status: downloaded
+  tags: [pagodao-baiano, swingueira, party]
+  notes: "Versão swingueira/paredão do hit de funk 'Vai no Cavalinho' (MC Serginho)."
+
+# --- Léo Santana ---
+- title: "Zona de Perigo"
+  artist: "Léo Santana"
+  genre: pagodao-baiano
+  bpm: null
+  key: null
+  energy: 8
+  status: downloaded
+  tags: [pagodao-baiano, arrocha-pagode, singalong]
+
+- title: "Contatinho"
+  artist: "Léo Santana"
+  genre: pagodao-baiano
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [pagodao-baiano, arrocha-pagode]
+
+- title: "Perna Bamba"
+  artist: "Léo Santana"
+  genre: pagodao-baiano
+  bpm: null
+  key: null
+  energy: 8
+  status: downloaded
+  tags: [pagodao-baiano, swingueira, party]
+
+- title: "Desliza (Ólhinho No Corpinho)"
+  artist: "Léo Santana"
+  genre: pagodao-baiano
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [pagodao-baiano, swingueira]

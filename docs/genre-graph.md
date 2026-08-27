@@ -51,6 +51,7 @@ graph LR
     AXE["axe"]
     FUNKPOP["funk-pop"]
     FUNK2000["funk-anos-2000"]
+    PAGBA["pagodao-baiano"]
   end
   subgraph GL["🌍 Global"]
     ORG["organic-house"]
@@ -63,6 +64,7 @@ graph LR
     DISCO["nu-disco-funk"]
     GBASS["global-bass"]
     POPD["pop-dance"]
+    THB["tech-house-br"]
   end
 
   FUNK --- GBASS
@@ -117,6 +119,14 @@ graph LR
   FUNK2000 --- FUNKPOP
   FUNK2000 -.-> POPD
   FUNK2000 -.-> GBASS
+
+  PAGBA --- AXE
+  PAGBA -.-> SAMBA
+  PAGBA -.-> FUNKPOP
+
+  THB --- TECH
+  THB --- BBASS
+  THB -.-> POPD
 ```
 
 ## Reading a journey off the map

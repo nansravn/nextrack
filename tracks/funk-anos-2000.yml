@@ -112,3 +112,146 @@
   energy: 7
   status: downloaded
   tags: [funk-anos-2000, retro]
+
+# --- Funk melody / MCs ---
+- title: "Ela Só Pensa em Beijar"
+  artist: "MC Leozinho"
+  genre: funk-anos-2000
+  bpm: null
+  key: null
+  energy: 8
+  status: downloaded
+  tags: [funk-anos-2000, funk-melody, singalong, retro]
+  notes: "aka Se Ela Dança Eu Danço (Rmx DJ Marlboro) — o hino do Leozinho."
+
+- title: "Tô Tranquilão"
+  artist: "MC Leozinho"
+  genre: funk-anos-2000
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [funk-anos-2000, funk-melody, retro]
+
+- title: "Só Zueira"
+  artist: "MC Leozinho"
+  genre: funk-anos-2000
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [funk-anos-2000, retro]
+
+- title: "Toda Gostosa"
+  artist: "MC Leozinho"
+  genre: funk-anos-2000
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [funk-anos-2000, retro]
+
+- title: "Vou Desafiar Você"
+  artist: "MC Sapão"
+  genre: funk-anos-2000
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [funk-anos-2000, retro]
+
+- title: "Tô Tranquilão (Dennis 2005)"
+  artist: "MC Sapão"
+  genre: funk-anos-2000
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [funk-anos-2000, retro]
+
+- title: "Eguinha Pocotó"
+  artist: "MC Serginho"
+  genre: funk-anos-2000
+  bpm: null
+  key: null
+  energy: 8
+  status: downloaded
+  tags: [funk-anos-2000, party, retro]
+
+# --- DJ Marlboro (clássicos do funk carioca) ---
+- title: "Glamourosa (Rap Glamurosa)"
+  artist: "DJ Marlboro"
+  genre: funk-anos-2000
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [funk-anos-2000, retro]
+  notes: "'Glamurosa' do MC Marcinho."
+
+- title: "Boladona"
+  artist: "DJ Marlboro"
+  genre: funk-anos-2000
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [funk-anos-2000, retro]
+  notes: "'Boladona' da Tati Quebra Barraco."
+
+- title: "Atoladinha (Enterradinha)"
+  artist: "DJ Marlboro"
+  genre: funk-anos-2000
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [funk-anos-2000, retro]
+
+- title: "Vira De Ladinho"
+  artist: "DJ Marlboro"
+  genre: funk-anos-2000
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [funk-anos-2000, retro]
+
+- title: "Um Morto Muito Louco"
+  artist: "DJ Marlboro"
+  genre: funk-anos-2000
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [funk-anos-2000, retro]
+
+# --- Pop-funk / clássicos ---
+- title: "Festa no Apê"
+  artist: "Latino"
+  genre: funk-anos-2000
+  bpm: null
+  key: null
+  energy: 8
+  status: downloaded
+  tags: [funk-anos-2000, pop-funk, singalong, retro]
+  notes: "3 arquivos na pasta (flac + 2 mp3, um deles remix 'Lalá')."
+
+- title: "Tremendo Vacilão"
+  artist: "Perlla"
+  genre: funk-anos-2000
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [funk-anos-2000, pop-funk, retro]
+
+- title: "Cerol na Mão"
+  artist: "Bonde do Tigrão"
+  genre: funk-anos-2000
+  bpm: null
+  key: null
+  energy: 8
+  status: downloaded
+  tags: [funk-anos-2000, funk-de-bonde, party, retro]
+  notes: "Arquivo creditado a Furacão 2000."

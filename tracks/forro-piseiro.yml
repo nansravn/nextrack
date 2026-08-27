@@ -331,3 +331,12 @@
   energy: 6
   status: downloaded
   tags: [forro, forro-eletronico]
+
+- title: "Meia Noite"
+  artist: "Zé Vaqueiro"
+  genre: forro-piseiro
+  bpm: null
+  key: null
+  energy: 6
+  status: downloaded
+  tags: [piseiro, arrocha, romantic]

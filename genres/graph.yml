@@ -56,6 +56,7 @@ nodes:
       - {to: melodic-house-techno, strength: strong, via: "lift the melody, build energy"}
       - {to: deep-house,           strength: medium, via: "ease down in energy, keep the groove"}
       - {to: brazilian-funk,       strength: medium, via: "inject BR identity for a peak moment"}
+      - {to: tech-house-br,        strength: strong, via: "BR house sibling; blend"}
 
   - id: afro-brasileiro
     name: Afro-Brasileiro
@@ -159,6 +160,7 @@ nodes:
       - {to: techno-peak,     strength: medium, via: "strip melody, push tempo up"}
       - {to: deep-house,      strength: strong, via: "ease down between peaks"}
       - {to: melodic-house-techno, strength: medium, via: "introduce melody for a lift"}
+      - {to: tech-house-br,   strength: strong, via: "BR tech-house/slap; same groove, blend direct"}
 
   - id: afro-house
     name: Afro House
@@ -244,13 +246,14 @@ nodes:
     bpm: [100, 115]
     energy: [6, 8]
     feel: [festive, singalong, party]
-    subgenres: [axe-music, axe-retro, pagodao-baiano]
+    subgenres: [axe-music, axe-retro]
     neighbors:
       - {to: brazilian-funk,  strength: strong, via: "lift to peak; hard cut on the downbeat"}
       - {to: samba-pagode,    strength: strong, via: "acoustic party bridge; echo out across the BPM gap"}
       - {to: forro-piseiro,   strength: medium, via: "shared NE party crowd; keep the singalong going"}
       - {to: pop-dance,       strength: medium, via: "commercial crossover; echo out or hard cut"}
       - {to: funk-pop,        strength: medium, via: "party funk crossover; hard cut on the downbeat"}
+      - {to: pagodao-baiano,  strength: strong, via: "Bahian party sibling; keep the swing"}
 
   - id: pop-dance
     name: Pop / Dance (commercial · 2000s throwback)
@@ -267,6 +270,7 @@ nodes:
       - {to: tech-house,      strength: medium, via: "resolve to 4-on-the-floor for a dance block"}
       - {to: funk-pop,        strength: strong, via: "commercial funk crossover; hard cut on the hook"}
       - {to: funk-anos-2000,  strength: medium, via: "2000s throwback party; hard cut"}
+      - {to: tech-house-br,   strength: medium, via: "modern remixes of the eletrohits classics; blend"}
 
   - id: funk-pop
     name: Funk-Pop (commercial funk / crossover)
@@ -294,3 +298,28 @@ nodes:
       - {to: funk-pop,        strength: strong, via: "nostalgia into commercial funk; play the hook"}
       - {to: global-bass,     strength: medium, via: "miami-bass roots; hard cut"}
       - {to: pop-dance,       strength: medium, via: "2000s throwback party; echo out"}
+
+  - id: pagodao-baiano
+    name: Pagodão Baiano (swingueira / arrocha-pagode)
+    family: brazilian
+    bpm: [100, 130]
+    energy: [6, 9]
+    feel: [festive, party, singalong, bahian]
+    subgenres: [swingueira, arrocha-pagode, pagodao]
+    neighbors:
+      - {to: axe,             strength: strong, via: "same Bahian party family; keep the singalong"}
+      - {to: samba-pagode,    strength: medium, via: "pagode roots; ramp the swing"}
+      - {to: funk-pop,        strength: medium, via: "party crossover; hard cut on the hook"}
+
+  - id: tech-house-br
+    name: Tech-House BR (Dubdogz / Vintage Culture / slap house)
+    family: brazilian
+    bpm: [122, 128]
+    energy: [6, 9]
+    feel: [driving, groovy, festival, brazilian]
+    subgenres: [tech-house, slap-house, brazilian-bass, bass-house]
+    neighbors:
+      - {to: tech-house,      strength: strong, via: "same tech-house groove; blend direct"}
+      - {to: brazilian-bass,  strength: strong, via: "BR house sibling; blend"}
+      - {to: pop-dance,       strength: medium, via: "these ARE remixes of the eletrohits classics"}
+      - {to: melodic-house-techno, strength: medium, via: "lift the melody for a build"}

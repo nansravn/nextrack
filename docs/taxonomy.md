@@ -48,6 +48,11 @@ Axé and its retro / pagodão baiano cousins — festive, singalong Bahian party
 An **open-format** lane: joined to its neighbors by cuts and echo-outs, not blends.
 - **BPM:** ~100–115 · **Energy:** 6–8 · **Feel:** festive, singalong, party.
 
+### `pagodao-baiano`
+Pagodão baiano / swingueira / arrocha-pagode — a festa da Bahia (Léo Santana,
+Parangolé, Psirico). Percussão de pagode + refrão de arrocha; irmão do axé.
+- **BPM:** ~100–130 · **Energy:** 6–9 · **Feel:** festivo, festa, cantar junto.
+
 ### `funk-pop`
 Funk comercial / crossover — o funk que virou pop de rádio e festa: Pedro Sampaio,
 Anitta, Lexa, Ludmilla, Kevinho, MC Zaac, MC G15, Gloria Groove, IZA, Dennis. Base de funk
@@ -117,6 +122,12 @@ Commercial pop and dance — radio pop, dance-pop, eurodance, and the 2000s-thro
 palette that powers themed parties. An **open-format** lane: play the hook, join
 blocks with cuts, echo-outs, and FX rather than long blends.
 - **BPM:** ~100–132 (often flat) · **Energy:** 5–9 · **Feel:** commercial, singalong, throwback.
+
+### `tech-house-br`
+Tech-house / slap house brasileiro — a leva Dubdogz, Vintage Culture e cia:
+remixes e originais de festival, feitos pra mixar. Muitos são versões modernas
+dos próprios clássicos eletrohits.
+- **BPM:** ~122–128 · **Energy:** 6–9 · **Feel:** driving, groovy, festival.
 
 ---
 
