@@ -33,6 +33,12 @@ Samba, pagode, samba-rock and their electronic edits ("samba-house", roda
 eletrônica). Great for identity moments and singalongs.
 - **BPM:** ~95–105 (edits vary) · **Energy:** 4–7 · **Feel:** joyful, swung, vocal.
 
+### `samba-cover`
+Versões em samba de hits de rock/pop (Grupo Sambô): Valerie, Wake Me Up, Girl On
+Fire… O barato é o reconhecimento do original em roda de samba — lane acústica, de
+cantar junto. Ritmo à parte do resto do crate.
+- **BPM:** ~80–105 · **Energy:** 3–6 · **Feel:** acústico, cantar junto, chill.
+
 ### `forro-piseiro`
 Forró (pé de serra, eletrônico), piseiro, and arrocha. Northeastern dance music;
 piseiro edits sit comfortably in a club tempo.

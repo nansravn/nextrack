@@ -52,6 +52,7 @@ graph LR
     FUNKPOP["funk-pop"]
     FUNK2000["funk-anos-2000"]
     PAGBA["pagodao-baiano"]
+    SAMBACOVER["samba-cover"]
   end
   subgraph GL["🌍 Global"]
     ORG["organic-house"]
@@ -127,6 +128,9 @@ graph LR
   THB --- TECH
   THB --- BBASS
   THB -.-> POPD
+
+  SAMBACOVER --- SAMBA
+  SAMBACOVER --- MPB
 ```
 
 ## Reading a journey off the map

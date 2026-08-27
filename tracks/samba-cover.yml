@@ -1,0 +1,99 @@
+# tracks/samba-cover.yml — Samba-cover pool for the `samba-cover` node (unordered).
+# Versões em samba de hits (Grupo Sambô). Lane acústica, de reconhecimento/roda.
+# status: downloaded (subpasta samba-cover/). bpm/key = null até analisar no Serato.
+
+- title: "Valerie"
+  artist: "Sambô"
+  genre: samba-cover
+  bpm: null
+  key: null
+  energy: 5
+  status: downloaded
+  tags: [samba-cover, cover, singalong]
+  notes: "Versão samba de Amy Winehouse."
+
+- title: "Wake Me Up"
+  artist: "Sambô"
+  genre: samba-cover
+  bpm: null
+  key: null
+  energy: 5
+  status: downloaded
+  tags: [samba-cover, cover, singalong]
+  notes: "Versão samba de Avicii."
+
+- title: "Girl On Fire"
+  artist: "Sambô"
+  genre: samba-cover
+  bpm: null
+  key: null
+  energy: 5
+  status: downloaded
+  tags: [samba-cover, cover, singalong]
+  notes: "Versão samba de Alicia Keys."
+
+- title: "Taj Mahal"
+  artist: "Sambô"
+  genre: samba-cover
+  bpm: null
+  key: null
+  energy: 5
+  status: downloaded
+  tags: [samba-cover, samba-rock]
+  notes: "Jorge Ben."
+
+- title: "Trem das Onze"
+  artist: "Sambô"
+  genre: samba-cover
+  bpm: null
+  key: null
+  energy: 5
+  status: downloaded
+  tags: [samba-cover, samba, singalong]
+  notes: "Adoniran Barbosa."
+
+- title: "Felicidade"
+  artist: "Sambô"
+  genre: samba-cover
+  bpm: null
+  key: null
+  energy: 4
+  status: downloaded
+  tags: [samba-cover, samba]
+
+- title: "Tão Bem"
+  artist: "Sambô"
+  genre: samba-cover
+  bpm: null
+  key: null
+  energy: 4
+  status: downloaded
+  tags: [samba-cover, samba]
+
+- title: "Doidinha por Meu Samba / Caçamba"
+  artist: "Sambô"
+  genre: samba-cover
+  bpm: null
+  key: null
+  energy: 5
+  status: downloaded
+  tags: [samba-cover, samba, medley]
+
+- title: "Pot-Pourri: Não Precisa Mudar / Gostava Tanto de Você"
+  artist: "Sambô"
+  genre: samba-cover
+  bpm: null
+  key: null
+  energy: 4
+  status: downloaded
+  tags: [samba-cover, medley, singalong]
+
+- title: "Falamansa Sambô (Xote dos Milagres / Xote da Alegria / Rindo à Toa)"
+  artist: "Sambô"
+  genre: samba-cover
+  bpm: null
+  key: null
+  energy: 5
+  status: downloaded
+  tags: [samba-cover, medley]
+  notes: "Medley de forró (Falamansa) em versão samba."

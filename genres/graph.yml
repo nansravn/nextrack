@@ -83,6 +83,7 @@ nodes:
       - {to: nu-disco-funk,   strength: medium, via: "shared swing/groove; vocal crossover"}
       - {to: mpb-bossa,       strength: strong, via: "acoustic/melodic cooldown, same lineage"}
       - {to: axe,             strength: strong, via: "baiano party lift; ramp tempo or hard cut"}
+      - {to: samba-cover,     strength: strong, via: "samba versions of hits; a recognition moment"}
 
   - id: forro-piseiro
     name: Forró / Piseiro
@@ -119,6 +120,7 @@ nodes:
       - {to: organic-house,   strength: strong, via: "downtempo electronic reinterpretation; warmup"}
       - {to: samba-pagode,    strength: strong, via: "same lineage, lift the swing"}
       - {to: amapiano,        strength: weak,   via: "spacious, patient bridge upward"}
+      - {to: samba-cover,     strength: strong, via: "acoustic samba covers; warm singalong"}
 
   # ----------------------------- GLOBAL ---------------------------------------
 
@@ -323,3 +325,15 @@ nodes:
       - {to: brazilian-bass,  strength: strong, via: "BR house sibling; blend"}
       - {to: pop-dance,       strength: medium, via: "these ARE remixes of the eletrohits classics"}
       - {to: melodic-house-techno, strength: medium, via: "lift the melody for a build"}
+
+  - id: samba-cover
+    name: Samba-Cover (versões samba de hits — Grupo Sambô)
+    family: brazilian
+    bpm: [80, 105]
+    energy: [3, 6]
+    feel: [acoustic, singalong, recognition, chill]
+    subgenres: [samba, pagode, samba-rock]
+    neighbors:
+      - {to: samba-pagode,    strength: strong, via: "same samba root; ramp into traditional pagode"}
+      - {to: mpb-bossa,       strength: strong, via: "acoustic/melodic cooldown"}
+      - {to: nu-disco-funk,   strength: weak,   via: "vocal/groove crossover if you lift it"}
