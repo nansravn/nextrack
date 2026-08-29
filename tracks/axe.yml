@@ -1,0 +1,286 @@
+# tracks/axe.yml — Axé pool for the `axe` node (unordered).
+# Axé clássico / guitarra-baiana / carnaval (Chiclete, Ivete, Daniela, Timbalada...).
+# Lane open-format, de reconhecimento — o barato é o refrão de trio elétrico.
+# status: downloaded = já está na pasta local (axe/). bpm/key = null até analisar no Serato.
+
+# --- Chiclete com Banana (Bell Marques) ---
+- title: "Voa Voa"
+  artist: "Chiclete com Banana"
+  genre: axe
+  bpm: null
+  key: null
+  energy: 8
+  status: downloaded
+  tags: [axe, axe-retro, singalong]
+
+- title: "Cara Caramba (Sou Camaleão)"
+  artist: "Chiclete com Banana"
+  genre: axe
+  bpm: null
+  key: null
+  energy: 8
+  status: downloaded
+  tags: [axe, axe-retro, carnaval, singalong]
+
+- title: "Quero Chiclete"
+  artist: "Chiclete com Banana"
+  genre: axe
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [axe, axe-retro]
+
+- title: "Cabelo Raspadinho"
+  artist: "Chiclete com Banana"
+  genre: axe
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [axe, axe-retro]
+
+- title: "Meu Cabelo Duro é Assim"
+  artist: "Chiclete com Banana"
+  genre: axe
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [axe, axe-retro]
+
+- title: "Amor Perfeito"
+  artist: "Chiclete com Banana"
+  genre: axe
+  bpm: null
+  key: null
+  energy: 6
+  status: downloaded
+  tags: [axe, axe-retro, romantica]
+
+# --- Ivete Sangalo ---
+- title: "Festa"
+  artist: "Ivete Sangalo"
+  genre: axe
+  bpm: null
+  key: null
+  energy: 8
+  status: downloaded
+  tags: [axe, singalong, carnaval]
+  notes: "Hino máximo — segura pro pico."
+
+- title: "Sorte Grande (Poeira)"
+  artist: "Ivete Sangalo"
+  genre: axe
+  bpm: null
+  key: null
+  energy: 8
+  status: downloaded
+  tags: [axe, singalong, carnaval]
+
+- title: "Macetando"
+  artist: "Ivete Sangalo"
+  genre: axe
+  bpm: null
+  key: null
+  energy: 8
+  status: downloaded
+  tags: [axe, party]
+  notes: "Ivete recente, pancadão — reload moderno."
+
+- title: "Berimbau Metalizado (Ao Vivo)"
+  artist: "Ivete Sangalo"
+  genre: axe
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [axe, ao-vivo]
+
+# --- Daniela Mercury ---
+- title: "O Canto da Cidade"
+  artist: "Daniela Mercury"
+  genre: axe
+  bpm: null
+  key: null
+  energy: 8
+  status: downloaded
+  tags: [axe, axe-retro, singalong]
+  notes: "Hino do axé pop."
+
+- title: "Swing da Cor"
+  artist: "Daniela Mercury"
+  genre: axe
+  bpm: null
+  key: null
+  energy: 8
+  status: downloaded
+  tags: [axe, axe-retro, singalong]
+
+- title: "Nobre Vagabundo"
+  artist: "Daniela Mercury"
+  genre: axe
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [axe, axe-retro]
+
+- title: "Rapunzel"
+  artist: "Daniela Mercury"
+  genre: axe
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [axe, axe-retro]
+
+# --- Timbalada (Carlinhos Brown) ---
+- title: "Beija-Flor"
+  artist: "Timbalada"
+  genre: axe
+  bpm: null
+  key: null
+  energy: 6
+  status: downloaded
+  tags: [axe, percussao, singalong]
+  notes: "Singalong emotivo — bom pra respirar o platô."
+
+- title: "A Luz de Tieta"
+  artist: "Timbalada"
+  genre: axe
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [axe, percussao]
+
+# --- Asa de Águia ---
+- title: "Dança do Vampiro"
+  artist: "Asa de Águia"
+  genre: axe
+  bpm: null
+  key: null
+  energy: 8
+  status: downloaded
+  tags: [axe, axe-retro, danca, novelty]
+
+- title: "Xô Satanás"
+  artist: "Asa de Águia"
+  genre: axe
+  bpm: null
+  key: null
+  energy: 8
+  status: downloaded
+  tags: [axe, axe-retro, carnaval]
+
+- title: "Manivela"
+  artist: "Asa de Águia"
+  genre: axe
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [axe, axe-retro]
+
+- title: "Quebra Aê / Cheio de Graça"
+  artist: "Asa de Águia"
+  genre: axe
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [axe, axe-retro, medley]
+
+# --- Banda Eva (Ivete's old band) ---
+- title: "Eva (Ao Vivo)"
+  artist: "Banda Eva"
+  genre: axe
+  bpm: null
+  key: null
+  energy: 8
+  status: downloaded
+  tags: [axe, singalong, carnaval]
+  notes: "O hino 'Eva' — todo mundo grita."
+
+- title: "Arerê (Ao Vivo)"
+  artist: "Banda Eva"
+  genre: axe
+  bpm: null
+  key: null
+  energy: 8
+  status: downloaded
+  tags: [axe, singalong, carnaval]
+
+- title: "Beleza Rara"
+  artist: "Banda Eva"
+  genre: axe
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [axe, singalong]
+
+- title: "Tic, Tic, Tac"
+  artist: "Banda Eva"
+  genre: axe
+  bpm: null
+  key: null
+  energy: 8
+  status: downloaded
+  tags: [axe, danca, party]
+
+- title: "Levada Louca"
+  artist: "Banda Eva"
+  genre: axe
+  bpm: null
+  key: null
+  energy: 8
+  status: downloaded
+  tags: [axe, party]
+
+- title: "Alô Paixão"
+  artist: "Banda Eva"
+  genre: axe
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [axe, singalong]
+
+- title: "Rua 15 (Ao Vivo)"
+  artist: "Banda Eva"
+  genre: axe
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [axe, ao-vivo]
+
+- title: "Me Abraça"
+  artist: "Banda Eva"
+  genre: axe
+  bpm: null
+  key: null
+  energy: 6
+  status: downloaded
+  tags: [axe, romantica]
+
+- title: "Não Precisa Mudar (Ao Vivo)"
+  artist: "Banda Eva"
+  genre: axe
+  bpm: null
+  key: null
+  energy: 6
+  status: downloaded
+  tags: [axe, romantica, ao-vivo]
+
+# --- Banda Beijo (Netinho) ---
+- title: "Bate Lata"
+  artist: "Banda Beijo"
+  genre: axe
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [axe, axe-retro, percussao]

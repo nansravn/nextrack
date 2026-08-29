@@ -97,3 +97,24 @@
   status: downloaded
   tags: [samba-cover, medley]
   notes: "Medley de forró (Falamansa) em versão samba."
+
+# --- Oba Oba Samba House (samba-house de hits, outro grupo além do Sambô) ---
+- title: "Fricote"
+  artist: "Oba Oba Samba House"
+  genre: samba-cover
+  bpm: null
+  key: null
+  energy: 6
+  status: downloaded
+  tags: [samba-cover, samba-house, cover, singalong]
+  notes: "Versão samba-house do clássico do axé (Luiz Caldas). Ponte pro bloco de axé."
+
+- title: "Na Ponta Ela Fica"
+  artist: "Oba Oba Samba House"
+  genre: samba-cover
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [samba-cover, samba-house, cover, party]
+  notes: "Versão samba-house de hit de funk/pagodão."
