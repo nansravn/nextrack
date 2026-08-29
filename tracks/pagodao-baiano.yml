@@ -48,3 +48,180 @@
   energy: 7
   status: downloaded
   tags: [pagodao-baiano, swingueira]
+
+# --- Pagode baiano anos 90/2000 (retrô — dança da bundinha & cia) ---
+# A raiz da linhagem: percussão + coreografia. Lane open-format, de reconhecimento.
+
+# É o Tchan
+- title: "Dança do Bumbum"
+  artist: "É o Tchan"
+  genre: pagodao-baiano
+  bpm: null
+  key: null
+  energy: 8
+  status: downloaded
+  tags: [pagodao-baiano, pagode-baiano-90s, retro, danca]
+
+- title: "Medley: Pau Que Nasce Torto / Melô do Tchan"
+  artist: "É o Tchan"
+  genre: pagodao-baiano
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [pagodao-baiano, pagode-baiano-90s, retro, medley, singalong]
+
+# As Meninas
+- title: "Xibom Bombom"
+  artist: "As Meninas"
+  genre: pagodao-baiano
+  bpm: null
+  key: null
+  energy: 6
+  status: downloaded
+  tags: [pagodao-baiano, pagode-baiano-90s, retro, singalong]
+  notes: "Melódico, todo mundo canta — boa abertura."
+
+# Companhia do Pagode
+- title: "Na Boquinha da Garrafa"
+  artist: "Companhia do Pagode"
+  genre: pagodao-baiano
+  bpm: null
+  key: null
+  energy: 8
+  status: downloaded
+  tags: [pagodao-baiano, pagode-baiano-90s, retro, danca]
+  notes: "A clássica dança da boquinha (versão Cia do Pagode)."
+
+- title: "Sanduíche"
+  artist: "Companhia do Pagode"
+  genre: pagodao-baiano
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [pagodao-baiano, pagode-baiano-90s, retro]
+
+# Harmonia do Samba (Xanddy)
+- title: "Vem Neném (Ao Vivo)"
+  artist: "Harmonia do Samba"
+  genre: pagodao-baiano
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [pagodao-baiano, pagode-baiano-90s, retro, singalong]
+
+- title: "O Rodo"
+  artist: "Harmonia do Samba"
+  genre: pagodao-baiano
+  bpm: null
+  key: null
+  energy: 8
+  status: downloaded
+  tags: [pagodao-baiano, pagode-baiano-90s, retro, party]
+
+- title: "Nossa Paradinha"
+  artist: "Harmonia do Samba"
+  genre: pagodao-baiano
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [pagodao-baiano, pagode-baiano-90s, retro]
+
+- title: "Desafio"
+  artist: "Harmonia do Samba"
+  genre: pagodao-baiano
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [pagodao-baiano, pagode-baiano-90s, retro]
+
+# Tchakabum
+- title: "Onda Onda (Olha a Onda)"
+  artist: "Tchakabum"
+  genre: pagodao-baiano
+  bpm: null
+  key: null
+  energy: 8
+  status: downloaded
+  tags: [pagodao-baiano, pagode-baiano-90s, retro, danca, singalong]
+
+- title: "Explosão"
+  artist: "Tchakabum"
+  genre: pagodao-baiano
+  bpm: null
+  key: null
+  energy: 8
+  status: downloaded
+  tags: [pagodao-baiano, pagode-baiano-90s, retro, party]
+
+- title: "Dança da Mãozinha"
+  artist: "Tchakabum"
+  genre: pagodao-baiano
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [pagodao-baiano, pagode-baiano-90s, retro, danca]
+
+- title: "Tubarão Te Amo"
+  artist: "Tchakabum"
+  genre: pagodao-baiano
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [pagodao-baiano, pagode-baiano-90s, retro, novelty]
+
+# Terra Samba
+- title: "Carrinho de Mão"
+  artist: "Terra Samba"
+  genre: pagodao-baiano
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [pagodao-baiano, pagode-baiano-90s, retro]
+
+- title: "Na Manteiga"
+  artist: "Terra Samba"
+  genre: pagodao-baiano
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [pagodao-baiano, pagode-baiano-90s, retro, danca]
+
+- title: "Banho de Chuveiro"
+  artist: "Terra Samba"
+  genre: pagodao-baiano
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [pagodao-baiano, pagode-baiano-90s, retro]
+
+# Filhos de Jorge
+- title: "Ziriguidum"
+  artist: "Filhos de Jorge"
+  genre: pagodao-baiano
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [pagodao-baiano, pagode-baiano-90s, retro]
+  notes: "Pagode baiano mais 2000s; ponte pro moderno."
+
+# Só Pra Contrariar (pagode nacional, mas entra na festa retrô)
+- title: "A Barata (Ao Vivo)"
+  artist: "Só Pra Contrariar"
+  genre: pagodao-baiano
+  bpm: null
+  key: null
+  energy: 7
+  status: downloaded
+  tags: [pagodao-baiano, pagode-baiano-90s, retro, pagode-nacional, novelty]
+  notes: "SPC é pagode paulista, não baiano — mas 'A Barata' é festa/dança retrô."
