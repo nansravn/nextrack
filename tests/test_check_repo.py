@@ -325,3 +325,260 @@ def test_is_int_rejects_bool():
 )
 def test_is_range(value, kwargs, expected):
     assert is_range(value, **kwargs) is expected
+
+
+# ------------------------------------------------------------ graph rules ----
+
+GRAPH = "genres/graph.yml"
+GRAPH_RULES = {
+    "graph-node-schema",
+    "graph-unique-ids",
+    "graph-edge-schema",
+    "graph-edges-resolve",
+    "graph-node-connected",
+}
+# Gamma's only edge, and the line that follows it in the file.
+GAMMA_EDGE = '      - {to: beta,  strength: medium, via: "ease down"}\n'
+GAMMA_NEIGHBORS = "    neighbors:\n" + GAMMA_EDGE
+GAMMA_SELF = '      - {to: gamma, strength: weak, via: "self"}\n'
+GAMMA_AGAIN = '      - {to: beta, strength: weak, via: "again"}\n'
+
+
+def graph_findings(mini_repo, rule_id):
+    """`(line, message)` for every finding of one rule on the graph."""
+    return [(f.line, f.message) for f in check(mini_repo.root) if f.rule == rule_id]
+
+
+def test_graph_rules_are_registered():
+    assert {fn.rule_id for fn in check_repo.RULES} >= GRAPH_RULES
+
+
+@pytest.mark.parametrize(
+    ("old", "new", "anchor"),
+    [
+        ("    name: Beta\n", "", "- id: beta"),
+        ("    name: Gamma\n    family: global", "    name: Gamma\n    family: world", "- id: gamma"),
+        ("bpm: [124, 130]", "bpm: [130, 124]", "- id: gamma"),
+        ("energy: [6, 9]", "energy: [0, 9]", "- id: gamma"),
+        ("energy: [4, 8]", "energy: [yes, 8]", "- id: alpha"),
+        ("    name: Gamma\n", "    name: Gamma\n    colour: red\n", "- id: gamma"),
+        (GAMMA_NEIGHBORS, "    neighbors: beta\n", "- id: gamma"),
+        # Beyond the table: the other clauses of the rule, and more wrong types.
+        ("- id: gamma", "- id: Gamma_2", "- id: Gamma_2"),
+        ("- id: gamma", "- id: 7", "- id: 7"),
+        ("- id: gamma\n    name: Gamma", "- name: Gamma", "- name: Gamma"),
+        ("    name: Gamma\n", '    name: ""\n', "- id: gamma"),
+        ("    name: Gamma\n", "    name: [Gamma]\n", "- id: gamma"),
+        ("family: global\n    bpm: [124", "family: [global]\n    bpm: [124", "- id: gamma"),
+        ("bpm: [124, 130]", 'bpm: "124"', "- id: gamma"),
+        ("bpm: [124, 130]", "bpm: [0, 130]", "- id: gamma"),
+        ("bpm: [124, 130]", "bpm: [124.5, 130]", "- id: gamma"),
+        ("bpm: [124, 130]", "bpm: [124]", "- id: gamma"),
+        ("energy: [6, 9]", "energy: [6, 11]", "- id: gamma"),
+        ("energy: [6, 9]", "energy: 9", "- id: gamma"),
+        ("feel: [warm]", "feel: warm", "- id: alpha"),
+        ("feel: [warm]", "feel: [1]", "- id: alpha"),
+        ("subgenres: [alpha-sub]", "subgenres: {a: b}", "- id: alpha"),
+        (GAMMA_NEIGHBORS, "", "- id: gamma"),
+        (GAMMA_NEIGHBORS, "    neighbors: {to: beta}\n", "- id: gamma"),
+    ],
+    ids=[
+        "missing-name", "family", "bpm-reversed", "energy-zero", "energy-bool", "unknown-key",
+        "neighbors-scalar", "id-not-kebab", "id-int", "id-missing", "name-empty", "name-list",
+        "family-list", "bpm-string", "bpm-zero", "bpm-float", "bpm-one-item", "energy-eleven",
+        "energy-scalar", "feel-scalar", "feel-int", "subgenres-mapping", "neighbors-missing",
+        "neighbors-mapping",
+    ],
+)  # fmt: skip
+def test_graph_node_schema(mini_repo, old, new, anchor):
+    mini_repo.edit(GRAPH, old, new)
+    line = mini_repo.line_of(GRAPH, anchor)
+    assert mini_repo.findings("graph-node-schema") == [(GRAPH, line, "graph-node-schema")]
+    mini_repo.findings()  # no rule raises on the wrong type
+
+
+def test_graph_node_schema_reports_each_problem_of_a_node(mini_repo):
+    mini_repo.edit(GRAPH, "    name: Gamma\n", "    colour: red\n    shade: dark\n")
+    line = mini_repo.line_of(GRAPH, "- id: gamma")
+    # `name` is missing, and `colour` and `shade` are unknown.
+    assert mini_repo.findings("graph-node-schema") == [(GRAPH, line, "graph-node-schema")] * 3
+
+
+def test_graph_unique_ids(mini_repo):
+    text = mini_repo.read(GRAPH)
+    mini_repo.write(GRAPH, text + text[text.index("  - id: gamma") :])
+    line = text.count("\n") + 1
+    assert mini_repo.findings("graph-unique-ids") == [(GRAPH, line, "graph-unique-ids")]
+
+
+def test_graph_unique_ids_flags_every_later_copy(mini_repo):
+    text = mini_repo.read(GRAPH)
+    copy = text[text.index("  - id: gamma") :]
+    mini_repo.write(GRAPH, text + copy + copy)
+    first = text.count("\n") + 1
+    assert mini_repo.findings("graph-unique-ids") == [
+        (GRAPH, first, "graph-unique-ids"),
+        (GRAPH, first + copy.count("\n"), "graph-unique-ids"),
+    ]
+
+
+@pytest.mark.parametrize(
+    ("old", "new", "anchor"),
+    [
+        ('strength: medium, via: "ease down"', 'strength: solid, via: "ease down"', "strength: solid"),
+        ('via: "ease down"', 'via: ""', 'via: ""'),
+        ('via: "ease down"}', 'via: "ease down", note: 1}', "note: 1"),
+        # Beyond the table: the other clauses of the rule, and more wrong types.
+        ('via: "ease down"', "via: [ease]", "via: [ease]"),
+        ('via: "ease down"', "via: 3", "via: 3"),
+        ('strength: medium, via: "ease', 'strength: [medium], via: "ease', "strength: [medium]"),
+        ('{to: beta,  strength: medium, via: "ease down"}', '{to: beta, via: "ease down"}', "{to: beta, via"),
+        ('{to: beta,  strength: medium, via: "ease down"}', "{to: beta, strength: medium}", "{to: beta, strength: medium}"),
+        ('{to: beta,  strength: medium, via: "ease down"}', '{strength: medium, via: "ease down"}', "{strength: medium"),
+        # A scalar edge has no line of its own, so the finding points at its node.
+        ('{to: beta,  strength: medium, via: "ease down"}', "beta", "- id: gamma"),
+    ],
+    ids=[
+        "strength-unknown", "via-empty", "extra-key", "via-list", "via-int", "strength-list",
+        "missing-strength", "missing-via", "missing-to", "edge-not-a-mapping",
+    ],
+)  # fmt: skip
+def test_graph_edge_schema(mini_repo, old, new, anchor):
+    mini_repo.edit(GRAPH, old, new)
+    line = mini_repo.line_of(GRAPH, anchor)
+    assert mini_repo.findings("graph-edge-schema") == [(GRAPH, line, "graph-edge-schema")]
+    mini_repo.findings()  # no rule raises on the wrong type
+
+
+def test_graph_edge_schema_checks_the_edges_of_a_node_with_a_bad_id(mini_repo):
+    mini_repo.edit(GRAPH, "- id: gamma", "- id: 7")
+    mini_repo.edit(GRAPH, 'via: "ease down"', 'via: ""')
+    line = mini_repo.line_of(GRAPH, 'via: ""')
+    assert mini_repo.findings("graph-edge-schema") == [(GRAPH, line, "graph-edge-schema")]
+
+
+@pytest.mark.parametrize(
+    ("old", "new", "anchor"),
+    [
+        ("{to: beta,  strength: medium", "{to: delta, strength: medium", "{to: delta"),
+        (GAMMA_EDGE, GAMMA_EDGE + GAMMA_SELF, '"self"'),
+        (GAMMA_EDGE, GAMMA_EDGE + GAMMA_AGAIN, '"again"'),
+        # Beyond the table: a target that is not a string must not raise.
+        ("{to: beta,  strength: medium", "{to: [beta], strength: medium", "{to: [beta]"),
+        ("{to: beta,  strength: medium", "{to: 7, strength: medium", "{to: 7,"),
+        ("{to: beta,  strength: medium", "{to: Beta, strength: medium", "{to: Beta"),
+    ],
+    ids=["unknown", "self", "duplicate", "to-list", "to-int", "to-wrong-case"],
+)  # fmt: skip
+def test_graph_edges_resolve(mini_repo, old, new, anchor):
+    mini_repo.edit(GRAPH, old, new)
+    line = mini_repo.line_of(GRAPH, anchor)
+    assert mini_repo.findings("graph-edges-resolve") == [(GRAPH, line, "graph-edges-resolve")]
+    mini_repo.findings()  # no rule raises on the wrong type
+
+
+def test_graph_edges_resolve_flags_two_edges_to_an_unknown_node_as_unknown(mini_repo):
+    mini_repo.edit(GRAPH, GAMMA_EDGE, GAMMA_EDGE.replace("beta,", "delta,") * 2)
+    lines = [n for n, text in enumerate(mini_repo.read(GRAPH).splitlines(), 1) if "to: delta" in text]
+    assert len(lines) == 2
+    assert graph_findings(mini_repo, "graph-edges-resolve") == [
+        (line, "edge to unknown node 'delta'") for line in lines
+    ]
+
+
+def test_graph_edges_resolve_ignores_an_edge_without_a_target(mini_repo):
+    # The missing `to` is graph-edge-schema's finding; resolving it would repeat it.
+    mini_repo.edit(GRAPH, "{to: beta,  strength: medium, ", "{strength: medium, ")
+    assert mini_repo.findings("graph-edges-resolve") == []
+    assert len(mini_repo.findings("graph-edge-schema")) == 1
+
+
+def test_graph_node_connected(mini_repo):
+    mini_repo.edit(GRAPH, GAMMA_NEIGHBORS, "    neighbors: []\n")
+    line = mini_repo.line_of(GRAPH, "- id: gamma")
+    assert mini_repo.findings("graph-node-connected") == [(GRAPH, line, "graph-node-connected")]
+
+
+def test_graph_node_connected_needs_an_incoming_edge(mini_repo):
+    # Only beta pointed at alpha: alpha still leads out, but nothing leads in.
+    mini_repo.edit(GRAPH, '      - {to: alpha, strength: strong, via: "drop back to the groove"}\n', "")
+    line = mini_repo.line_of(GRAPH, "- id: alpha")
+    assert mini_repo.findings("graph-node-connected") == [(GRAPH, line, "graph-node-connected")]
+
+
+@pytest.mark.parametrize(
+    "replacement",
+    [GAMMA_SELF, GAMMA_SELF.replace("gamma", "delta")],
+    ids=["self-edge-only", "dangling-edge-only"],
+)
+def test_graph_node_connected_counts_only_edges_to_another_node(mini_repo, replacement):
+    mini_repo.edit(GRAPH, GAMMA_EDGE, replacement)
+    line = mini_repo.line_of(GRAPH, "- id: gamma")
+    assert mini_repo.findings("graph-node-connected") == [(GRAPH, line, "graph-node-connected")]
+
+
+def test_graph_node_connected_reports_a_missing_direction_each(mini_repo):
+    lone = (
+        "nodes:\n  - id: lone\n    name: Lone\n    family: global\n"
+        "    bpm: [100, 120]\n    energy: [4, 8]\n    neighbors: []\n"
+    )
+    mini_repo.write(GRAPH, lone)
+    assert graph_findings(mini_repo, "graph-node-connected") == [
+        (2, "node 'lone' has no incoming edge from another node"),
+        (2, "node 'lone' has no outgoing edge to another node"),
+    ]
+
+
+@pytest.mark.parametrize(
+    ("old", "new", "rule_id", "message"),
+    [
+        ("    name: Gamma\n", "    name: Gamma\n    colour: red\n", "graph-node-schema", "unknown key 'colour'"),
+        ("    name: Beta\n", "", "graph-node-schema", "missing key 'name'"),
+        ("family: global\n    bpm: [124", "family: world\n    bpm: [124", "graph-node-schema", "family 'world'"),
+        ('strength: medium, via: "ease', 'strength: solid, via: "ease', "graph-edge-schema", "strength 'solid'"),
+        ('via: "ease down"}', 'via: "ease down", note: 1}', "graph-edge-schema", "unknown key 'note'"),
+        ("{to: beta,  strength: medium", "{to: delta, strength: medium", "graph-edges-resolve", "unknown node 'delta'"),
+        (GAMMA_EDGE, GAMMA_EDGE + GAMMA_SELF, "graph-edges-resolve", "edge from 'gamma' to itself"),
+        (GAMMA_EDGE, GAMMA_EDGE + GAMMA_AGAIN, "graph-edges-resolve", "second edge to 'beta'"),
+    ],
+    ids=["unknown-key", "missing-key", "family", "strength", "edge-key", "unknown-node", "self", "duplicate"],
+)  # fmt: skip
+def test_graph_messages_name_the_offender(mini_repo, old, new, rule_id, message):
+    mini_repo.edit(GRAPH, old, new)
+    [(_line, text)] = graph_findings(mini_repo, rule_id)
+    assert message in text
+
+
+def test_graph_unique_ids_message_names_the_id_and_the_first_line(mini_repo):
+    text = mini_repo.read(GRAPH)
+    mini_repo.write(GRAPH, text + text[text.index("  - id: gamma") :])
+    first = mini_repo.read(GRAPH).splitlines().index("  - id: gamma") + 1
+    [(_line, message)] = graph_findings(mini_repo, "graph-unique-ids")
+    assert message == f"duplicate id 'gamma' (first defined on line {first})"
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["- alpha\n", "nodes: alpha\n", "nodes: [alpha]\n", "", "nodes: [{id: a}, 3]\n"],
+    ids=["list-top-level", "nodes-scalar", "node-scalar", "empty", "mixed-nodes"],
+)
+def test_graph_that_did_not_load_gets_only_a_parse_error(mini_repo, text):
+    mini_repo.write(GRAPH, text)
+    assert [rule_id for _path, _line, rule_id in mini_repo.findings()] == ["parse-error"]
+
+
+def test_every_graph_rule_checks_graph_ok_itself(mini_repo):
+    repo = load_repo(mini_repo.root)
+    repo.nodes[0]["colour"] = "red"  # graph-node-schema
+    repo.nodes.append(dict(repo.nodes[1]))  # graph-unique-ids
+    repo.nodes[1]["neighbors"] = [{"to": "delta", "strength": "solid", "via": "", "__line__": 9}]
+    repo.nodes[2]["neighbors"] = []  # graph-node-connected
+    graph_rules = [fn for fn in check_repo.RULES if fn.rule_id in GRAPH_RULES]
+    assert {fn.rule_id for fn in graph_rules if list(fn(repo))} == GRAPH_RULES
+    repo.graph_ok = False
+    assert [fn.rule_id for fn in graph_rules if list(fn(repo))] == []
+
+
+def test_graph_with_no_nodes_is_clean(mini_repo):
+    mini_repo.write(GRAPH, "nodes: []\n")
+    assert mini_repo.findings() == []

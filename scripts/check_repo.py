@@ -332,6 +332,187 @@ def is_range(v, lo: int | None = None, hi: int | None = None, ordered: bool = Tr
     return not ordered or v[0] <= v[1]
 
 
+NODE_ID_RE = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
+
+
+def is_node_id(v) -> bool:
+    """A kebab-case node id: lowercase letters and digits joined by single `-`."""
+    return isinstance(v, str) and NODE_ID_RE.fullmatch(v) is not None
+
+
+def _show(v) -> str:
+    """`repr(v)` for a message, without the loader's `__line__` bookkeeping."""
+    return "a mapping" if isinstance(v, dict) else repr(v)
+
+
+# ---- graph (genres/graph.yml) ----
+#
+# Findings point at the node's `__line__`, or the edge's. A node whose `neighbors`
+# is not a list, and an edge that is not a mapping, are reported once by the schema
+# rules; the other graph rules skip them so that one mistake is not reported twice.
+
+NODE_REQUIRED = ("id", "name", "family", "bpm", "energy", "neighbors")
+NODE_OPTIONAL = ("feel", "subgenres")
+FAMILIES = ("brazilian", "global")
+EDGE_KEYS = ("to", "strength", "via")
+STRENGTHS = ("strong", "medium", "weak")
+
+
+def _graph_finding(rule_id: str, line: int, message: str) -> Finding:
+    return Finding(GRAPH_PATH, line, rule_id, message)
+
+
+def _key_problems(
+    mapping: dict, allowed: tuple[str, ...], required: tuple[str, ...]
+) -> Iterable[str]:
+    """Messages for each required key `mapping` lacks and each key not in `allowed`."""
+    for key in required:
+        if key not in mapping:
+            yield f"missing key {key!r}"
+    for key in mapping:
+        if key != "__line__" and key not in allowed:
+            yield f"unknown key {key!r}"
+
+
+def _node_problems(node: dict) -> Iterable[str]:
+    yield from _key_problems(node, NODE_REQUIRED + NODE_OPTIONAL, NODE_REQUIRED)
+    if "id" in node and not is_node_id(node["id"]):
+        yield f"id {_show(node['id'])} is not a kebab-case node id"
+    if "name" in node and not (isinstance(node["name"], str) and node["name"]):
+        yield f"name {_show(node['name'])} is not a non-empty string"
+    if "family" in node and node["family"] not in FAMILIES:
+        yield f"family {_show(node['family'])} is not 'brazilian' or 'global'"
+    if "bpm" in node and not is_range(node["bpm"], lo=1):
+        yield f"bpm {_show(node['bpm'])} is not [min, max] of positive integers with min <= max"
+    if "energy" in node and not is_range(node["energy"], lo=1, hi=10):
+        yield f"energy {_show(node['energy'])} is not [min, max] within 1-10 with min <= max"
+    if "neighbors" in node and not isinstance(node["neighbors"], list):
+        yield f"neighbors {_show(node['neighbors'])} is not a list"
+    for key in NODE_OPTIONAL:
+        value = node.get(key, [])
+        if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+            yield f"{key} {_show(value)} is not a list of strings"
+
+
+def _edge_problems(edge: dict) -> Iterable[str]:
+    yield from _key_problems(edge, EDGE_KEYS, EDGE_KEYS)
+    if "strength" in edge and edge["strength"] not in STRENGTHS:
+        yield f"strength {_show(edge['strength'])} is not 'strong', 'medium' or 'weak'"
+    if "via" in edge and not (isinstance(edge["via"], str) and edge["via"]):
+        yield f"via {_show(edge['via'])} is not a non-empty string"
+
+
+def _edges_of(node: dict) -> list[dict]:
+    """The well-formed edges of one node. Unlike `Repo.edges`, a node with a bad `id`
+    keeps them, so the edge rules still check what it points at."""
+    neighbors = node.get("neighbors")
+    return [e for e in neighbors if isinstance(e, dict)] if isinstance(neighbors, list) else []
+
+
+@rule("graph-node-schema")
+def graph_node_schema(repo: Repo) -> Iterable[Finding]:
+    if not repo.graph_ok:
+        return
+    for node in repo.nodes:
+        for problem in _node_problems(node):
+            yield _graph_finding("graph-node-schema", node["__line__"], problem)
+
+
+@rule("graph-unique-ids")
+def graph_unique_ids(repo: Repo) -> Iterable[Finding]:
+    if not repo.graph_ok:
+        return
+    first_line: dict[str, int] = {}
+    for node in repo.nodes:
+        node_id = node.get("id")
+        if not isinstance(node_id, str):
+            continue  # graph-node-schema reports it
+        if node_id not in first_line:
+            first_line[node_id] = node["__line__"]
+            continue
+        yield _graph_finding(
+            "graph-unique-ids",
+            node["__line__"],
+            f"duplicate id {node_id!r} (first defined on line {first_line[node_id]})",
+        )
+
+
+@rule("graph-edge-schema")
+def graph_edge_schema(repo: Repo) -> Iterable[Finding]:
+    if not repo.graph_ok:
+        return
+    for node in repo.nodes:
+        neighbors = node.get("neighbors")
+        if not isinstance(neighbors, list):
+            continue  # graph-node-schema reports it
+        for edge in neighbors:
+            if not isinstance(edge, dict):
+                # A scalar has no line of its own, so point at its node.
+                message = f"edge {_show(edge)} is not a mapping with to, strength and via"
+                yield _graph_finding("graph-edge-schema", node["__line__"], message)
+                continue
+            for problem in _edge_problems(edge):
+                yield _graph_finding("graph-edge-schema", edge["__line__"], problem)
+
+
+@rule("graph-edges-resolve")
+def graph_edges_resolve(repo: Repo) -> Iterable[Finding]:
+    if not repo.graph_ok:
+        return
+    ids = repo.node_ids()
+    for node in repo.nodes:
+        from_id = node.get("id")
+        seen: set[str] = set()
+        for edge in _edges_of(node):
+            if "to" not in edge:
+                continue  # graph-edge-schema reports it
+            target = edge["to"]
+            # `target` may be any YAML value: test it as a string before any set lookup.
+            if not isinstance(target, str) or target not in ids:
+                message = f"edge to unknown node {_show(target)}"
+            elif target == from_id:
+                message = f"edge from {from_id!r} to itself"
+            elif target in seen:
+                message = f"second edge to {target!r}"
+            else:
+                seen.add(target)
+                continue
+            yield _graph_finding("graph-edges-resolve", edge["__line__"], message)
+
+
+@rule("graph-node-connected")
+def graph_node_connected(repo: Repo) -> Iterable[Finding]:
+    """Every node has an edge out to, and an edge in from, another existing node.
+
+    A self edge or an edge to an unknown node leads nowhere, so it does not count;
+    that is a dead end the map would show, even if graph-edges-resolve also
+    reports the edge.
+    """
+    if not repo.graph_ok:
+        return
+    ids = repo.node_ids()
+    leads_to: list[tuple[dict, set[str]]] = []
+    reached: set[str] = set()
+    for node in repo.nodes:
+        from_id = node.get("id")
+        if not isinstance(from_id, str):
+            continue  # graph-node-schema reports it
+        targets = {
+            e["to"]
+            for e in _edges_of(node)
+            if isinstance(e.get("to"), str) and e["to"] in ids and e["to"] != from_id
+        }
+        leads_to.append((node, targets))
+        reached |= targets
+    for node, targets in leads_to:
+        if not targets:
+            message = f"node {node['id']!r} has no outgoing edge to another node"
+            yield _graph_finding("graph-node-connected", node["__line__"], message)
+        if node["id"] not in reached:
+            message = f"node {node['id']!r} has no incoming edge from another node"
+            yield _graph_finding("graph-node-connected", node["__line__"], message)
+
+
 # ------------------------------------------------------------------------ run --
 
 
