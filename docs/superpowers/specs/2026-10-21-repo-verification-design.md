@@ -189,8 +189,11 @@ The file has two sections:
 
   The fixture returns the repo path. Tests change one file and call `check()`.
 - `test_mini_repo_is_clean`: the fixture produces zero findings.
-- **For each rule:** at least one test that breaks exactly one thing and asserts the
-  findings are exactly that rule, with the expected path and line. Rules with
+- **For each rule:** at least one test that breaks exactly one thing and asserts
+  that the rule's findings are exactly the expected `(path, line)` list. Other
+  rules may also fire when a break cascades (for example, removing a node's
+  only edge also disconnects it), so each test pins only its own rule. The
+  clean-repo tests catch false positives from every rule. Rules with
   several clauses (for example `track-schema`) get one parameterized case per clause.
 - `test_real_repo_is_clean`: `check(<repo root>)` returns no findings. This turns
   the whole repo into a test fixture.
