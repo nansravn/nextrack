@@ -41,11 +41,29 @@ and files scannable; if a genre gets huge, nothing stops you splitting further.)
 
 ### Field notes
 
-- **`genre`** must be a node `id` in [`../genres/graph.yml`](../genres/graph.yml).
-- **`key`** in Camelot so harmonic moves are pre-solved.
-- **`energy`** is the main knob you turn when picking the next track in the pool.
+- **Entries start with `- title:`**, at column 0. The library tool
+  ([`../scripts/nextrack_tags.py`](../scripts/nextrack_tags.py)) finds the entries of
+  a pool by that line, so `title` is always the first key of an entry.
+- **The fields are exactly the ones above.** `title`, `artist`, `genre`, `bpm`,
+  `key`, `energy` and `status` are required; `remixer`, `duration`, `year`,
+  `source`, `tags` and `notes` are optional; no other key is allowed. `title` and
+  `artist` are non-empty strings, and `tags` is a list.
+- **`bpm` and `key` are always present, even when `null`.** `pull-bpm` fills them by
+  editing their existing lines, so leave them as `null` until the track is analysed.
+  `bpm` is `null` or a whole number from 1 to 300.
+- **`genre`** must be a node `id` in [`../genres/graph.yml`](../genres/graph.yml), and it
+  is the name of the file the entry is in.
+- **`key`** in Camelot so harmonic moves are pre-solved: `null` or `1A`-`12A` /
+  `1B`-`12B`.
+- **`energy`** is the main knob you turn when picking the next track in the pool, a
+  whole number from 1 to 10.
 - **`status`** tracks the download pipeline (see [../docs/workflow.md](../docs/workflow.md)).
 - **`tags`** are free-form — moods, functions, "vocal", "peak", "br", venue fit.
+- **A track appears once.** No two entries, in one pool or in two, may have the same
+  artist and title once case, accents and punctuation are ignored.
+
+All of this is checked by `uv run scripts/check_repo.py`, together with the file
+name (it must be a node `id`).
 
 > Remember: the actual audio never lives here — only this description does. See
 > [../docs/workflow.md](../docs/workflow.md) for the download/mirror step.
