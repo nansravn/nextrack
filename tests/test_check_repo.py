@@ -871,6 +871,52 @@ def test_mermaid_declaration_and_edge_problems(mini_repo, line, message):
     assert messages(mini_repo, MERMAID_RULE) == [message.format(A=declared_at)]
 
 
+UNSUPPORTED_EDGE = "unsupported edge syntax: use `A --- B` (strong) or `A -.-> B` (medium)"
+
+
+@pytest.mark.parametrize(
+    "line",
+    ["  A --> G", "  A ==> G", "  A---G", "  A ---|x| G", "  A -.- G", "  A --- G & B"],
+    ids=["arrow", "thick", "no-spaces", "label", "dotted", "several-targets"],
+)
+def test_mermaid_flags_an_edge_in_another_syntax(mini_repo, line):
+    # alpha-gamma is a weak pair: the edge would be ignored if it were not read at all.
+    where = add_to_map(mini_repo, line)
+    assert mini_repo.findings(MERMAID_RULE) == [(MAP, where, MERMAID_RULE)]
+    assert messages(mini_repo, MERMAID_RULE) == [UNSUPPORTED_EDGE]
+
+
+def test_mermaid_edge_in_another_syntax_does_not_draw_its_pair(mini_repo):
+    # The medium pair beta-gamma is drawn with `-->`, which this rule does not read:
+    # the unsupported line is a finding, and so is the pair that is left undrawn.
+    mini_repo.edit(MAP, "  B -.-> G", "  B --> G")
+    line = mini_repo.line_of(MAP, "  B --> G")
+    fence = mini_repo.line_of(MAP, "```mermaid")
+    assert mini_repo.findings(MERMAID_RULE) == [(MAP, fence, MERMAID_RULE), (MAP, line, MERMAID_RULE)]
+    assert UNSUPPORTED_EDGE in messages(mini_repo, MERMAID_RULE)
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        '  subgraph S["Group -- one"]',
+        "  %% A --> G is not drawn yet",
+        "  %% B ==> A",
+        "  linkStyle 0 stroke-width:2px",
+        "  classDef dashed stroke-dasharray: 5 5",
+        "  style A fill:#fff,stroke-width:2px",
+        "  A --- B   ",
+    ],
+    ids=["quoted-label", "comment", "comment-thick", "linkstyle", "classdef", "style", "padded-edge"],
+)
+def test_mermaid_does_not_flag_lines_without_a_link_operator(mini_repo, line):
+    if line.endswith("A --- B   "):
+        mini_repo.edit(MAP, "  A --- B", line)  # a supported edge, only padded
+    else:
+        add_to_map(mini_repo, line)
+    assert mini_repo.findings(MERMAID_RULE) == []
+
+
 def test_mermaid_edge_may_come_before_the_declarations(mini_repo):
     mini_repo.edit(MAP, '  A["alpha"]\n  B["beta"]\n  G["gamma"]\n  A --- B\n  B -.-> G\n',
                    '  A --- B\n  B -.-> G\n  A["alpha"]\n  B["beta"]\n  G["gamma"]\n')  # fmt: skip

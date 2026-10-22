@@ -161,7 +161,8 @@ into a [radio](../radios/) (a themed program) and slice it into
 3. Add the node's declaration (`ALIAS["id"]`) and its edges to the Mermaid map
    above: a solid line (`A --- B`) for `strong`, a dashed one (`A -.-> B`) for
    `medium`, nothing for `weak`. Draw each pair once, whichever direction is
-   stronger.
+   stronger. Those two are the only edge syntaxes the check reads; it reports
+   any other (`-->`, `==>`, `A---B`, `A --- B & C`) rather than ignore it.
 4. After a gig, **update edge `strength`** based on what actually worked. The
    graph gets smarter every time you play. A changed `strength` can change the
    map line too.

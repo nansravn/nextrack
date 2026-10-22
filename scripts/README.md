@@ -137,7 +137,7 @@ if a rule contradicts one of them, the README wins.
 | `graph-edges-resolve` | Each edge's `to` is an existing node other than its own, and a node has at most one edge to any target. |
 | `graph-node-connected` | Every node has an edge out to, and an edge in from, another existing node. |
 | `taxonomy-matches-graph` | The ``### `id` `` headings of `docs/taxonomy.md` are exactly the node ids. |
-| `mermaid-matches-graph` | The first `mermaid` block of `docs/genre-graph.md` declares every node and draws exactly the graph: a `---` line for a pair whose strongest edge is `strong`, `-.->` for `medium`, nothing for `weak`, each pair once. |
+| `mermaid-matches-graph` | The first `mermaid` block of `docs/genre-graph.md` declares every node and draws exactly the graph: a `---` line for a pair whose strongest edge is `strong`, `-.->` for `medium`, nothing for `weak`, each pair once. Any other line with a link operator (`-->`, `==>`, `A---B`, `-.-`, `A --- B & C`) is a finding, because the rule would not read it. |
 | `links-resolve` | Every relative link in every Markdown file points at a path that exists. Links in code, `#anchors` and URLs are ignored, as are files under a dot directory of the repo. |
 | `pool-file-is-node` | Each `tracks/<name>.yml` is named after a node id. |
 | `track-schema` | Each entry has the keys `title`, `artist`, `genre`, `bpm`, `key`, `energy`, `status` (plus optional `remixer`, `duration`, `year`, `source`, `tags`, `notes`) with valid values: `bpm` is `null` or an integer from 1 to 300, `key` is `null` or a Camelot key such as `8A`, `energy` is an integer from 1 to 10, `status` is `to-download`, `downloaded` or `organized`, `tags` is a list. |

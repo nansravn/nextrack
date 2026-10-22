@@ -671,6 +671,18 @@ def taxonomy_matches_graph(repo: Repo) -> Iterable[Finding]:
 MERMAID_DECL_RE = re.compile(r'^\s*(\w+)\["([^"]+)"\]\s*$')
 MERMAID_EDGE_RE = re.compile(r"^\s*(\w+)\s+(---|-\.->)\s+(\w+)\s*$")
 MERMAID_STYLE = {"strong": "---", "medium": "-.->"}  # weak edges are not drawn
+# Any other link syntax (`-->`, `==>`, `A---B`, `-.-`, `A --- B & C`, `~~~`) is not read.
+MERMAID_LINK_RE = re.compile(r"--|==|-\.|~~~")
+MERMAID_QUOTED_RE = re.compile(r'"[^"]*"')
+UNSUPPORTED_EDGE = "unsupported edge syntax: use `A --- B` (strong) or `A -.-> B` (medium)"
+
+
+def _has_link_operator(line: str) -> bool:
+    """Whether a Mermaid line holds a link operator, outside a quoted label and a
+    `%%` comment line."""
+    if line.lstrip().startswith("%%"):
+        return False
+    return MERMAID_LINK_RE.search(MERMAID_QUOTED_RE.sub("", line)) is not None
 
 
 def _strongest_pairs(repo: Repo) -> dict[tuple[str, str], str]:
@@ -742,6 +754,8 @@ def mermaid_matches_graph(repo: Repo) -> Iterable[Finding]:
     for number, line in body:
         edge = MERMAID_EDGE_RE.match(line)
         if edge is None:
+            if _has_link_operator(line):  # an edge in a syntax this rule cannot read
+                yield found(number, UNSUPPORTED_EDGE)
             continue
         left, style, right = edge.groups()
         undeclared = [a for a in dict.fromkeys((left, right)) if a not in aliases]
