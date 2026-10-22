@@ -36,6 +36,10 @@ This is the navigation map for your sets; it is deliberately separate from the
   reverse edge when the return trip needs different advice.
 - `strength` is your confidence the move lands cold. Downgrade one after it flops
   in a real room; that feedback is the whole point of writing it down.
+- After any change here, run `uv run scripts/check_repo.py`
+  ([`../scripts/check_repo.py`](../scripts/check_repo.py)). It checks this graph's
+  schema and edges, and that the taxonomy headings and the Mermaid map in
+  [`../docs/genre-graph.md`](../docs/genre-graph.md) match it.
 
 > Growth path: for now the entire graph lives in one `graph.yml` for easy
 > visualization. If it gets large, split into one file per node (e.g.
