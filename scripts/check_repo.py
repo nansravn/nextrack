@@ -131,9 +131,22 @@ def read_text(path: Path) -> str:
 
 
 class _LineLoader(yaml.SafeLoader):
-    """A SafeLoader that stores where each mapping starts under `__line__`."""
+    """A SafeLoader that stores where each mapping starts under `__line__`.
+
+    It also reports a value PyYAML cannot build (`!!int ""`, `2024-13-45`) as a
+    `yaml.YAMLError` at that value's position, whatever exception PyYAML raised.
+    """
 
     first_line = 1
+
+    def construct_object(self, node, deep=False):
+        try:
+            return super().construct_object(node, deep=deep)
+        except yaml.YAMLError:
+            raise
+        except Exception as exc:
+            problem = f"cannot construct {node.tag} ({type(exc).__name__}: {exc})"
+            raise yaml.constructor.ConstructorError(None, None, problem, node.start_mark) from exc
 
     def construct_mapping(self, node, deep=False):
         mapping = super().construct_mapping(node, deep=True)
@@ -151,8 +164,8 @@ def load_yaml(text: str, first_line: int = 1) -> object:
     loader.first_line = first_line
     try:
         return loader.get_single_data()
-    except ValueError as exc:  # PyYAML builds dates itself: `2024-13-45` raises
-        raise yaml.YAMLError(str(exc)) from exc
+    except RecursionError as exc:  # absurdly deep nesting fails in the parser
+        raise yaml.YAMLError("nested too deeply") from exc
     finally:
         loader.dispose()
 
