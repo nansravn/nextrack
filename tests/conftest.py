@@ -1,5 +1,6 @@
 """Shared fixtures. Audio is always synthetic and lives under tmp_path only."""
 import struct
+from pathlib import Path
 
 import pytest
 from mutagen.flac import FLAC
@@ -102,3 +103,179 @@ def library(tmp_path, make_mp3, make_flac):
     (tracks_dir / "alpha.yml").write_text(header + "\n".join(blocks), encoding="utf-8")
 
     return audio_root, tracks_dir
+
+
+# ------------------------------------------------------------- mini repo ----
+# The smallest valid NEXTRACK repo, rebuilt under tmp_path for every test. The
+# validator tests change one file and assert on the findings.
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+
+MINI_REPO_FILES = {
+    "genres/graph.yml": """\
+nodes:
+  - id: alpha
+    name: Alpha
+    family: brazilian
+    bpm: [100, 120]
+    energy: [4, 8]
+    feel: [warm]
+    subgenres: [alpha-sub]
+    neighbors:
+      - {to: beta,  strength: strong, via: "blend on the break"}
+      - {to: gamma, strength: weak,   via: "long echo out"}
+  - id: beta
+    name: Beta
+    family: global
+    bpm: [118, 126]
+    energy: [5, 9]
+    neighbors:
+      - {to: alpha, strength: strong, via: "drop back to the groove"}
+      - {to: gamma, strength: medium, via: "lift the tempo"}
+  - id: gamma
+    name: Gamma
+    family: global
+    bpm: [124, 130]
+    energy: [6, 9]
+    neighbors:
+      - {to: beta,  strength: medium, via: "ease down"}
+""",
+    "docs/taxonomy.md": """\
+# Taxonomy
+
+### `alpha` — Alpha
+A warm test genre.
+
+### `beta`
+A driving test genre.
+
+### `gamma`
+A peak test genre.
+""",
+    "docs/genre-graph.md": """\
+# Genre graph
+
+See the [taxonomy](taxonomy.md).
+
+```mermaid
+graph LR
+  A["alpha"]
+  B["beta"]
+  G["gamma"]
+  A --- B
+  B -.-> G
+```
+""",
+    "tracks/alpha.yml": """\
+# tracks/alpha.yml — pool for `alpha` (unordered).
+
+- title: "Dançarina"
+  artist: "Pedro Sampaio & MC Pedrinho"
+  genre: alpha
+  bpm: 135
+  key: 8A
+  energy: 8
+  status: downloaded
+  tags: [funk, singalong]
+
+- title: "Voa Voa (Ao Vivo)"
+  artist: "Chiclete com Banana"
+  genre: alpha
+  bpm: null
+  key: null
+  energy: 7
+  status: to-download
+  notes: "opens the block"
+""",
+    "blocks/alpha-festa.md": """\
+---
+name: Alpha Festa
+function: peak
+style: open-format
+duration: 30m
+genres: [alpha]
+bpm: [100, 135]
+energy: [7, 8]
+key_journey: TBD
+lightshow: null
+---
+
+## Feel
+Bloco de teste.
+
+## Bridge in
+← `beta`: hard cut no refrão.
+
+## Tracklist (primary)
+1. Pedro Sampaio — Dançarina        · e8  abre
+2. Chiclete com Banana — Voa Voa    · e7
+
+## Bridge out
+- → `beta`: echo out.
+- Ver `alpha-festa.md` (não é um node).
+""",
+    "README.md": """\
+# Mini repo
+
+Read the [genre graph](docs/genre-graph.md).
+""",
+}
+
+
+class MiniRepo:
+    """A repo on disk plus helpers to edit it and read the validator's findings."""
+
+    def __init__(self, root):
+        self.root = root
+
+    def path(self, rel):
+        return self.root / rel
+
+    def read(self, rel):
+        return self.path(rel).read_text(encoding="utf-8")
+
+    def write(self, rel, text):
+        path = self.path(rel)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+
+    def edit(self, rel, old, new):
+        """Replace `old` with `new` in a file; `old` must occur exactly once."""
+        text = self.read(rel)
+        assert text.count(old) == 1, f"{old!r} occurs {text.count(old)}x in {rel}"
+        self.write(rel, text.replace(old, new))
+
+    def line_of(self, rel, text):
+        """The 1-based line where `text` occurs; it must occur exactly once."""
+        content = self.read(rel)
+        assert content.count(text) == 1, f"{text!r} occurs {content.count(text)}x in {rel}"
+        return content[: content.index(text)].count("\n") + 1
+
+    def findings(self, rule=None):
+        """`(path, line, rule)` for every finding, or only those of one rule."""
+        from check_repo import check  # deferred: tests/ must collect without it
+
+        return [
+            (f.path, f.line, f.rule)
+            for f in check(self.root)
+            if rule is None or f.rule == rule
+        ]
+
+
+def build_mini_repo(root):
+    """Write MINI_REPO_FILES under `root` and return a MiniRepo for it."""
+    repo = MiniRepo(root)
+    for rel, text in MINI_REPO_FILES.items():
+        repo.write(rel, text)
+    return repo
+
+
+@pytest.fixture
+def mini_repo(tmp_path):
+    return build_mini_repo(tmp_path / "repo")
+
+
+@pytest.fixture
+def mini_repo_at():
+    """The builder itself, for tests that need the repo somewhere specific."""
+    return build_mini_repo
