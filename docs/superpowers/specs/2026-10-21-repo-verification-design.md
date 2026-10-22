@@ -280,7 +280,7 @@ Documentation updates:
 - Triggers: `push` (all branches) and `pull_request`.
 - One job on `ubuntu-latest`:
   1. `actions/checkout`
-  2. `astral-sh/setup-uv`, pinned to the major tag of its latest release (look it up with `gh release view -R astral-sh/setup-uv`)
+  2. `astral-sh/setup-uv`, pinned to the full tag of its latest release (setup-uv publishes no major tags; look it up with `gh release view -R astral-sh/setup-uv`), for example `@v10.3.1`
   3. `uv sync --locked`
   4. `uv run scripts/check_repo.py`
   5. `uv run pytest`
