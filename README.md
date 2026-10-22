@@ -75,7 +75,9 @@ nextrack/
 └── pyproject.toml   # uv dependencies and pytest config (uv.lock pins them)
 ```
 
-Each folder has a `README.md` explaining its schema and a template to copy.
+Each content folder (`genres/`, `tracks/`, `blocks/`, `radios/`, `sets/`,
+`lightshows/`, `scripts/`) has a `README.md` explaining its schema, with a template
+to copy where there is one.
 
 ---
 
