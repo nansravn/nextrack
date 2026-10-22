@@ -184,7 +184,24 @@ def test_unreadable_files_are_parse_errors(mini_repo):
 
 def test_impossible_date_is_a_parse_error_not_a_crash(mini_repo):
     mini_repo.edit("tracks/alpha.yml", "bpm: 135", "bpm: 2024-13-45")
-    assert mini_repo.findings("parse-error") == [("tracks/alpha.yml", 0, "parse-error")]
+    line = mini_repo.line_of("tracks/alpha.yml", "bpm: 2024-13-45")
+    assert mini_repo.findings("parse-error") == [("tracks/alpha.yml", line, "parse-error")]
+
+
+@pytest.mark.parametrize(
+    "value",
+    ['!!int ""', '!!float ""', '!!bool "x"', '!!timestamp "x"'],
+    ids=["int", "float", "bool", "timestamp"],
+)
+def test_explicit_tag_that_cannot_be_built_is_a_parse_error(mini_repo, value):
+    # PyYAML raises IndexError, KeyError or AttributeError for these, not YAMLError.
+    mini_repo.write("tracks/beta.yml", f"# beta\n\n- title: {value}\n")
+    assert mini_repo.findings("parse-error") == [("tracks/beta.yml", 3, "parse-error")]
+
+
+def test_absurdly_nested_yaml_is_a_parse_error(mini_repo):
+    mini_repo.write("tracks/beta.yml", "- " + "[" * 1000 + "]" * 1000 + "\n")
+    assert mini_repo.findings("parse-error") == [("tracks/beta.yml", 0, "parse-error")]
 
 
 def test_cli_reports_parse_error(mini_repo, capsys):
