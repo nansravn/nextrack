@@ -41,3 +41,7 @@ desktop.ini
 *~
 .idea/
 .vscode/
+
+# --- Python ---
+__pycache__/
+*.pyc
