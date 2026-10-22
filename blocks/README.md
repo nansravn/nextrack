@@ -30,6 +30,9 @@ lightshow: null            # -> ../lightshows/<slug>.md (future)
 ## Feel
 One or two lines: the mood, the room, the moment this block is for.
 
+## Bridge in
+← `deep-house`: how the previous block hands over to this one (follows a graph edge into organic-house).
+
 ## Tracklist (primary)
 1. Artist — Title  · 8A · 110 · e4
 2. Artist — Title  · 9A · 112 · e4   ← blend on the break
@@ -47,8 +50,34 @@ One or two lines: the mood, the room, the moment this block is for.
 - Harder: Artist — Title (e6)
 
 ## Bridge out
-Follow the graph edge organic-house → afro-house (add percussion) into the next block.
+- → `afro-house`: follow the graph edge organic-house → afro-house (add percussion) into the next block.
 ```
+
+## Machine-checked formats
+
+`uv run scripts/check_repo.py` reads every block and reports what strays from
+these formats. Run it after writing or editing a block.
+
+- **Tracklist line:** under the `## Tracklist…` heading, every line that starts
+  with `N.` reads `N. Artist — Title · …`: an em dash (`—`, not `-`) between artist
+  and title, then a middle dot (`·`) after the title. What follows the dot (key,
+  BPM, `eN`, notes) is free.
+- **The line must match a pool track:** its artist and title must find a track in
+  some `tracks/*.yml`. Case, accents and punctuation don't matter, a `(…)` or `[…]`
+  part of the title is ignored, and the artist may be a partial or longer credit
+  (`Pedro Sampaio` finds `Pedro Sampaio & MC Pedrinho`). A track not in the pool
+  yet goes into its pool first (`status: to-download` is enough).
+- **Bridges follow graph edges:** write each node id in backticks in the
+  `## Bridge in` and `## Bridge out` sections. For Bridge in the graph needs an
+  edge from that node to one of the block's `genres`; for Bridge out, an edge from
+  one of the block's `genres` to that node. A missing edge means adding it to
+  `genres/graph.yml` (and the Mermaid map) or choosing another bridge. Backtick
+  only node ids there: a word shaped like an id that is not a node is reported as
+  a typo, and file names such as `axe-classicos.md` are never checked.
+- **Swap options** stay free-form.
+- **Front matter:** exactly the keys of the template above, with the values the
+  comments list; `genres` are existing node ids and `lightshow` is `null` or a path
+  relative to the block that exists.
 
 ## Why blocks matter
 

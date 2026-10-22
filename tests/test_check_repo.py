@@ -1328,3 +1328,732 @@ def test_track_unique_skips_entries_whose_artist_or_title_is_not_a_string(mini_r
 def test_comment_only_pool_is_clean(mini_repo):
     mini_repo.write("tracks/beta.yml", "# beta — vazio por enquanto\n")
     assert mini_repo.findings() == []
+
+
+# -------------------------------------------------------------- block rules ----
+
+BLOCK = "blocks/alpha-festa.md"
+FRONTMATTER = "block-frontmatter"
+TRACKLIST = "block-tracklist-resolves"
+BRIDGES = "block-bridges-are-edges"
+BLOCK_RULES = {FRONTMATTER, TRACKLIST, BRIDGES}
+# Lines of the block; the new lines in the tests go right after them.
+TRACK_1 = "1. Pedro Sampaio — Dançarina        · e8  abre"
+TRACK_2 = "2. Chiclete com Banana — Voa Voa    · e7"
+BRIDGE_IN = "← `beta`: hard cut no refrão."
+BRIDGE_OUT = "- → `beta`: echo out."
+GHOST = "3. Nobody — Ghost Track · e5"
+FUNCTIONS = ["warmup", "build", "peak", "plateau", "breakdown", "cooldown"]
+STYLES = ["continuous", "open-format", "hybrid"]
+
+
+def block_findings(mini_repo):
+    """`(path, line, rule)` of every finding of the three block rules."""
+    return [f for f in mini_repo.findings() if f[2] in BLOCK_RULES]
+
+
+def block_messages(mini_repo, rule_id):
+    return [f.message for f in check(mini_repo.root) if f.rule == rule_id]
+
+
+def add_after(mini_repo, anchor, new_line, rel=BLOCK):
+    """Insert `new_line` after the line `anchor` of a block; return its line number."""
+    mini_repo.edit(rel, anchor + "\n", f"{anchor}\n{new_line}\n")
+    return mini_repo.line_of(rel, new_line)
+
+
+def without_front_matter(mini_repo):
+    """The block's text from its first body line on, without both `---` lines."""
+    return mini_repo.read(BLOCK).split("---\n", 2)[2]
+
+
+def block_rule(rule_id):
+    (fn,) = (fn for fn in check_repo.RULES if fn.rule_id == rule_id)
+    return fn
+
+
+def test_block_rules_are_registered():
+    assert {fn.rule_id for fn in check_repo.RULES} >= BLOCK_RULES
+
+
+# ---- helpers: core, artist_tokens, section ----
+
+
+def test_joiners():
+    assert check_repo.JOINERS == {"feat", "ft", "x", "e", "and", "com", "pres", "vs"}
+
+
+@pytest.mark.parametrize(
+    ("title", "expected"),
+    [
+        ("Voa Voa (Ao Vivo)", "voa voa"),
+        ("Dançarina [Salsa Version]", "dancarina"),
+        ("Song (A) Name [B]", "song name"),
+        ("(Remix)", ""),
+        ("Don't You Worry Child", "don t you worry child"),
+        ("Title (feat. X (Remix))", "title"),
+        ("Title (unclosed", "title unclosed"),
+        ("Plain", "plain"),
+    ],
+)
+def test_core(title, expected):
+    assert check_repo.core(title) == expected
+
+
+@pytest.mark.parametrize(
+    ("artist", "expected"),
+    [
+        ("Pedro Sampaio & MC Pedrinho", {"pedro", "sampaio", "mc", "pedrinho"}),
+        ("Chiclete com Banana", {"chiclete", "banana"}),
+        (
+            "Artist feat. Other ft. Third vs Fourth x Fifth and Sixth e Sétimo pres. Oitavo",
+            {"artist", "other", "third", "fourth", "fifth", "sixth", "setimo", "oitavo"},
+        ),
+        ("X", set()),
+        ("ÁÉÍ Ôu", {"aei", "ou"}),
+        ("", set()),
+    ],
+)
+def test_artist_tokens(artist, expected):
+    assert check_repo.artist_tokens(artist) == expected
+
+
+SECTIONED = [
+    (1, "intro"),
+    (2, "## Bridge in"),
+    (3, "a"),
+    (4, "### sub"),
+    (5, "## Tracklist (primary)"),
+    (6, "1. x"),
+    (7, "## Bridge out"),
+    (8, "b"),
+    (9, "## Bridge out (again)"),
+    (10, "c"),
+]
+
+
+@pytest.mark.parametrize(
+    ("body", "prefix", "expected"),
+    [
+        (SECTIONED, "## Bridge in", [(3, "a"), (4, "### sub")]),  # `###` does not end it
+        (SECTIONED, "## Tracklist", [(6, "1. x")]),
+        (SECTIONED, "## Bridge out", [(8, "b")]),  # the first heading only
+        (SECTIONED[:3], "## Bridge in", [(3, "a")]),  # runs to the end of the file
+        (SECTIONED[:2], "## Bridge in", []),
+        (SECTIONED, "## Swap", None),
+        ([(1, "see ## Tracklist")], "## Tracklist", None),  # the heading starts the line
+        ([], "## Tracklist", None),
+    ],
+    ids=["h3-inside", "prefix", "first-only", "to-the-end", "empty", "absent", "mid-line", "no-body"],
+)
+def test_section(body, prefix, expected):
+    assert check_repo.section(body, prefix) == expected
+
+
+# ---- block-frontmatter ----
+
+FRONT_PROBLEMS = [
+    # The table of the brief.
+    ("function: peak", "function: party", "function"),
+    ("style: open-format", "style: blend", "style"),
+    ("duration: 30m", "duration: 30 minutes", "duration"),
+    ("genres: [alpha]", "genres: [delta]", "genre-unknown"),
+    ("genres: [alpha]", "genres: alpha", "genres-scalar"),
+    ("bpm: [100, 135]", "bpm: [135, 100]", "bpm-reversed"),
+    ("energy: [7, 8]", "energy: [0, 8]", "energy-zero"),
+    ("key_journey: TBD\n", "", "no-key_journey"),
+    ("lightshow: null", "lightshow: null\nmood: hot", "unknown-key"),
+    ("lightshow: null", "lightshow: ../lightshows/alpha-festa.md", "lightshow-missing-file"),
+    # The other keys, missing.
+    ("name: Alpha Festa\n", "", "no-name"),
+    ("function: peak\n", "", "no-function"),
+    ("style: open-format\n", "", "no-style"),
+    ("duration: 30m\n", "", "no-duration"),
+    ("genres: [alpha]\n", "", "no-genres"),
+    ("bpm: [100, 135]\n", "", "no-bpm"),
+    ("energy: [7, 8]\n", "", "no-energy"),
+    ("lightshow: null\n", "", "no-lightshow"),
+    # Wrong values and wrong YAML types: a finding, never a TypeError.
+    ("function: peak", "function: [peak]", "function-list"),
+    ("function: peak", "function: yes", "function-bool"),
+    ("function: peak", "function:", "function-null"),
+    ("function: peak", "function: Peak", "function-case"),
+    ("style: open-format", "style: [hybrid]", "style-list"),
+    ("style: open-format", "style: {a: b}", "style-mapping"),
+    ("duration: 30m", "duration: 30", "duration-int"),
+    ("duration: 30m", "duration: m", "duration-no-digits"),
+    ("duration: 30m", "duration: 30M", "duration-case"),
+    ("duration: 30m", "duration: 1h30m", "duration-two-units"),
+    ("duration: 30m", "duration: [30m]", "duration-list"),
+    ("duration: 30m", "duration:", "duration-null"),
+    ("genres: [alpha]", "genres: []", "genres-empty"),
+    ("genres: [alpha]", "genres:", "genres-null"),
+    ("genres: [alpha]", "genres: [5]", "genres-int"),
+    ("genres: [alpha]", "genres: [[alpha]]", "genres-nested"),
+    ("genres: [alpha]", "genres: [{a: b}]", "genres-mapping-item"),
+    ("genres: [alpha]", "genres: [alpha, delta]", "genres-one-unknown"),
+    ("genres: [alpha]", "genres: {alpha: 1}", "genres-mapping"),
+    ("bpm: [100, 135]", "bpm: [0, 135]", "bpm-zero"),
+    ("bpm: [100, 135]", 'bpm: "100-135"', "bpm-string"),
+    ("bpm: [100, 135]", "bpm: [100]", "bpm-one"),
+    ("bpm: [100, 135]", "bpm: [100, 135, 140]", "bpm-three"),
+    ("bpm: [100, 135]", "bpm: [100.5, 135]", "bpm-float"),
+    ("bpm: [100, 135]", "bpm: [true, 135]", "bpm-bool"),
+    ("bpm: [100, 135]", "bpm: 120", "bpm-scalar"),
+    ("energy: [7, 8]", "energy: [7, 11]", "energy-eleven"),
+    ("energy: [7, 8]", "energy: 8", "energy-scalar"),
+    ("energy: [7, 8]", "energy: [7, true]", "energy-bool"),
+    ("energy: [7, 8]", 'energy: [7, "8"]', "energy-string"),
+    ("key_journey: TBD", "key_journey: [8A]", "key_journey-list"),
+    ("key_journey: TBD", "key_journey: 8", "key_journey-int"),
+    ("key_journey: TBD", "key_journey:", "key_journey-null"),
+    ("lightshow: null", "lightshow: 5", "lightshow-int"),
+    ("lightshow: null", "lightshow: yes", "lightshow-bool"),
+    ("lightshow: null", 'lightshow: ""', "lightshow-empty"),
+    ("lightshow: null", "lightshow: [a.md]", "lightshow-list"),
+    ("lightshow: null", "lightshow: /etc/passwd", "lightshow-absolute"),
+    ("lightshow: null", "lightshow: ../lightshows/missing.md", "lightshow-not-there"),
+]
+
+
+@pytest.mark.parametrize(
+    ("old", "new"),
+    [case[:2] for case in FRONT_PROBLEMS],
+    ids=[case[2] for case in FRONT_PROBLEMS],
+)
+def test_block_frontmatter(mini_repo, old, new):
+    mini_repo.edit(BLOCK, old, new)
+    assert mini_repo.findings(FRONTMATTER) == [(BLOCK, 2, FRONTMATTER)]
+    # No other block rule reports the same mistake, and none raises on the wrong type.
+    assert block_findings(mini_repo) == [(BLOCK, 2, FRONTMATTER)]
+
+
+@pytest.mark.parametrize(
+    ("old", "new"),
+    [
+        ("energy: [7, 8]", "energy: [8, 7]"),  # a falling arc
+        ("energy: [7, 8]", "energy: [1, 10]"),
+        ("energy: [7, 8]", "energy: [5, 5]"),
+        ("bpm: [100, 135]", "bpm: [100, 100]"),
+        ("bpm: [100, 135]", "bpm: [1, 1000]"),
+        ("duration: 30m", "duration: 2h"),
+        ("duration: 30m", "duration: 120m"),
+        ("duration: 30m", "duration: 0m"),
+        ("genres: [alpha]", "genres: [alpha, beta]"),
+        ("genres: [alpha]", "genres: [alpha, alpha]"),
+        ("key_journey: TBD", "key_journey: 8A -> 9A -> 9B"),
+        ("key_journey: TBD", 'key_journey: ""'),
+        ("lightshow: null", "lightshow: ../lightshows/alpha-festa.md"),
+        ("lightshow: null", "lightshow: ../README.md"),
+        ("lightshow: null", "lightshow: ~"),
+        ("lightshow: null", "lightshow: null  # -> ../lightshows/alpha-festa.md (futuro)"),
+        *[("function: peak", f"function: {name}") for name in FUNCTIONS],
+        *[("style: open-format", f"style: {name}") for name in STYLES],
+    ],
+)
+def test_block_frontmatter_accepts(mini_repo, old, new):
+    mini_repo.write("lightshows/alpha-festa.md", "# Alpha Festa\n")
+    mini_repo.edit(BLOCK, old, new)
+    assert mini_repo.findings() == []
+
+
+def test_block_lightshow_is_resolved_relative_to_the_block(mini_repo):
+    mini_repo.write("lightshows/alpha-festa.md", "# Alpha Festa\n")  # relative to the repo root
+    mini_repo.edit(BLOCK, "lightshow: null", "lightshow: lightshows/alpha-festa.md")
+    assert mini_repo.findings(FRONTMATTER) == [(BLOCK, 2, FRONTMATTER)]
+    mini_repo.write("blocks/lightshows/alpha-festa.md", "# Alpha Festa\n")  # relative to the block
+    assert mini_repo.findings() == []
+
+
+def test_block_frontmatter_reports_each_problem_of_a_block(mini_repo):
+    mini_repo.edit(BLOCK, "function: peak", "function: party\nmood: hot")
+    mini_repo.edit(BLOCK, "key_journey: TBD\n", "")
+    assert sorted(block_messages(mini_repo, FRONTMATTER)) == sorted(
+        [
+            "function 'party' is not one of warmup, build, peak, plateau, breakdown, cooldown",
+            "unknown key 'mood'",
+            "missing key 'key_journey'",
+        ]
+    )
+    assert block_findings(mini_repo) == [(BLOCK, 2, FRONTMATTER)] * 3
+
+
+def test_block_frontmatter_reports_each_unknown_genre(mini_repo):
+    mini_repo.edit(BLOCK, "genres: [alpha]", "genres: [alpha, delta, 5]")
+    assert block_messages(mini_repo, FRONTMATTER) == [
+        "genre 'delta' is not a node id in genres/graph.yml",
+        "genre 5 is not a node id in genres/graph.yml",
+    ]
+
+
+@pytest.mark.parametrize(
+    ("old", "new", "fragments"),
+    [
+        ("function: peak", "function: party", ["function", "'party'", "peak"]),
+        ("style: open-format", "style: blend", ["style", "'blend'", "open-format"]),
+        ("duration: 30m", "duration: 30 minutes", ["duration", "'30 minutes'"]),
+        ("genres: [alpha]", "genres: alpha", ["genres", "'alpha'", "list"]),
+        ("bpm: [100, 135]", "bpm: [135, 100]", ["bpm", "[135, 100]", "min <= max"]),
+        ("energy: [7, 8]", "energy: [0, 8]", ["energy", "[0, 8]", "1-10"]),
+        ("key_journey: TBD", "key_journey: 8", ["key_journey", "8", "string"]),
+        ("key_journey: TBD\n", "", ["missing key 'key_journey'"]),
+        ("lightshow: null", "lightshow: null\nmood: hot", ["unknown key 'mood'"]),
+        ("lightshow: null", "lightshow: 5", ["lightshow", "5", "path"]),
+        ("lightshow: null", "lightshow: ../l/x.md", ["lightshow", "'../l/x.md'", "does not exist"]),
+        ("lightshow: null", "lightshow: /etc/passwd", ["lightshow", "'/etc/passwd'", "relative"]),
+    ],
+)
+def test_block_frontmatter_messages_name_the_offender(mini_repo, old, new, fragments):
+    mini_repo.edit(BLOCK, old, new)
+    (message,) = block_messages(mini_repo, FRONTMATTER)
+    for fragment in fragments:
+        assert fragment in message
+
+
+def test_block_without_frontmatter(mini_repo):
+    mini_repo.write(BLOCK, without_front_matter(mini_repo))
+    assert mini_repo.findings() == [(BLOCK, 1, FRONTMATTER)]
+    assert "---" in block_messages(mini_repo, FRONTMATTER)[0]
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["", "\n---\nname: x\n---\n", "## Feel\nOi.\n", "----\nname: x\n---\n"],
+    ids=["empty-file", "blank-first-line", "no-yaml", "four-dashes"],
+)
+def test_block_that_does_not_start_with_front_matter_never_raises(mini_repo, text):
+    mini_repo.write(BLOCK, text)
+    found = block_findings(mini_repo)
+    assert (BLOCK, 1, FRONTMATTER) in found
+    assert {rule_id for _path, _line, rule_id in found} <= {FRONTMATTER, TRACKLIST}
+
+
+def test_block_unclosed_frontmatter(mini_repo):
+    mini_repo.edit(BLOCK, "lightshow: null\n---\n", "lightshow: null\n")
+    assert mini_repo.findings("parse-error") == [(BLOCK, 0, "parse-error")]
+    assert [f for f in mini_repo.findings() if f[2].startswith("block-")] == []
+
+
+@pytest.mark.parametrize(
+    ("old", "new"),
+    [
+        ("genres: [alpha]", "genres: [alpha"),  # YAML that does not parse
+        ("energy: [7, 8]", "energy: [7, 8]\n  bad: indent"),
+    ],
+    ids=["bad-yaml", "bad-indent"],
+)
+def test_block_with_unparseable_frontmatter_is_skipped_by_every_block_rule(mini_repo, old, new):
+    mini_repo.edit(BLOCK, old, new)
+    assert [f[2] for f in mini_repo.findings() if f[0] == BLOCK] == ["parse-error"]
+
+
+def test_block_frontmatter_checks_graph_ok_for_the_genres_only(mini_repo):
+    mini_repo.edit(BLOCK, "genres: [alpha]", "genres: [delta]")
+    repo = load_repo(mini_repo.root)
+    fn = block_rule(FRONTMATTER)
+    assert [f.line for f in fn(repo)] == [2]
+    repo.graph_ok = False
+    assert list(fn(repo)) == []  # `delta` cannot be judged without a graph
+    repo.blocks[0].front["genres"] = "alpha"
+    repo.blocks[0].front["function"] = "party"
+    assert len(list(fn(repo))) == 2  # the other clauses still run
+
+
+def test_a_graph_that_did_not_load_does_not_flood_the_block_rules(mini_repo):
+    mini_repo.write("genres/graph.yml", "- alpha\n")
+    assert [rule_id for _path, _line, rule_id in mini_repo.findings()] == ["parse-error"]
+
+
+# ---- block-tracklist-resolves ----
+
+
+def test_block_tracklist_unresolved(mini_repo):
+    line = add_after(mini_repo, TRACK_2, GHOST)
+    assert mini_repo.findings(TRACKLIST) == [(BLOCK, line, TRACKLIST)]
+    assert block_findings(mini_repo) == [(BLOCK, line, TRACKLIST)]
+    (message,) = block_messages(mini_repo, TRACKLIST)
+    assert message.startswith("unresolved:")
+    assert "'Nobody'" in message and "'Ghost Track'" in message
+
+
+def test_block_tracklist_format(mini_repo):
+    line = add_after(mini_repo, TRACK_2, "3. Nobody - Ghost Track · e5")
+    assert mini_repo.findings(TRACKLIST) == [(BLOCK, line, TRACKLIST)]
+    assert block_findings(mini_repo) == [(BLOCK, line, TRACKLIST)]
+    (message,) = block_messages(mini_repo, TRACKLIST)
+    assert message.startswith("format:")
+    assert "3. Nobody - Ghost Track · e5" in message
+
+
+def test_block_tracklist_heading_missing(mini_repo):
+    mini_repo.edit(BLOCK, "## Tracklist (primary)", "## Lista")
+    assert mini_repo.findings(TRACKLIST) == [(BLOCK, 0, TRACKLIST)]
+    assert block_findings(mini_repo) == [(BLOCK, 0, TRACKLIST)]
+    assert "## Tracklist" in block_messages(mini_repo, TRACKLIST)[0]
+
+
+def test_block_tracklist_folds_case_and_accents(mini_repo):
+    mini_repo.edit(BLOCK, TRACK_1, "1. PEDRO SAMPAIO — DANCARINA · e8")
+    assert mini_repo.findings() == []
+
+
+@pytest.mark.parametrize(
+    "heading",
+    ["## Tracklist", "## Tracklist (primary)", "## Tracklist — set de teste", "## Tracklist(x)"],
+)
+def test_block_tracklist_heading_only_has_to_start_with_tracklist(mini_repo, heading):
+    mini_repo.edit(BLOCK, "## Tracklist (primary)", heading)
+    assert mini_repo.findings() == []
+
+
+@pytest.mark.parametrize(
+    "heading", ["### Tracklist", "# Tracklist", "## tracklist", "##Tracklist", " ## Tracklist"]
+)
+def test_block_tracklist_heading_must_be_a_level_2_tracklist_heading(mini_repo, heading):
+    mini_repo.edit(BLOCK, "## Tracklist (primary)", heading)
+    assert mini_repo.findings(TRACKLIST) == [(BLOCK, 0, TRACKLIST)]
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "3. Nobody – Ghost Track · e5",  # en dash
+        "3. Nobody -- Ghost Track · e5",
+        "3. Nobody — Ghost Track e5",  # no middle dot
+        "3. Nobody — Ghost Track",
+        "3. Nobody — Ghost Track . e5",  # a period, not a middle dot
+        "3. Nobody — Ghost Track• e5",
+        "3.Nobody — Ghost Track · e5",  # no space after the number
+        "3. — Ghost Track · e5",  # no artist
+        "3. Nobody — · e5",  # no title
+        "3. Nobody — Ghost Track· e5",  # the dot needs a space before it
+        "3. Nobody",
+        "3.",
+    ],
+)
+def test_block_tracklist_format_findings(mini_repo, line):
+    line_no = add_after(mini_repo, TRACK_2, line)
+    assert mini_repo.findings(TRACKLIST) == [(BLOCK, line_no, TRACKLIST)]
+    assert block_messages(mini_repo, TRACKLIST)[0].startswith("format:")
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "(abre forte, sobe no 3)",
+        "- 3. Nobody - Ghost Track",
+        "   3. Nobody - Ghost Track",  # indented: does not start with `<digits>.`
+        "3) Nobody - Ghost Track",
+        "3 Nobody - Ghost Track",
+        "x3. Nobody - Ghost Track",
+        "1→2: blend on the break",
+        "Nota: 3. Nobody - Ghost Track",
+    ],
+)
+def test_block_tracklist_ignores_lines_that_are_not_numbered(mini_repo, line):
+    add_after(mini_repo, TRACK_2, line)
+    assert mini_repo.findings() == []
+
+
+def test_block_tracklist_only_looks_inside_its_section(mini_repo):
+    # A bad numbered line under another heading, before and after the tracklist.
+    mini_repo.edit(BLOCK, "Bloco de teste.", "Bloco de teste.\n1. Nobody - Ghost Track")
+    mini_repo.edit(BLOCK, "- Ver `alpha-festa.md`", "1. Nobody - Ghost Track\n- Ver `alpha-festa.md`")
+    assert mini_repo.findings() == []
+
+
+def test_block_tracklist_without_numbered_lines_is_fine(mini_repo):
+    mini_repo.edit(BLOCK, TRACK_1 + "\n", "")
+    mini_repo.edit(BLOCK, TRACK_2 + "\n", "A ordem fica pra pista.\n")
+    assert mini_repo.findings() == []
+
+
+def test_block_tracklist_reports_every_bad_line(mini_repo):
+    first = add_after(mini_repo, TRACK_2, GHOST)
+    second = add_after(mini_repo, GHOST, "4. Nobody - Ghost Track · e5")
+    third = add_after(mini_repo, "4. Nobody - Ghost Track · e5", "5. Other Nobody — Ghost Two · e5")
+    assert mini_repo.findings(TRACKLIST) == [(BLOCK, n, TRACKLIST) for n in (first, second, third)]
+    kinds = [message.split(":")[0] for message in block_messages(mini_repo, TRACKLIST)]
+    assert kinds == ["unresolved", "format", "unresolved"]
+
+
+@pytest.mark.parametrize(
+    ("anchor", "line"),
+    [
+        (TRACK_1, "1. Pedro Sampaio — Dançarina (Nicky Jam Remix) · e8"),  # () and [] are dropped
+        (TRACK_1, "1. Pedro Sampaio — Dançarina [Salsa Version] · e8"),
+        (TRACK_1, "1. Pedro Sampaio, Anitta, MC Pedrinho — Dançarina · e8"),  # pool artist is a subset
+        (TRACK_1, "1. Pedro — Dançarina · e8"),  # line artist is a subset
+        (TRACK_1, "1. Pedro Sampaio feat. MC Pedrinho — Dançarina · e8"),  # joiners are no tokens
+        (TRACK_1, "1. MC Pedrinho x Pedro Sampaio — Dançarina · e8"),  # token order is free
+        (TRACK_1, "1. Pedro Sampaio — Dancarina · e8"),
+        (TRACK_2, "2. Chiclete Banana — Voa Voa [Ao Vivo] · e7"),
+        (TRACK_2, "2. Chiclete com Banana — Voa · e7"),  # a prefix that ends at a word
+        (TRACK_2, "2. Chiclete com Banana — Voa Voa Ao Vivo Parte 2 · e7"),  # pool title is the prefix
+        (TRACK_2, "2. Banana — Voa Voa (Ao Vivo) · e7"),
+    ],
+)
+def test_block_tracklist_matching_accepts(mini_repo, anchor, line):
+    mini_repo.edit(BLOCK, anchor, line)
+    assert mini_repo.findings() == []
+
+
+@pytest.mark.parametrize(
+    ("anchor", "line"),
+    [
+        (TRACK_1, "1. Anitta — Dançarina · e8"),  # artist shares no token with the pool
+        (TRACK_1, "1. Pedro Samp — Dançarina · e8"),  # tokens are whole words
+        (TRACK_1, "1. Pedro Sampaio — Galopa · e8"),  # title does not match
+        (TRACK_1, "1. Pedro Sampaio — Dança · e8"),  # a prefix has to end at a word: "dancarina"
+        (TRACK_1, "1. Pedro Sampaio — Dancarinas · e8"),
+        (TRACK_1, "1. Pedro Sampaio — Rina · e8"),  # the title must start the pool title
+        (TRACK_1, "1. Pedro Sampaio — (Remix) · e8"),  # nothing is left of the title
+        (TRACK_2, "2. Chiclete com Banana — Vo · e7"),
+        (TRACK_2, "2. Chiclete com Banana — Voa Vo · e7"),
+        (TRACK_2, "2. Pedro Sampaio — Voa Voa · e7"),  # right title, another artist's track
+        (TRACK_2, "2. Chiclete com Banana — Dançarina · e7"),
+    ],
+)
+def test_block_tracklist_matching_rejects(mini_repo, anchor, line):
+    mini_repo.edit(BLOCK, anchor, line)
+    line_no = mini_repo.line_of(BLOCK, line)
+    assert mini_repo.findings(TRACKLIST) == [(BLOCK, line_no, TRACKLIST)]
+    assert block_messages(mini_repo, TRACKLIST)[0].startswith("unresolved:")
+
+
+def test_block_tracklist_matches_a_track_in_any_pool(mini_repo):
+    mini_repo.write("tracks/beta.yml", track(title='"Galopa"', artist='"Pedro Sampaio"'))
+    add_after(mini_repo, TRACK_2, "3. Pedro Sampaio — Galopa · e8")
+    assert mini_repo.findings() == []
+
+
+def test_block_tracklist_needs_one_track_to_match_both_artist_and_title(mini_repo):
+    # The artist of one track and the title of another is not a match.
+    mini_repo.write("tracks/beta.yml", track(title='"Galopa"', artist='"Anitta"'))
+    line = add_after(mini_repo, TRACK_2, "3. Pedro Sampaio — Galopa · e8")
+    assert mini_repo.findings(TRACKLIST) == [(BLOCK, line, TRACKLIST)]
+
+
+def test_block_tracklist_does_not_match_tracks_whose_artist_or_title_is_not_a_string(mini_repo):
+    # `norm` gives "" for them, and an empty token set is a subset of every artist.
+    mini_repo.write(
+        "tracks/beta.yml",
+        track(title="5", artist="5") + "\n" + track(title="null", artist="[a]"),
+    )
+    line = add_after(mini_repo, TRACK_2, "3. 5 — 5 · e5")
+    assert mini_repo.findings(TRACKLIST) == [(BLOCK, line, TRACKLIST)]
+
+
+def test_block_tracklist_never_raises_on_a_non_mapping_entry(mini_repo):
+    # The loader keeps such a pool out of `repo.pools`, so build the case by hand.
+    repo = load_repo(mini_repo.root)
+    repo.pools[0].entries.append("a bare string")
+    repo.pools[0].entries.append({"title": 5, "artist": ["x"], "__line__": 1})
+    assert list(block_rule(TRACKLIST)(repo)) == []
+
+
+def test_block_tracklist_does_not_need_the_graph(mini_repo):
+    mini_repo.write("genres/graph.yml", "- alpha\n")
+    line = add_after(mini_repo, TRACK_2, GHOST)
+    assert mini_repo.findings(TRACKLIST) == [(BLOCK, line, TRACKLIST)]
+
+
+def test_block_tracklist_runs_on_a_block_without_front_matter(mini_repo):
+    body = without_front_matter(mini_repo)
+    # Appended after the Bridge out: not in the tracklist.
+    mini_repo.write(BLOCK, body + GHOST + "\n")
+    assert mini_repo.findings() == [(BLOCK, 1, FRONTMATTER)]
+    mini_repo.write(BLOCK, body.replace(TRACK_2, GHOST))
+    assert [f[2] for f in mini_repo.findings() if f[0] == BLOCK] == [FRONTMATTER, TRACKLIST]
+
+
+def test_block_tracklist_does_not_cascade_from_a_broken_pool(mini_repo):
+    mini_repo.write(ALPHA, "- title: [\n")
+    add_after(mini_repo, TRACK_2, GHOST)
+    bad = add_after(mini_repo, GHOST, "4. Nobody - Ghost Track · e5")
+    assert [(path, rule_id) for path, _line, rule_id in mini_repo.findings("parse-error")] == [
+        (ALPHA, "parse-error")
+    ]
+    # No line is unresolved, not even the valid ones the pool used to resolve, but the
+    # format of a line does not depend on any pool.
+    assert mini_repo.findings(TRACKLIST) == [(BLOCK, bad, TRACKLIST)]
+    assert block_messages(mini_repo, TRACKLIST)[0].startswith("format:")
+
+
+def test_block_tracklist_does_not_cascade_from_any_broken_pool(mini_repo):
+    mini_repo.write("tracks/beta.yml", "- title: [\n")  # not the pool with the block's tracks
+    add_after(mini_repo, TRACK_2, GHOST)
+    assert mini_repo.findings(TRACKLIST) == []
+
+
+# ---- block-bridges-are-edges ----
+
+
+def test_block_bridge_in_without_an_edge(mini_repo):
+    line = add_after(mini_repo, BRIDGE_IN, "← `gamma`: corte.")
+    assert mini_repo.findings(BRIDGES) == [(BLOCK, line, BRIDGES)]  # there is no gamma -> alpha
+    assert block_findings(mini_repo) == [(BLOCK, line, BRIDGES)]
+    assert block_messages(mini_repo, BRIDGES) == ["no edge gamma -> alpha for Bridge in `gamma`"]
+
+
+def test_block_bridge_out_with_a_weak_edge_counts(mini_repo):
+    add_after(mini_repo, BRIDGE_OUT, "- → `gamma`: lift.")  # alpha -> gamma is weak
+    assert mini_repo.findings() == []
+
+
+def test_block_bridge_to_the_blocks_own_genre_is_skipped(mini_repo):
+    add_after(mini_repo, BRIDGE_OUT, "Fica em `alpha` mesmo.")
+    add_after(mini_repo, BRIDGE_IN, "Vem de `alpha` também.")
+    assert mini_repo.findings() == []
+
+
+def test_block_bridge_out_without_an_edge(mini_repo):
+    mini_repo.edit(BLOCK, "genres: [alpha]", "genres: [gamma]")  # gamma -> beta only
+    line = add_after(mini_repo, BRIDGE_OUT, "- → `alpha`: volta.")
+    assert mini_repo.findings(BRIDGES) == [(BLOCK, line, BRIDGES)]
+    assert block_messages(mini_repo, BRIDGES) == ["no edge gamma -> alpha for Bridge out `alpha`"]
+
+
+def test_block_bridge_direction_matters(mini_repo):
+    # With genres [gamma]: alpha -> gamma exists, gamma -> alpha does not.
+    mini_repo.edit(BLOCK, "genres: [alpha]", "genres: [gamma]")
+    add_after(mini_repo, BRIDGE_IN, "← `alpha`: vem do alpha.")  # alpha -> gamma: fine
+    out_line = add_after(mini_repo, BRIDGE_OUT, "- → `alpha`: vai pro alpha.")  # gamma -> alpha: no
+    assert mini_repo.findings(BRIDGES) == [(BLOCK, out_line, BRIDGES)]
+
+
+@pytest.mark.parametrize("genres", ["[beta, gamma]", "[gamma, beta]"])
+def test_block_bridge_needs_an_edge_to_or_from_any_one_genre(mini_repo, genres):
+    # Bridge in `alpha`: alpha -> beta and alpha -> gamma both exist.
+    # Bridge out `alpha`: beta -> alpha exists, gamma -> alpha does not: one genre is enough.
+    mini_repo.edit(BLOCK, "genres: [alpha]", f"genres: {genres}")
+    add_after(mini_repo, BRIDGE_IN, "← `alpha`: vem do alpha.")
+    add_after(mini_repo, BRIDGE_OUT, "- → `alpha`: volta pro alpha.")
+    assert block_findings(mini_repo) == []
+
+
+def test_block_bridge_message_names_all_the_genres(mini_repo):
+    mini_repo.edit(BLOCK, "genres: [alpha]", "genres: [alpha, beta]")
+    mini_repo.edit(GRAPH, GAMMA_NEIGHBORS, "    neighbors: []\n")  # gamma has no edge out now
+    line = add_after(mini_repo, BRIDGE_IN, "← `gamma`: corte.")
+    assert mini_repo.findings(BRIDGES) == [(BLOCK, line, BRIDGES)]
+    assert block_messages(mini_repo, BRIDGES) == [
+        "no edge gamma -> alpha or beta for Bridge in `gamma`"
+    ]
+
+
+@pytest.mark.parametrize(
+    "token",
+    ["alpha-festa.md", "Make U Sweat", "axe/", "Beta", "a_b", "-x", "x--y", " beta", "beta "],
+)
+def test_block_bridge_tokens_that_are_not_node_ids_are_skipped(mini_repo, token):
+    add_after(mini_repo, BRIDGE_OUT, f"- `{token}` é um nome, não um node.")
+    assert mini_repo.findings() == []
+
+
+def test_block_bridge_node_id_that_is_not_a_node_is_a_finding(mini_repo):
+    line = add_after(mini_repo, BRIDGE_OUT, "- → `delta`: nem existe.")
+    assert mini_repo.findings(BRIDGES) == [(BLOCK, line, BRIDGES)]
+    assert block_messages(mini_repo, BRIDGES) == [
+        "Bridge out `delta` is not a node id in genres/graph.yml"
+    ]
+
+
+def test_block_bridges_check_every_token_on_a_line(mini_repo):
+    line = add_after(mini_repo, BRIDGE_IN, "← `beta` ou `gamma` ou `beta`: corte.")
+    assert mini_repo.findings(BRIDGES) == [(BLOCK, line, BRIDGES)]
+    assert block_messages(mini_repo, BRIDGES) == ["no edge gamma -> alpha for Bridge in `gamma`"]
+
+
+def test_block_bridges_only_look_inside_their_sections(mini_repo):
+    mini_repo.edit(BLOCK, "Bloco de teste.", "Bloco de teste. Vem do `gamma`.")  # Feel
+    mini_repo.edit(BLOCK, TRACK_2, TRACK_2 + "  `gamma`")  # Tracklist
+    mini_repo.write(BLOCK, mini_repo.read(BLOCK) + "\n## Notas\n- `gamma` e `delta`.\n")
+    assert mini_repo.findings() == []
+
+
+def test_block_bridge_section_ends_at_the_next_level_2_heading_only(mini_repo):
+    mini_repo.edit(
+        BLOCK,
+        "## Tracklist (primary)",
+        "### Sub\n← `gamma`: ainda dentro.\n## Tracklist (primary)",
+    )
+    line = mini_repo.line_of(BLOCK, "← `gamma`: ainda dentro.")
+    assert mini_repo.findings(BRIDGES) == [(BLOCK, line, BRIDGES)]
+
+
+@pytest.mark.parametrize("heading", ["## Bridge out", "## Bridge out (opcional)", "## Bridge outro"])
+def test_block_bridge_headings_only_have_to_start_with_the_name(mini_repo, heading):
+    mini_repo.edit(BLOCK, "## Bridge out", heading)
+    line = add_after(mini_repo, BRIDGE_OUT, "- → `delta`: x.")
+    assert mini_repo.findings(BRIDGES) == [(BLOCK, line, BRIDGES)]
+
+
+def test_block_bridges_are_optional(mini_repo):
+    text = mini_repo.read(BLOCK)
+    text = text.replace("## Bridge in\n" + BRIDGE_IN + "\n\n", "")
+    mini_repo.write(BLOCK, text.split("## Bridge out")[0])
+    assert mini_repo.findings() == []
+
+
+def test_block_bridges_use_only_the_first_section_of_a_name(mini_repo):
+    mini_repo.write(BLOCK, mini_repo.read(BLOCK) + "\n## Bridge out (de novo)\n- → `delta`.\n")
+    assert mini_repo.findings() == []
+
+
+@pytest.mark.parametrize("genres", ["[delta]", "alpha", "[]", "[5]", "[[alpha]]", "[{a: b}]", ""])
+def test_block_bridges_skip_a_block_whose_genres_cannot_be_judged(mini_repo, genres):
+    # block-frontmatter reports the genres; the bridges are not reported again.
+    add_after(mini_repo, BRIDGE_IN, "← `gamma`: corte.")
+    mini_repo.edit(BLOCK, "genres: [alpha]", f"genres: {genres}")
+    assert mini_repo.findings(BRIDGES) == []
+
+
+def test_block_bridges_judge_a_block_by_its_genres_that_exist(mini_repo):
+    mini_repo.edit(BLOCK, "genres: [alpha]", "genres: [delta, alpha, 5]")
+    line = add_after(mini_repo, BRIDGE_IN, "← `gamma`: corte.")
+    assert mini_repo.findings(BRIDGES) == [(BLOCK, line, BRIDGES)]
+    assert block_messages(mini_repo, BRIDGES) == ["no edge gamma -> alpha for Bridge in `gamma`"]
+
+
+def test_block_bridges_check_graph_ok_themselves(mini_repo):
+    add_after(mini_repo, BRIDGE_IN, "← `gamma`: corte.")
+    repo = load_repo(mini_repo.root)
+    fn = block_rule(BRIDGES)
+    assert len(list(fn(repo))) == 1
+    repo.graph_ok = False
+    assert list(fn(repo)) == []
+
+
+def test_block_bridges_never_raise_on_a_malformed_edge(mini_repo):
+    mini_repo.edit(
+        GRAPH,
+        '      - {to: gamma, strength: weak,   via: "long echo out"}\n',
+        '      - {to: [gamma], strength: weak, via: "long echo out"}\n'
+        "      - alpha\n"
+        "      - {to: 5}\n",
+    )
+    line = add_after(mini_repo, BRIDGE_OUT, "- → `gamma`: lift.")  # alpha -> gamma is gone
+    assert mini_repo.findings(BRIDGES) == [(BLOCK, line, BRIDGES)]
+
+
+def test_block_bridges_skip_a_block_without_front_matter(mini_repo):
+    mini_repo.write(BLOCK, without_front_matter(mini_repo).replace(BRIDGE_IN, "← `gamma`: corte."))
+    assert mini_repo.findings() == [(BLOCK, 1, FRONTMATTER)]
+
+
+# ---- all three rules ----
+
+
+def test_block_rules_check_every_block(mini_repo):
+    other = "blocks/beta-festa.md"
+    mini_repo.write(other, mini_repo.read(BLOCK).replace("genres: [alpha]", "genres: [beta]"))
+    assert mini_repo.findings() == []
+    mini_repo.edit(BLOCK, "function: peak", "function: party")
+    ghost = add_after(mini_repo, TRACK_2, GHOST, rel=other)
+    bridge = add_after(mini_repo, BRIDGE_OUT, "- → `delta`: x.", rel=other)
+    assert block_findings(mini_repo) == [
+        (BLOCK, 2, FRONTMATTER),
+        (other, ghost, TRACKLIST),
+        (other, bridge, BRIDGES),
+    ]

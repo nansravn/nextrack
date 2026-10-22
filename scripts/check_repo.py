@@ -904,6 +904,222 @@ def track_unique(repo: Repo) -> Iterable[Finding]:
             yield _pool_finding(pool, entry["__line__"], "track-unique", message)
 
 
+# ---- blocks (blocks/*.md) ----
+#
+# A block whose front matter did not parse (`has_front` with `front` None) was
+# reported by the loader, and all three rules skip it. A block with no front matter
+# at all is a `block-frontmatter` finding at line 1; `block-tracklist-resolves` still
+# reads its body, but `block-bridges-are-edges` needs its genres and skips it.
+# Findings about the front matter point at its `__line__` (2); a missing tracklist
+# heading is a finding about the whole file (line 0); the others name their own line.
+# Only the clauses that read node ids or edges yield nothing when `graph_ok` is False.
+
+BLOCK_KEYS = (
+    "name", "function", "style", "duration", "genres", "bpm", "energy", "key_journey", "lightshow",
+)  # fmt: skip
+FUNCTIONS = ("warmup", "build", "peak", "plateau", "breakdown", "cooldown")
+STYLES = ("continuous", "open-format", "hybrid")
+DURATION_RE = re.compile(r"[0-9]+[mh]")
+TRACKLIST_HEADING = "## Tracklist"
+BRIDGE_HEADINGS = (("## Bridge in", "Bridge in"), ("## Bridge out", "Bridge out"))
+# `N. Artist — Title · …`: an em dash between artist and title, then a middle dot.
+TRACK_LINE_START_RE = re.compile(r"[0-9]+\.")
+TRACK_LINE_RE = re.compile(r"[0-9]+\.\s+(?P<artist>.+?)\s+—\s+(?P<title>.+?)\s+·")
+BACKTICKED_RE = re.compile(r"`([^`]+)`")
+JOINERS = frozenset({"feat", "ft", "x", "e", "and", "com", "pres", "vs"})
+PARENTHESIZED_RE = re.compile(r"\([^)]*\)|\[[^\]]*\]")
+
+
+def _block_finding(block: Block, line: int, rule_id: str, message: str) -> Finding:
+    return Finding(block.path, line, rule_id, message)
+
+
+def _parse_failed(block: Block) -> bool:
+    return block.has_front and block.front is None
+
+
+def section(body: list[tuple[int, str]], prefix: str) -> list[tuple[int, str]] | None:
+    """The lines after the first heading that starts with `prefix`, up to the next
+    `## ` heading (or the end), or None when there is no such heading."""
+    start = next((i for i, (_, text) in enumerate(body) if text.startswith(prefix)), None)
+    if start is None:
+        return None
+    lines = []
+    for number, text in body[start + 1 :]:
+        if text.startswith("## "):
+            break
+        lines.append((number, text))
+    return lines
+
+
+def core(title: str) -> str:
+    """`norm` of a title without its `(...)` and `[...]` parts: `Voa Voa (Ao Vivo)` -> `voa voa`."""
+    return norm(PARENTHESIZED_RE.sub("", title))
+
+
+def artist_tokens(artist: str) -> set[str]:
+    """The words of `norm(artist)` without the joiners (`feat`, `x`, `com`, ...)."""
+    return set(norm(artist).split()) - JOINERS
+
+
+# block-frontmatter
+
+
+def _front_problems(repo: Repo, block: Block, front: dict) -> Iterable[str]:
+    yield from _key_problems(front, BLOCK_KEYS, BLOCK_KEYS)
+    # `in` on a tuple compares with `==`, so an unhashable YAML value is fine.
+    if "function" in front and front["function"] not in FUNCTIONS:
+        yield f"function {_show(front['function'])} is not one of {', '.join(FUNCTIONS)}"
+    if "style" in front and front["style"] not in STYLES:
+        yield f"style {_show(front['style'])} is not one of {', '.join(STYLES)}"
+    if "duration" in front and not (
+        isinstance(front["duration"], str) and DURATION_RE.fullmatch(front["duration"])
+    ):
+        yield f"duration {_show(front['duration'])} is not a number followed by m or h, such as 30m"
+    if "genres" in front:
+        genres = front["genres"]
+        if not isinstance(genres, list) or not genres:
+            yield f"genres {_show(genres)} is not a non-empty list of node ids"
+        else:
+            ids = repo.node_ids()
+            for genre in genres:
+                # `genre` may be any YAML value: test it as a string before any set lookup.
+                if not isinstance(genre, str) or (repo.graph_ok and genre not in ids):
+                    yield f"genre {_show(genre)} is not a node id in {GRAPH_PATH}"
+    if "bpm" in front and not is_range(front["bpm"], lo=1):
+        yield f"bpm {_show(front['bpm'])} is not [min, max] of positive integers with min <= max"
+    if "energy" in front and not is_range(front["energy"], lo=1, hi=10, ordered=False):
+        yield f"energy {_show(front['energy'])} is not [start, end] within 1-10"
+    if "key_journey" in front and not isinstance(front["key_journey"], str):
+        yield f"key_journey {_show(front['key_journey'])} is not a string"
+    if front.get("lightshow") is not None:
+        path = front["lightshow"]
+        if not (isinstance(path, str) and path):
+            yield f"lightshow {_show(path)} is not null or a path"
+        elif Path(path).is_absolute():
+            yield f"lightshow {_show(path)} is not a path relative to the block"
+        elif not os.path.exists(repo.root / Path(block.path).parent / path):  # False on OS error
+            yield f"lightshow {_show(path)} does not exist"
+
+
+@rule("block-frontmatter")
+def block_frontmatter(repo: Repo) -> Iterable[Finding]:
+    for block in repo.blocks:
+        if block.front is not None:
+            for problem in _front_problems(repo, block, block.front):
+                yield _block_finding(block, block.front["__line__"], "block-frontmatter", problem)
+        elif not block.has_front:
+            message = "no front matter: the file must start with a `---` line"
+            yield _block_finding(block, 1, "block-frontmatter", message)
+
+
+# block-tracklist-resolves
+
+
+def _track_index(repo: Repo) -> list[tuple[set[str], str]]:
+    """`(artist tokens, core title)` of every pool track whose artist and title are
+    strings. Any other track is skipped: `norm` gives `""` for it, and an empty token
+    set is a subset of every artist. track-schema reports it."""
+    index = []
+    for pool in repo.pools:
+        for entry in _mappings(pool):
+            artist, title = entry.get("artist"), entry.get("title")
+            if isinstance(artist, str) and isinstance(title, str):
+                index.append((artist_tokens(artist), core(title)))
+    return index
+
+
+def _same_title(a: str, b: str) -> bool:
+    """Equal, or one starts with the other followed by a space."""
+    return a == b or a.startswith(b + " ") or b.startswith(a + " ")
+
+
+def _resolves(index: list[tuple[set[str], str]], artist: str, title: str) -> bool:
+    tokens, wanted = artist_tokens(artist), core(title)
+    return any((t <= tokens or tokens <= t) and _same_title(c, wanted) for t, c in index)
+
+
+@rule("block-tracklist-resolves")
+def block_tracklist_resolves(repo: Repo) -> Iterable[Finding]:
+    """Each `N. Artist — Title · …` line of the `## Tracklist` section is in the right
+    format (`format:`) and matches a track of any pool (`unresolved:`).
+
+    While a pool fails to parse its tracks are unknown, so no line is called
+    unresolved: the loader's `parse-error` already says what is wrong.
+    """
+    pools_ok = not any(e.path.startswith("tracks/") for e in repo.errors)
+    index = _track_index(repo)
+    for block in repo.blocks:
+        if _parse_failed(block):
+            continue
+        lines = section(block.body, TRACKLIST_HEADING)
+        if lines is None:
+            message = f"no heading that starts with `{TRACKLIST_HEADING}`"
+            yield _block_finding(block, 0, "block-tracklist-resolves", message)
+            continue
+        for number, text in lines:
+            if not TRACK_LINE_START_RE.match(text):
+                continue
+            parsed = TRACK_LINE_RE.match(text)
+            if parsed is None:
+                message = f"format: {text!r} is not `N. Artist — Title · …` (em dash, middle dot)"
+                yield _block_finding(block, number, "block-tracklist-resolves", message)
+            elif pools_ok and not _resolves(index, parsed["artist"], parsed["title"]):
+                message = (
+                    f"unresolved: no track in any pool matches artist {parsed['artist']!r}, "
+                    f"title {parsed['title']!r}"
+                )
+                yield _block_finding(block, number, "block-tracklist-resolves", message)
+
+
+# block-bridges-are-edges
+
+
+def _bridge_problem(
+    name: str, token: str, own: list[str], ids: set[str], edges: set[tuple[str, str]]
+) -> str | None:
+    """Why the backticked node id `token` of a Bridge section is wrong, or None."""
+    if token not in ids:
+        return f"{name} `{token}` is not a node id in {GRAPH_PATH}"
+    inbound = name == "Bridge in"
+    if any(((token, g) if inbound else (g, token)) in edges for g in own):
+        return None
+    ends = " or ".join(own)
+    direction = f"{token} -> {ends}" if inbound else f"{ends} -> {token}"
+    return f"no edge {direction} for {name} `{token}`"
+
+
+@rule("block-bridges-are-edges")
+def block_bridges_are_edges(repo: Repo) -> Iterable[Finding]:
+    """Each backticked node id in `## Bridge in` / `## Bridge out` follows a graph edge.
+
+    Bridge in needs an edge from the node to one of the block's genres, Bridge out
+    one from a genre to the node; the block's own genres are skipped. A backticked
+    word that is not shaped like a node id (a file name, a track) is prose; one that
+    is shaped like one but names no node is reported. A block is judged by its genres
+    that exist; with none, block-frontmatter has the finding.
+    """
+    if not repo.graph_ok:
+        return
+    ids = repo.node_ids()
+    edges = {(src, e["to"]) for src, e in repo.edges() if isinstance(e.get("to"), str)}
+    for block in repo.blocks:
+        genres = block.front.get("genres") if block.front is not None else None
+        if not isinstance(genres, list):
+            continue
+        own = list(dict.fromkeys(g for g in genres if isinstance(g, str) and g in ids))
+        if not own:
+            continue
+        for heading, name in BRIDGE_HEADINGS:
+            for number, text in section(block.body, heading) or []:
+                for token in BACKTICKED_RE.findall(text):
+                    if not is_node_id(token) or token in own:
+                        continue
+                    problem = _bridge_problem(name, token, own, ids, edges)
+                    if problem:
+                        yield _block_finding(block, number, "block-bridges-are-edges", problem)
+
+
 # ------------------------------------------------------------------------ run --
 
 
