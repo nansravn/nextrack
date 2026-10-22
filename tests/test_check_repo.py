@@ -2014,6 +2014,11 @@ def test_block_bridges_judge_a_block_by_its_genres_that_exist(mini_repo):
     line = add_after(mini_repo, BRIDGE_IN, "← `gamma`: corte.")
     assert mini_repo.findings(BRIDGES) == [(BLOCK, line, BRIDGES)]
     assert block_messages(mini_repo, BRIDGES) == ["no edge gamma -> alpha for Bridge in `gamma`"]
+    # A genre that is not a node is still one of the block's own genres: a Bridge to it is
+    # not reported a second time, block-frontmatter has the finding at the genres line.
+    add_after(mini_repo, BRIDGE_OUT, "- → `delta`: x.")
+    assert mini_repo.findings(BRIDGES) == [(BLOCK, line, BRIDGES)]
+    assert mini_repo.findings(FRONTMATTER) == [(BLOCK, 2, FRONTMATTER)] * 2  # `delta` and `5`
 
 
 def test_block_bridges_check_graph_ok_themselves(mini_repo):

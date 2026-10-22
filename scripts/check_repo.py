@@ -1094,10 +1094,11 @@ def block_bridges_are_edges(repo: Repo) -> Iterable[Finding]:
     """Each backticked node id in `## Bridge in` / `## Bridge out` follows a graph edge.
 
     Bridge in needs an edge from the node to one of the block's genres, Bridge out
-    one from a genre to the node; the block's own genres are skipped. A backticked
-    word that is not shaped like a node id (a file name, a track) is prose; one that
-    is shaped like one but names no node is reported. A block is judged by its genres
-    that exist; with none, block-frontmatter has the finding.
+    one from a genre to the node; a token that is one of the block's own `genres` is
+    skipped, even if that genre is not a node. A backticked word that is not shaped
+    like a node id (a file name, a track) is prose; one that is shaped like one but
+    names no node is reported. A block is judged by its genres that exist; with none,
+    block-frontmatter has the finding.
     """
     if not repo.graph_ok:
         return
@@ -1107,13 +1108,14 @@ def block_bridges_are_edges(repo: Repo) -> Iterable[Finding]:
         genres = block.front.get("genres") if block.front is not None else None
         if not isinstance(genres, list):
             continue
+        named = {g for g in genres if isinstance(g, str)}  # skipped, even if not a node
         own = list(dict.fromkeys(g for g in genres if isinstance(g, str) and g in ids))
         if not own:
             continue
         for heading, name in BRIDGE_HEADINGS:
             for number, text in section(block.body, heading) or []:
                 for token in BACKTICKED_RE.findall(text):
-                    if not is_node_id(token) or token in own:
+                    if not is_node_id(token) or token in named:
                         continue
                     problem = _bridge_problem(name, token, own, ids, edges)
                     if problem:
