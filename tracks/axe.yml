@@ -7,8 +7,8 @@
 - title: "Voa Voa"
   artist: "Chiclete com Banana"
   genre: axe
-  bpm: null
-  key: null
+  bpm: 123
+  key: 10A
   energy: 8
   status: downloaded
   tags: [axe, axe-retro, singalong]
@@ -16,8 +16,8 @@
 - title: "Cara Caramba (Sou Camaleão)"
   artist: "Chiclete com Banana"
   genre: axe
-  bpm: null
-  key: null
+  bpm: 109
+  key: 11A
   energy: 8
   status: downloaded
   tags: [axe, axe-retro, carnaval, singalong]
@@ -25,8 +25,8 @@
 - title: "Quero Chiclete"
   artist: "Chiclete com Banana"
   genre: axe
-  bpm: null
-  key: null
+  bpm: 166
+  key: 11B
   energy: 7
   status: downloaded
   tags: [axe, axe-retro]
@@ -34,8 +34,8 @@
 - title: "Cabelo Raspadinho"
   artist: "Chiclete com Banana"
   genre: axe
-  bpm: null
-  key: null
+  bpm: 172
+  key: 5A
   energy: 7
   status: downloaded
   tags: [axe, axe-retro]
@@ -43,8 +43,8 @@
 - title: "Meu Cabelo Duro é Assim"
   artist: "Chiclete com Banana"
   genre: axe
-  bpm: null
-  key: null
+  bpm: 155
+  key: 12A
   energy: 7
   status: downloaded
   tags: [axe, axe-retro]
@@ -52,8 +52,8 @@
 - title: "Amor Perfeito"
   artist: "Chiclete com Banana"
   genre: axe
-  bpm: null
-  key: null
+  bpm: 112
+  key: 1B
   energy: 6
   status: downloaded
   tags: [axe, axe-retro, romantica]
@@ -62,8 +62,8 @@
 - title: "Festa"
   artist: "Ivete Sangalo"
   genre: axe
-  bpm: null
-  key: null
+  bpm: 132
+  key: 9A
   energy: 8
   status: downloaded
   tags: [axe, singalong, carnaval]
@@ -72,8 +72,8 @@
 - title: "Sorte Grande (Poeira)"
   artist: "Ivete Sangalo"
   genre: axe
-  bpm: null
-  key: null
+  bpm: 142
+  key: 9A
   energy: 8
   status: downloaded
   tags: [axe, singalong, carnaval]
@@ -81,8 +81,8 @@
 - title: "Macetando"
   artist: "Ivete Sangalo"
   genre: axe
-  bpm: null
-  key: null
+  bpm: 130
+  key: 8A
   energy: 8
   status: downloaded
   tags: [axe, party]
@@ -91,8 +91,8 @@
 - title: "Berimbau Metalizado (Ao Vivo)"
   artist: "Ivete Sangalo"
   genre: axe
-  bpm: null
-  key: null
+  bpm: 96
+  key: 10A
   energy: 7
   status: downloaded
   tags: [axe, ao-vivo]
@@ -101,8 +101,8 @@
 - title: "O Canto da Cidade"
   artist: "Daniela Mercury"
   genre: axe
-  bpm: null
-  key: null
+  bpm: 107
+  key: 9A
   energy: 8
   status: downloaded
   tags: [axe, axe-retro, singalong]
@@ -111,8 +111,8 @@
 - title: "Swing da Cor"
   artist: "Daniela Mercury"
   genre: axe
-  bpm: null
-  key: null
+  bpm: 126
+  key: 6A
   energy: 8
   status: downloaded
   tags: [axe, axe-retro, singalong]
@@ -120,8 +120,8 @@
 - title: "Nobre Vagabundo"
   artist: "Daniela Mercury"
   genre: axe
-  bpm: null
-  key: null
+  bpm: 162
+  key: 6B
   energy: 7
   status: downloaded
   tags: [axe, axe-retro]
@@ -129,8 +129,8 @@
 - title: "Rapunzel"
   artist: "Daniela Mercury"
   genre: axe
-  bpm: null
-  key: null
+  bpm: 150
+  key: 10A
   energy: 7
   status: downloaded
   tags: [axe, axe-retro]
@@ -139,8 +139,8 @@
 - title: "Beija-Flor"
   artist: "Timbalada"
   genre: axe
-  bpm: null
-  key: null
+  bpm: 102
+  key: 9A
   energy: 6
   status: downloaded
   tags: [axe, percussao, singalong]
@@ -149,8 +149,8 @@
 - title: "A Luz de Tieta"
   artist: "Timbalada"
   genre: axe
-  bpm: null
-  key: null
+  bpm: 112
+  key: 11A
   energy: 7
   status: downloaded
   tags: [axe, percussao]
@@ -159,7 +159,7 @@
 - title: "Dança do Vampiro"
   artist: "Asa de Águia"
   genre: axe
-  bpm: null
+  bpm: 135
   key: null
   energy: 8
   status: downloaded
@@ -168,7 +168,7 @@
 - title: "Xô Satanás"
   artist: "Asa de Águia"
   genre: axe
-  bpm: null
+  bpm: 83
   key: null
   energy: 8
   status: downloaded
@@ -177,7 +177,7 @@
 - title: "Manivela"
   artist: "Asa de Águia"
   genre: axe
-  bpm: null
+  bpm: 112
   key: null
   energy: 7
   status: downloaded
@@ -186,7 +186,7 @@
 - title: "Quebra Aê / Cheio de Graça"
   artist: "Asa de Águia"
   genre: axe
-  bpm: null
+  bpm: 155
   key: null
   energy: 7
   status: downloaded
@@ -196,7 +196,7 @@
 - title: "Eva (Ao Vivo)"
   artist: "Banda Eva"
   genre: axe
-  bpm: null
+  bpm: 120
   key: null
   energy: 8
   status: downloaded
@@ -206,7 +206,7 @@
 - title: "Arerê (Ao Vivo)"
   artist: "Banda Eva"
   genre: axe
-  bpm: null
+  bpm: 165
   key: null
   energy: 8
   status: downloaded
@@ -215,7 +215,7 @@
 - title: "Beleza Rara"
   artist: "Banda Eva"
   genre: axe
-  bpm: null
+  bpm: 99
   key: null
   energy: 7
   status: downloaded
@@ -224,8 +224,8 @@
 - title: "Tic, Tic, Tac"
   artist: "Banda Eva"
   genre: axe
-  bpm: null
-  key: null
+  bpm: 100
+  key: 8A
   energy: 8
   status: downloaded
   tags: [axe, danca, party]
@@ -233,8 +233,8 @@
 - title: "Levada Louca"
   artist: "Banda Eva"
   genre: axe
-  bpm: null
-  key: null
+  bpm: 153
+  key: 9A
   energy: 8
   status: downloaded
   tags: [axe, party]
@@ -242,7 +242,7 @@
 - title: "Alô Paixão"
   artist: "Banda Eva"
   genre: axe
-  bpm: null
+  bpm: 98
   key: null
   energy: 7
   status: downloaded
@@ -251,8 +251,8 @@
 - title: "Rua 15 (Ao Vivo)"
   artist: "Banda Eva"
   genre: axe
-  bpm: null
-  key: null
+  bpm: 120
+  key: 12B
   energy: 7
   status: downloaded
   tags: [axe, ao-vivo]
@@ -260,8 +260,8 @@
 - title: "Me Abraça"
   artist: "Banda Eva"
   genre: axe
-  bpm: null
-  key: null
+  bpm: 129
+  key: 11A
   energy: 6
   status: downloaded
   tags: [axe, romantica]
@@ -269,8 +269,8 @@
 - title: "Não Precisa Mudar (Ao Vivo)"
   artist: "Banda Eva"
   genre: axe
-  bpm: null
-  key: null
+  bpm: 88
+  key: 12A
   energy: 6
   status: downloaded
   tags: [axe, romantica, ao-vivo]
@@ -279,7 +279,7 @@
 - title: "Bate Lata"
   artist: "Banda Beijo"
   genre: axe
-  bpm: null
+  bpm: 105
   key: null
   energy: 7
   status: downloaded

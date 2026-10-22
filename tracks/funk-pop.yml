@@ -7,8 +7,8 @@
 - title: "Dançarina"
   artist: "Pedro Sampaio & MC Pedrinho"
   genre: funk-pop
-  bpm: null
-  key: null
+  bpm: 135
+  key: 8A
   energy: 8
   status: downloaded
   tags: [funk-pop, baile, peak, singalong]
@@ -17,8 +17,8 @@
   artist: "Pedro Sampaio"
   remixer: "Nicky Jam"
   genre: funk-pop
-  bpm: null
-  key: null
+  bpm: 135
+  key: 8A
   energy: 8
   status: downloaded
   tags: [funk-pop, reggaeton, remix]
@@ -27,8 +27,8 @@
 - title: "No Chão Novinha"
   artist: "Anitta & Pedro Sampaio"
   genre: funk-pop
-  bpm: null
-  key: null
+  bpm: 71
+  key: 5A
   energy: 8
   status: downloaded
   tags: [funk-pop, baile, singalong]
@@ -37,8 +37,8 @@
 - title: "Joga Pra Lua"
   artist: "Anitta, Pedro Sampaio & Dennis"
   genre: funk-pop
-  bpm: null
-  key: null
+  bpm: 134
+  key: 9A
   energy: 7
   status: downloaded
   tags: [funk-pop, dance]
@@ -47,8 +47,8 @@
 - title: "Galopa"
   artist: "Pedro Sampaio"
   genre: funk-pop
-  bpm: null
-  key: null
+  bpm: 126
+  key: 12A
   energy: 8
   status: downloaded
   tags: [funk-pop, dance-funk, party]
@@ -56,8 +56,8 @@
 - title: "Pocpoc"
   artist: "Pedro Sampaio"
   genre: funk-pop
-  bpm: null
-  key: null
+  bpm: 126
+  key: 2A
   energy: 7
   status: downloaded
   tags: [funk-pop, dance-funk]
@@ -65,8 +65,8 @@
 - title: "Atenção"
   artist: "Pedro Sampaio"
   genre: funk-pop
-  bpm: null
-  key: null
+  bpm: 135
+  key: 6A
   energy: 7
   status: downloaded
   tags: [funk-pop, funk]
@@ -74,8 +74,8 @@
 - title: "Jetski"
   artist: "Pedro Sampaio"
   genre: funk-pop
-  bpm: null
-  key: null
+  bpm: 78
+  key: 2A
   energy: 8
   status: downloaded
   tags: [funk-pop, funk, party]
@@ -83,8 +83,8 @@
 - title: "Sequência Feiticeira"
   artist: "Pedro Sampaio"
   genre: funk-pop
-  bpm: null
-  key: null
+  bpm: 130
+  key: 4A
   energy: 8
   status: downloaded
   tags: [funk-pop, mandelao, dj-tool, peak]
@@ -92,8 +92,8 @@
 - title: "Sequência Striptease"
   artist: "Pedro Sampaio"
   genre: funk-pop
-  bpm: null
-  key: null
+  bpm: 134
+  key: 11A
   energy: 8
   status: downloaded
   tags: [funk-pop, mandelao, dj-tool, peak]
@@ -101,8 +101,8 @@
 - title: "Chama Ela"
   artist: "Lexa & Pedro Sampaio"
   genre: funk-pop
-  bpm: null
-  key: null
+  bpm: 75
+  key: 11A
   energy: 7
   status: downloaded
   tags: [funk-pop, singalong]
@@ -110,8 +110,8 @@
 - title: "Voando pro Pará"
   artist: "Joelma & Pedro Sampaio"
   genre: funk-pop
-  bpm: null
-  key: null
+  bpm: 80
+  key: 9A
   energy: 7
   status: downloaded
   tags: [funk-pop, calypso, brega-pop, crossover]
@@ -121,8 +121,8 @@
 - title: "Vai Malandra"
   artist: "Anitta, MC Zaac & Maejor"
   genre: funk-pop
-  bpm: null
-  key: null
+  bpm: 126
+  key: 6A
   energy: 8
   status: downloaded
   tags: [funk-pop, baile, singalong]
@@ -130,8 +130,8 @@
 - title: "Motinha 2.0 (Mete Marcha) [Remix]"
   artist: "Dennis"
   genre: funk-pop
-  bpm: null
-  key: null
+  bpm: 135
+  key: 5A
   energy: 8
   status: downloaded
   tags: [funk-pop, eletrofunk, dance]
@@ -139,8 +139,8 @@
 - title: "Tá OK (Remix)"
   artist: "Dennis, MC Kevin o Chris, Maluma & Karol G"
   genre: funk-pop
-  bpm: null
-  key: null
+  bpm: 130
+  key: 1A
   energy: 7
   status: downloaded
   tags: [funk-pop, reggaeton, remix, crossover]
@@ -150,8 +150,8 @@
 - title: "Show das Poderosas"
   artist: "Anitta"
   genre: funk-pop
-  bpm: null
-  key: null
+  bpm: 133
+  key: 5A
   energy: 8
   status: downloaded
   tags: [funk-pop, baile, singalong, classic]
@@ -159,8 +159,8 @@
 - title: "Bang"
   artist: "Anitta"
   genre: funk-pop
-  bpm: null
-  key: null
+  bpm: 105
+  key: 10A
   energy: 7
   status: downloaded
   tags: [funk-pop, pop, singalong]
@@ -178,8 +178,8 @@
 - title: "Rainha da Favela"
   artist: "Ludmilla"
   genre: funk-pop
-  bpm: null
-  key: null
+  bpm: 135
+  key: 6A
   energy: 8
   status: downloaded
   tags: [funk-pop, baile, singalong]
@@ -187,8 +187,8 @@
 - title: "Cheguei"
   artist: "Ludmilla"
   genre: funk-pop
-  bpm: null
-  key: null
+  bpm: 130
+  key: 11A
   energy: 7
   status: downloaded
   tags: [funk-pop, singalong]
@@ -196,8 +196,8 @@
 - title: "Verdinha"
   artist: "Ludmilla"
   genre: funk-pop
-  bpm: null
-  key: null
+  bpm: 138
+  key: 1A
   energy: 7
   status: downloaded
   tags: [funk-pop, singalong]
@@ -205,8 +205,8 @@
 - title: "Socadona"
   artist: "Ludmilla"
   genre: funk-pop
-  bpm: null
-  key: null
+  bpm: 129
+  key: 9A
   energy: 8
   status: downloaded
   tags: [funk-pop, baile, party]
@@ -215,8 +215,8 @@
 - title: "Olha a Explosão"
   artist: "MC Kevinho"
   genre: funk-pop
-  bpm: null
-  key: null
+  bpm: 90
+  key: 2A
   energy: 9
   status: downloaded
   tags: [funk-pop, baile, peak, singalong]
@@ -224,8 +224,8 @@
 - title: "Turutum"
   artist: "MC Kevinho"
   genre: funk-pop
-  bpm: null
-  key: null
+  bpm: 130
+  key: 1A
   energy: 7
   status: downloaded
   tags: [funk-pop, baile]
@@ -233,8 +233,8 @@
 - title: "O Grave Bater"
   artist: "MC Kevinho"
   genre: funk-pop
-  bpm: null
-  key: null
+  bpm: 95
+  key: 9A
   energy: 7
   status: downloaded
   tags: [funk-pop, baile]
@@ -243,8 +243,8 @@
 - title: "Bumbum Granada"
   artist: "MC's Zaac & Jerry"
   genre: funk-pop
-  bpm: null
-  key: null
+  bpm: 130
+  key: 7A
   energy: 8
   status: downloaded
   tags: [funk-pop, baile, peak]
@@ -252,8 +252,8 @@
 - title: "Deu Onda"
   artist: "MC G15"
   genre: funk-pop
-  bpm: null
-  key: null
+  bpm: 130
+  key: 1A
   energy: 8
   status: downloaded
   tags: [funk-pop, baile, singalong]
@@ -261,8 +261,8 @@
 - title: "Bumbum de Ouro"
   artist: "Gloria Groove"
   genre: funk-pop
-  bpm: null
-  key: null
+  bpm: 94
+  key: 5A
   energy: 8
   status: downloaded
   tags: [funk-pop, party]
@@ -271,8 +271,8 @@
 - title: "Perversa"
   artist: "Pedro Sampaio"
   genre: funk-pop
-  bpm: null
-  key: null
+  bpm: 132
+  key: 6A
   energy: 8
   status: downloaded
   tags: [funk-pop, funk]
@@ -280,8 +280,8 @@
 - title: "Fala Mal de Mim"
   artist: "Pedro Sampaio"
   genre: funk-pop
-  bpm: null
-  key: null
+  bpm: 82
+  key: 4B
   energy: 7
   status: downloaded
   tags: [funk-pop, funk]
@@ -289,8 +289,8 @@
 - title: "Porsche Azul"
   artist: "Felipe Beats"
   genre: funk-pop
-  bpm: null
-  key: null
+  bpm: 134
+  key: 5A
   energy: 7
   status: downloaded
   tags: [funk-pop, tiktok, viral]
@@ -309,8 +309,8 @@
 - title: "Bum Bum Tam Tam"
   artist: "MC Fioti"
   genre: funk-pop
-  bpm: null
-  key: null
+  bpm: 132
+  key: 3A
   energy: 8
   status: downloaded
   tags: [funk-pop, baile, tiktok, viral]
@@ -319,8 +319,8 @@
   artist: "MC Fioti"
   remixer: "David Guetta"
   genre: funk-pop
-  bpm: null
-  key: null
+  bpm: 128
+  key: 3A
   energy: 8
   status: downloaded
   tags: [funk-pop, dance, remix, tiktok]
@@ -328,8 +328,8 @@
 - title: "Sentadão"
   artist: "Pedro Sampaio, Felipe Original & JS o Mão de Ouro"
   genre: funk-pop
-  bpm: null
-  key: null
+  bpm: 87
+  key: 2A
   energy: 8
   status: downloaded
   tags: [funk-pop, baile, tiktok]
@@ -337,8 +337,8 @@
 - title: "Parado no Bailão"
   artist: "MC L da Vinte & MC Gury"
   genre: funk-pop
-  bpm: null
-  key: null
+  bpm: 130
+  key: 11A
   energy: 8
   status: downloaded
   tags: [funk-pop, baile, tiktok, singalong]
@@ -346,8 +346,8 @@
 - title: "Gata (Barbie)"
   artist: "MC Tuto"
   genre: funk-pop
-  bpm: null
-  key: null
+  bpm: 132
+  key: 2A
   energy: 8
   status: downloaded
   tags: [funk-pop, tiktok, viral]
@@ -356,8 +356,8 @@
 - title: "Do Job"
   artist: "MC Tuto"
   genre: funk-pop
-  bpm: null
-  key: null
+  bpm: 134
+  key: 11A
   energy: 7
   status: downloaded
   tags: [funk-pop, tiktok]
@@ -365,8 +365,8 @@
 - title: "Malemolência"
   artist: "Dynho Alves"
   genre: funk-pop
-  bpm: null
-  key: null
+  bpm: 80
+  key: 11A
   energy: 7
   status: downloaded
   tags: [funk-pop, funk]

@@ -7,8 +7,8 @@
 - title: "Tchu Tchuca"
   artist: "Furacão 2000"
   genre: funk-anos-2000
-  bpm: null
-  key: null
+  bpm: 127
+  key: 1A
   energy: 8
   status: downloaded
   tags: [funk-anos-2000, funk-melody, party, retro]
@@ -16,8 +16,8 @@
 - title: "Passinho do Volante"
   artist: "Furacão 2000"
   genre: funk-anos-2000
-  bpm: null
-  key: null
+  bpm: 129
+  key: 8A
   energy: 8
   status: downloaded
   tags: [funk-anos-2000, passinho, party, retro]
@@ -25,8 +25,8 @@
 - title: "Tira a Camisa"
   artist: "Furacão 2000"
   genre: funk-anos-2000
-  bpm: null
-  key: null
+  bpm: 127
+  key: 11A
   energy: 7
   status: downloaded
   tags: [funk-anos-2000, party, retro]
@@ -34,8 +34,8 @@
 - title: "Tapinha"
   artist: "Furacão 2000"
   genre: funk-anos-2000
-  bpm: null
-  key: null
+  bpm: 127
+  key: 1A
   energy: 7
   status: downloaded
   tags: [funk-anos-2000, retro]
@@ -43,8 +43,8 @@
 - title: "Mimosa 2000"
   artist: "Furacão 2000"
   genre: funk-anos-2000
-  bpm: null
-  key: null
+  bpm: 125
+  key: 5A
   energy: 7
   status: downloaded
   tags: [funk-anos-2000, retro]
@@ -52,8 +52,8 @@
 - title: "Jonathan II"
   artist: "Furacão 2000"
   genre: funk-anos-2000
-  bpm: null
-  key: null
+  bpm: 127
+  key: 8A
   energy: 7
   status: downloaded
   tags: [funk-anos-2000, retro]
@@ -61,8 +61,8 @@
 - title: "Dança da Motinha"
   artist: "Furacão 2000"
   genre: funk-anos-2000
-  bpm: null
-  key: null
+  bpm: 127
+  key: 9A
   energy: 7
   status: downloaded
   tags: [funk-anos-2000, retro]
@@ -70,8 +70,8 @@
 - title: "Agarra"
   artist: "Furacão 2000"
   genre: funk-anos-2000
-  bpm: null
-  key: null
+  bpm: 129
+  key: 9A
   energy: 7
   status: downloaded
   tags: [funk-anos-2000, retro]
@@ -79,8 +79,8 @@
 - title: "Lamba Funk"
   artist: "Furacão 2000"
   genre: funk-anos-2000
-  bpm: null
-  key: null
+  bpm: 127
+  key: 8A
   energy: 7
   status: downloaded
   tags: [funk-anos-2000, retro]
@@ -89,8 +89,8 @@
 - title: "O Baile Todo"
   artist: "Bonde do Tigrão"
   genre: funk-anos-2000
-  bpm: null
-  key: null
+  bpm: 129
+  key: 9A
   energy: 8
   status: downloaded
   tags: [funk-anos-2000, funk-de-bonde, party, retro]
@@ -98,8 +98,8 @@
 - title: "Dança do Créu (Verso)"
   artist: "MC Créu"
   genre: funk-anos-2000
-  bpm: null
-  key: null
+  bpm: 129
+  key: 6A
   energy: 8
   status: downloaded
   tags: [funk-anos-2000, passinho, party, retro]
@@ -107,8 +107,8 @@
 - title: "Bigode Grosso"
   artist: "MC Marcelly"
   genre: funk-anos-2000
-  bpm: null
-  key: null
+  bpm: 130
+  key: 10A
   energy: 7
   status: downloaded
   tags: [funk-anos-2000, retro]
@@ -117,8 +117,8 @@
 - title: "Ela Só Pensa em Beijar"
   artist: "MC Leozinho"
   genre: funk-anos-2000
-  bpm: null
-  key: null
+  bpm: 129
+  key: 4A
   energy: 8
   status: downloaded
   tags: [funk-anos-2000, funk-melody, singalong, retro]
@@ -127,7 +127,7 @@
 - title: "Tô Tranquilão"
   artist: "MC Leozinho"
   genre: funk-anos-2000
-  bpm: null
+  bpm: 129
   key: null
   energy: 7
   status: downloaded
@@ -136,8 +136,8 @@
 - title: "Só Zueira"
   artist: "MC Leozinho"
   genre: funk-anos-2000
-  bpm: null
-  key: null
+  bpm: 129
+  key: 3A
   energy: 7
   status: downloaded
   tags: [funk-anos-2000, retro]
@@ -145,8 +145,8 @@
 - title: "Toda Gostosa"
   artist: "MC Leozinho"
   genre: funk-anos-2000
-  bpm: null
-  key: null
+  bpm: 130
+  key: 11B
   energy: 7
   status: downloaded
   tags: [funk-anos-2000, retro]
@@ -154,8 +154,8 @@
 - title: "Vou Desafiar Você"
   artist: "MC Sapão"
   genre: funk-anos-2000
-  bpm: null
-  key: null
+  bpm: 132
+  key: 2A
   energy: 7
   status: downloaded
   tags: [funk-anos-2000, retro]
@@ -163,8 +163,8 @@
 - title: "Tô Tranquilão (Dennis 2005)"
   artist: "MC Sapão"
   genre: funk-anos-2000
-  bpm: null
-  key: null
+  bpm: 129
+  key: 1B
   energy: 7
   status: downloaded
   tags: [funk-anos-2000, retro]
@@ -172,8 +172,8 @@
 - title: "Eguinha Pocotó"
   artist: "MC Serginho"
   genre: funk-anos-2000
-  bpm: null
-  key: null
+  bpm: 127
+  key: 2A
   energy: 8
   status: downloaded
   tags: [funk-anos-2000, party, retro]
@@ -182,8 +182,8 @@
 - title: "Glamourosa (Rap Glamurosa)"
   artist: "DJ Marlboro"
   genre: funk-anos-2000
-  bpm: null
-  key: null
+  bpm: 130
+  key: 10A
   energy: 7
   status: downloaded
   tags: [funk-anos-2000, retro]
@@ -192,8 +192,8 @@
 - title: "Boladona"
   artist: "DJ Marlboro"
   genre: funk-anos-2000
-  bpm: null
-  key: null
+  bpm: 129
+  key: 5A
   energy: 7
   status: downloaded
   tags: [funk-anos-2000, retro]
@@ -202,8 +202,8 @@
 - title: "Atoladinha (Enterradinha)"
   artist: "DJ Marlboro"
   genre: funk-anos-2000
-  bpm: null
-  key: null
+  bpm: 128
+  key: 1A
   energy: 7
   status: downloaded
   tags: [funk-anos-2000, retro]
@@ -211,8 +211,8 @@
 - title: "Vira De Ladinho"
   artist: "DJ Marlboro"
   genre: funk-anos-2000
-  bpm: null
-  key: null
+  bpm: 128
+  key: 2A
   energy: 7
   status: downloaded
   tags: [funk-anos-2000, retro]
@@ -220,8 +220,8 @@
 - title: "Um Morto Muito Louco"
   artist: "DJ Marlboro"
   genre: funk-anos-2000
-  bpm: null
-  key: null
+  bpm: 128
+  key: 1A
   energy: 7
   status: downloaded
   tags: [funk-anos-2000, retro]
@@ -240,8 +240,8 @@
 - title: "Tremendo Vacilão"
   artist: "Perlla"
   genre: funk-anos-2000
-  bpm: null
-  key: null
+  bpm: 129
+  key: 9A
   energy: 7
   status: downloaded
   tags: [funk-anos-2000, pop-funk, retro]
@@ -249,8 +249,8 @@
 - title: "Cerol na Mão"
   artist: "Bonde do Tigrão"
   genre: funk-anos-2000
-  bpm: null
-  key: null
+  bpm: 127
+  key: 10A
   energy: 8
   status: downloaded
   tags: [funk-anos-2000, funk-de-bonde, party, retro]

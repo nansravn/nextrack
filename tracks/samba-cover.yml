@@ -5,8 +5,8 @@
 - title: "Valerie"
   artist: "Sambô"
   genre: samba-cover
-  bpm: null
-  key: null
+  bpm: 109
+  key: 12B
   energy: 5
   status: downloaded
   tags: [samba-cover, cover, singalong]
@@ -15,8 +15,8 @@
 - title: "Wake Me Up"
   artist: "Sambô"
   genre: samba-cover
-  bpm: null
-  key: null
+  bpm: 115
+  key: 9A
   energy: 5
   status: downloaded
   tags: [samba-cover, cover, singalong]
@@ -25,8 +25,8 @@
 - title: "Girl On Fire"
   artist: "Sambô"
   genre: samba-cover
-  bpm: null
-  key: null
+  bpm: 108
+  key: 8A
   energy: 5
   status: downloaded
   tags: [samba-cover, cover, singalong]
@@ -35,8 +35,8 @@
 - title: "Taj Mahal"
   artist: "Sambô"
   genre: samba-cover
-  bpm: null
-  key: null
+  bpm: 121
+  key: 11A
   energy: 5
   status: downloaded
   tags: [samba-cover, samba-rock]
@@ -45,8 +45,8 @@
 - title: "Trem das Onze"
   artist: "Sambô"
   genre: samba-cover
-  bpm: null
-  key: null
+  bpm: 116
+  key: 7A
   energy: 5
   status: downloaded
   tags: [samba-cover, samba, singalong]
@@ -55,8 +55,8 @@
 - title: "Felicidade"
   artist: "Sambô"
   genre: samba-cover
-  bpm: null
-  key: null
+  bpm: 124
+  key: 11A
   energy: 4
   status: downloaded
   tags: [samba-cover, samba]
@@ -64,8 +64,8 @@
 - title: "Tão Bem"
   artist: "Sambô"
   genre: samba-cover
-  bpm: null
-  key: null
+  bpm: 94
+  key: 8A
   energy: 4
   status: downloaded
   tags: [samba-cover, samba]
@@ -73,8 +73,8 @@
 - title: "Doidinha por Meu Samba / Caçamba"
   artist: "Sambô"
   genre: samba-cover
-  bpm: null
-  key: null
+  bpm: 70
+  key: 5A
   energy: 5
   status: downloaded
   tags: [samba-cover, samba, medley]
@@ -82,8 +82,8 @@
 - title: "Pot-Pourri: Não Precisa Mudar / Gostava Tanto de Você"
   artist: "Sambô"
   genre: samba-cover
-  bpm: null
-  key: null
+  bpm: 108
+  key: 11A
   energy: 4
   status: downloaded
   tags: [samba-cover, medley, singalong]
@@ -91,8 +91,8 @@
 - title: "Falamansa Sambô (Xote dos Milagres / Xote da Alegria / Rindo à Toa)"
   artist: "Sambô"
   genre: samba-cover
-  bpm: null
-  key: null
+  bpm: 83
+  key: 9A
   energy: 5
   status: downloaded
   tags: [samba-cover, medley]
@@ -102,8 +102,8 @@
 - title: "Fricote"
   artist: "Oba Oba Samba House"
   genre: samba-cover
-  bpm: null
-  key: null
+  bpm: 100
+  key: 9B
   energy: 6
   status: downloaded
   tags: [samba-cover, samba-house, cover, singalong]
@@ -112,8 +112,8 @@
 - title: "Na Ponta Ela Fica"
   artist: "Oba Oba Samba House"
   genre: samba-cover
-  bpm: null
-  key: null
+  bpm: 100
+  key: 5A
   energy: 7
   status: downloaded
   tags: [samba-cover, samba-house, cover, party]

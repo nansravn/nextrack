@@ -5,7 +5,7 @@
 - title: "Vai no Cavalinho"
   artist: "Banda Gasparzinho"
   genre: pagodao-baiano
-  bpm: null
+  bpm: 142
   key: null
   energy: 8
   status: downloaded
@@ -16,7 +16,7 @@
 - title: "Zona de Perigo"
   artist: "Léo Santana"
   genre: pagodao-baiano
-  bpm: null
+  bpm: 135
   key: null
   energy: 8
   status: downloaded
@@ -25,7 +25,7 @@
 - title: "Contatinho"
   artist: "Léo Santana"
   genre: pagodao-baiano
-  bpm: null
+  bpm: 152
   key: null
   energy: 7
   status: downloaded
@@ -34,7 +34,7 @@
 - title: "Perna Bamba"
   artist: "Léo Santana"
   genre: pagodao-baiano
-  bpm: null
+  bpm: 134
   key: null
   energy: 8
   status: downloaded
@@ -43,7 +43,7 @@
 - title: "Desliza (Ólhinho No Corpinho)"
   artist: "Léo Santana"
   genre: pagodao-baiano
-  bpm: null
+  bpm: 130
   key: null
   energy: 7
   status: downloaded
@@ -56,7 +56,7 @@
 - title: "Dança do Bumbum"
   artist: "É o Tchan"
   genre: pagodao-baiano
-  bpm: null
+  bpm: 95
   key: null
   energy: 8
   status: downloaded
@@ -65,7 +65,7 @@
 - title: "Medley: Pau Que Nasce Torto / Melô do Tchan"
   artist: "É o Tchan"
   genre: pagodao-baiano
-  bpm: null
+  bpm: 96
   key: null
   energy: 7
   status: downloaded
@@ -75,7 +75,7 @@
 - title: "Xibom Bombom"
   artist: "As Meninas"
   genre: pagodao-baiano
-  bpm: null
+  bpm: 149
   key: null
   energy: 6
   status: downloaded
@@ -86,7 +86,7 @@
 - title: "Na Boquinha da Garrafa"
   artist: "Companhia do Pagode"
   genre: pagodao-baiano
-  bpm: null
+  bpm: 108
   key: null
   energy: 8
   status: downloaded
@@ -106,7 +106,7 @@
 - title: "Vem Neném (Ao Vivo)"
   artist: "Harmonia do Samba"
   genre: pagodao-baiano
-  bpm: null
+  bpm: 95
   key: null
   energy: 7
   status: downloaded
@@ -115,7 +115,7 @@
 - title: "O Rodo"
   artist: "Harmonia do Samba"
   genre: pagodao-baiano
-  bpm: null
+  bpm: 90
   key: null
   energy: 8
   status: downloaded
@@ -124,7 +124,7 @@
 - title: "Nossa Paradinha"
   artist: "Harmonia do Samba"
   genre: pagodao-baiano
-  bpm: null
+  bpm: 87
   key: null
   energy: 7
   status: downloaded
@@ -133,7 +133,7 @@
 - title: "Desafio"
   artist: "Harmonia do Samba"
   genre: pagodao-baiano
-  bpm: null
+  bpm: 93
   key: null
   energy: 7
   status: downloaded
@@ -143,7 +143,7 @@
 - title: "Onda Onda (Olha a Onda)"
   artist: "Tchakabum"
   genre: pagodao-baiano
-  bpm: null
+  bpm: 93
   key: null
   energy: 8
   status: downloaded
@@ -152,7 +152,7 @@
 - title: "Explosão"
   artist: "Tchakabum"
   genre: pagodao-baiano
-  bpm: null
+  bpm: 90
   key: null
   energy: 8
   status: downloaded
@@ -161,7 +161,7 @@
 - title: "Dança da Mãozinha"
   artist: "Tchakabum"
   genre: pagodao-baiano
-  bpm: null
+  bpm: 164
   key: null
   energy: 7
   status: downloaded
@@ -170,7 +170,7 @@
 - title: "Tubarão Te Amo"
   artist: "Tchakabum"
   genre: pagodao-baiano
-  bpm: null
+  bpm: 130
   key: null
   energy: 7
   status: downloaded
@@ -189,7 +189,7 @@
 - title: "Na Manteiga"
   artist: "Terra Samba"
   genre: pagodao-baiano
-  bpm: null
+  bpm: 92
   key: null
   energy: 7
   status: downloaded
@@ -198,7 +198,7 @@
 - title: "Banho de Chuveiro"
   artist: "Terra Samba"
   genre: pagodao-baiano
-  bpm: null
+  bpm: 90
   key: null
   energy: 7
   status: downloaded
@@ -208,7 +208,7 @@
 - title: "Ziriguidum"
   artist: "Filhos de Jorge"
   genre: pagodao-baiano
-  bpm: null
+  bpm: 94
   key: null
   energy: 7
   status: downloaded
@@ -219,7 +219,7 @@
 - title: "A Barata (Ao Vivo)"
   artist: "Só Pra Contrariar"
   genre: pagodao-baiano
-  bpm: null
+  bpm: 117
   key: null
   energy: 7
   status: downloaded

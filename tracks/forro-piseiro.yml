@@ -7,8 +7,8 @@
 - title: "Tem Cabaré Essa Noite"
   artist: "Nattan"
   genre: forro-piseiro
-  bpm: null
-  key: null
+  bpm: 126
+  key: 12A
   energy: 7
   status: downloaded
   tags: [piseiro, party, singalong]
@@ -17,8 +17,8 @@
 - title: "Americana Na Vaquejada"
   artist: "Nattan"
   genre: forro-piseiro
-  bpm: null
-  key: null
+  bpm: 140
+  key: 10A
   energy: 7
   status: downloaded
   tags: [piseiro, vaquejada, party]
@@ -26,8 +26,8 @@
 - title: "Comunicação Falhou"
   artist: "Nattan"
   genre: forro-piseiro
-  bpm: null
-  key: null
+  bpm: 146
+  key: 4A
   energy: 6
   status: downloaded
   tags: [piseiro, singalong]
@@ -35,8 +35,8 @@
 - title: "Eu Vou Sentar"
   artist: "Nattan"
   genre: forro-piseiro
-  bpm: null
-  key: null
+  bpm: 148
+  key: 11B
   energy: 7
   status: downloaded
   tags: [piseiro, party]
@@ -44,8 +44,8 @@
 - title: "Pela Última Vez"
   artist: "Nattan"
   genre: forro-piseiro
-  bpm: null
-  key: null
+  bpm: 156
+  key: 9B
   energy: 5
   status: downloaded
   tags: [piseiro, arrocha, romantic]
@@ -53,8 +53,8 @@
 - title: "Storiezin"
   artist: "Nattan"
   genre: forro-piseiro
-  bpm: null
-  key: null
+  bpm: 155
+  key: 8A
   energy: 6
   status: downloaded
   tags: [piseiro]
@@ -62,8 +62,8 @@
 - title: "Última Noite"
   artist: "Nattan"
   genre: forro-piseiro
-  bpm: null
-  key: null
+  bpm: 82
+  key: 9A
   energy: 5
   status: downloaded
   tags: [piseiro, arrocha, romantic]
@@ -71,8 +71,8 @@
 - title: "Love Gostosinho"
   artist: "Nattan e Felipe Amorim"
   genre: forro-piseiro
-  bpm: null
-  key: null
+  bpm: 71
+  key: 9A
   energy: 6
   status: downloaded
   tags: [piseiro, pop, singalong]
@@ -81,8 +81,8 @@
 - title: "Esquema Preferido"
   artist: "DJ Ivis"
   genre: forro-piseiro
-  bpm: null
-  key: null
+  bpm: 162
+  key: 7A
   energy: 7
   status: downloaded
   tags: [piseiro, pisadinha]
@@ -91,8 +91,8 @@
 - title: "Volta Bebê, Volta Neném"
   artist: "DJ Ivis"
   genre: forro-piseiro
-  bpm: null
-  key: null
+  bpm: 164
+  key: 2A
   energy: 6
   status: downloaded
   tags: [piseiro, pisadinha]
@@ -100,8 +100,8 @@
 - title: "Volta Comigo BB"
   artist: "DJ Ivis"
   genre: forro-piseiro
-  bpm: null
-  key: null
+  bpm: 82
+  key: 1A
   energy: 6
   status: downloaded
   tags: [piseiro, pisadinha]
@@ -111,8 +111,8 @@
 - title: "Amor Falso"
   artist: "Os Barões da Pisadinha"
   genre: forro-piseiro
-  bpm: null
-  key: null
+  bpm: 86
+  key: 9A
   energy: 7
   status: downloaded
   tags: [pisadinha, singalong]
@@ -120,8 +120,8 @@
 - title: "Batom de Cereja, Eu Bebo Cê Beija"
   artist: "Os Barões da Pisadinha"
   genre: forro-piseiro
-  bpm: null
-  key: null
+  bpm: 86
+  key: 10A
   energy: 7
   status: downloaded
   tags: [pisadinha, singalong]
@@ -130,8 +130,8 @@
 - title: "Recairei"
   artist: "Os Barões da Pisadinha"
   genre: forro-piseiro
-  bpm: null
-  key: null
+  bpm: 84
+  key: 5A
   energy: 7
   status: downloaded
   tags: [pisadinha, singalong]
@@ -139,8 +139,8 @@
 - title: "Basta Você Me Ligar"
   artist: "Os Barões da Pisadinha"
   genre: forro-piseiro
-  bpm: null
-  key: null
+  bpm: 166
+  key: 5B
   energy: 8
   status: to-download
   tags: [pisadinha, peak, singalong]
@@ -150,8 +150,8 @@
 - title: "Coração Cachorro"
   artist: "Matheus Fernandes"
   genre: forro-piseiro
-  bpm: null
-  key: null
+  bpm: 152
+  key: 8A
   energy: 6
   status: downloaded
   tags: [forro-pop, singalong]
@@ -160,8 +160,8 @@
 - title: "Altas Loucurinhas (Uni Duni Tê)"
   artist: "Matheus Fernandes"
   genre: forro-piseiro
-  bpm: null
-  key: null
+  bpm: 128
+  key: 12A
   energy: 7
   status: downloaded
   tags: [piseiro, party]
@@ -169,8 +169,8 @@
 - title: "Baby Me Atende"
   artist: "Matheus Fernandes"
   genre: forro-piseiro
-  bpm: null
-  key: null
+  bpm: 154
+  key: 12A
   energy: 6
   status: downloaded
   tags: [piseiro, pop]
@@ -178,8 +178,8 @@
 - title: "Lapada Dela"
   artist: "Matheus Fernandes"
   genre: forro-piseiro
-  bpm: null
-  key: null
+  bpm: 166
+  key: 10A
   energy: 7
   status: downloaded
   tags: [piseiro, pisadinha, party]
@@ -188,8 +188,8 @@
 - title: "Eu Gosto Assim"
   artist: "Mari Fernandez"
   genre: forro-piseiro
-  bpm: null
-  key: null
+  bpm: 154
+  key: 6A
   energy: 7
   status: downloaded
   tags: [piseiro, party]
@@ -198,8 +198,8 @@
 - title: "Áudio Que Te Entrega"
   artist: "Mari Fernandez"
   genre: forro-piseiro
-  bpm: null
-  key: null
+  bpm: 146
+  key: 5A
   energy: 6
   status: downloaded
   tags: [piseiro, singalong]
@@ -208,8 +208,8 @@
 - title: "Letícia"
   artist: "Zé Vaqueiro"
   genre: forro-piseiro
-  bpm: null
-  key: null
+  bpm: 76
+  key: 11A
   energy: 6
   status: downloaded
   tags: [piseiro, arrocha, romantic, singalong]
@@ -217,8 +217,8 @@
 - title: "Volta comigo bb"
   artist: "Zé Vaqueiro"
   genre: forro-piseiro
-  bpm: null
-  key: null
+  bpm: 82
+  key: 1A
   energy: 6
   status: downloaded
   tags: [piseiro]
@@ -228,8 +228,8 @@
 - title: "Cidade Inteira"
   artist: "Eric Land"
   genre: forro-piseiro
-  bpm: null
-  key: null
+  bpm: 166
+  key: 9A
   energy: 5
   status: downloaded
   tags: [piseiro, arrocha, singalong]
@@ -238,8 +238,8 @@
 - title: "Se For Amor"
   artist: "João Gomes"
   genre: forro-piseiro
-  bpm: null
-  key: null
+  bpm: 148
+  key: 9A
   energy: 5
   status: downloaded
   tags: [piseiro, romantic, singalong]
@@ -248,8 +248,8 @@
 - title: "Viela"
   artist: "Marcynho Sensação"
   genre: forro-piseiro
-  bpm: null
-  key: null
+  bpm: 172
+  key: 4A
   energy: 6
   status: downloaded
   tags: [piseiro, brega-pop, singalong]
@@ -257,8 +257,8 @@
 - title: "Parada Louca"
   artist: "Marcynho Sensação"
   genre: forro-piseiro
-  bpm: null
-  key: null
+  bpm: 111
+  key: 9A
   energy: 7
   status: downloaded
   tags: [brega-pop, party]
@@ -266,8 +266,8 @@
 - title: "Revoada No Colchão"
   artist: "Marcynho Sensação"
   genre: forro-piseiro
-  bpm: null
-  key: null
+  bpm: 85
+  key: 5B
   energy: 7
   status: downloaded
   tags: [brega-pop, party]
@@ -276,8 +276,8 @@
 - title: "ABC da Vaquejada"
   artist: "Tarcísio do Acordeon"
   genre: forro-piseiro
-  bpm: null
-  key: null
+  bpm: 166
+  key: 3A
   energy: 7
   status: downloaded
   tags: [piseiro, vaquejada, party]
@@ -287,8 +287,8 @@
 - title: "Ele É Ele, Eu Sou Eu"
   artist: "Wesley Safadão & Os Barões da Pisadinha"
   genre: forro-piseiro
-  bpm: null
-  key: null
+  bpm: 82
+  key: 12B
   energy: 7
   status: downloaded
   tags: [forro, pisadinha, singalong]
@@ -296,8 +296,8 @@
 - title: "Senta Danada"
   artist: "Zé Felipe & Os Barões da Pisadinha"
   genre: forro-piseiro
-  bpm: null
-  key: null
+  bpm: 83
+  key: 10A
   energy: 7
   status: downloaded
   tags: [pisadinha, funknejo, party]
@@ -307,8 +307,8 @@
 - title: "Matadinha de Saudade"
   artist: "Xand Avião"
   genre: forro-piseiro
-  bpm: null
-  key: null
+  bpm: 104
+  key: 2A
   energy: 6
   status: downloaded
   tags: [forro, forro-eletronico, romantic]
@@ -316,8 +316,8 @@
 - title: "Basta Você Me Ligar"
   artist: "Xand Avião"
   genre: forro-piseiro
-  bpm: null
-  key: null
+  bpm: 166
+  key: 5B
   energy: 7
   status: downloaded
   tags: [forro, forro-eletronico, singalong]
@@ -326,8 +326,8 @@
 - title: "Balanço da Rede"
   artist: "Xand Avião"
   genre: forro-piseiro
-  bpm: null
-  key: null
+  bpm: 140
+  key: 9A
   energy: 6
   status: downloaded
   tags: [forro, forro-eletronico]
@@ -335,8 +335,8 @@
 - title: "Meia Noite"
   artist: "Zé Vaqueiro"
   genre: forro-piseiro
-  bpm: null
-  key: null
+  bpm: 104
+  key: 8A
   energy: 6
   status: downloaded
   tags: [piseiro, arrocha, romantic]
