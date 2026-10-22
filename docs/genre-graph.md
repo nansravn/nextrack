@@ -101,6 +101,11 @@ graph LR
   FORRO -.-> FUNK
   SAMBA -.-> DISCO
   GBASS -.-> TECH
+  BBASS -.-> DEEP
+  AFROBR -.-> SAMBA
+  TECH -.-> MELO
+  DISCO -.-> ORG
+  GBASS -.-> AFRO
 
   AXE --- FUNK
   AXE --- SAMBA
@@ -110,6 +115,11 @@ graph LR
   AXE -.-> FORRO
   POPD -.-> GBASS
   POPD -.-> TECH
+  POPD -.-> BBASS
+  FORRO -.-> POPD
+  AXE -.-> FUNK2000
+  AXE -.-> SAMBACOVER
+  AXE -.-> THB
 
   FUNKPOP --- FUNK
   FUNKPOP --- POPD
@@ -124,10 +134,12 @@ graph LR
   PAGBA --- AXE
   PAGBA -.-> SAMBA
   PAGBA -.-> FUNKPOP
+  PAGBA -.-> FUNK2000
 
   THB --- TECH
   THB --- BBASS
   THB -.-> POPD
+  THB -.-> MELO
 
   SAMBACOVER --- SAMBA
   SAMBACOVER --- MPB

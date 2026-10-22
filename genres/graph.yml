@@ -97,6 +97,7 @@ nodes:
       - {to: brazilian-funk,  strength: medium, via: "regional crossover; lift to peak"}
       - {to: samba-pagode,    strength: weak,   via: "acoustic/party bridge, watch the tempo gap"}
       - {to: axe,             strength: medium, via: "NE party crossover; keep the singalong"}
+      - {to: pop-dance,       strength: medium, via: "commercial crossover; bridge with Coração Cachorro"}
 
   - id: sertanejo
     name: Sertanejo
@@ -256,6 +257,9 @@ nodes:
       - {to: pop-dance,       strength: medium, via: "commercial crossover; echo out or hard cut"}
       - {to: funk-pop,        strength: medium, via: "party funk crossover; hard cut on the downbeat"}
       - {to: pagodao-baiano,  strength: strong, via: "Bahian party sibling; keep the swing"}
+      - {to: funk-anos-2000,  strength: medium, via: "carry the folia into retro funk; hard cut"}
+      - {to: samba-cover,     strength: medium, via: "same song both sides (Fricote -> Oba Oba samba-house); recognition swap"}
+      - {to: tech-house-br,   strength: medium, via: "same anthem gone slap house (Eva -> Make U Sweat); hard cut or drop"}
 
   - id: pop-dance
     name: Pop / Dance (commercial · 2000s throwback)
@@ -273,6 +277,7 @@ nodes:
       - {to: funk-pop,        strength: strong, via: "commercial funk crossover; hard cut on the hook"}
       - {to: funk-anos-2000,  strength: medium, via: "2000s throwback party; hard cut"}
       - {to: tech-house-br,   strength: medium, via: "modern remixes of the eletrohits classics; blend"}
+      - {to: brazilian-bass,  strength: medium, via: "modern BR remixes of the hits (Dubdogz, Vintage Culture); blend"}
 
   - id: funk-pop
     name: Funk-Pop (commercial funk / crossover)
@@ -312,6 +317,7 @@ nodes:
       - {to: axe,             strength: strong, via: "same Bahian party family; keep the singalong"}
       - {to: samba-pagode,    strength: medium, via: "pagode roots; ramp the swing"}
       - {to: funk-pop,        strength: medium, via: "party crossover; hard cut on the hook"}
+      - {to: funk-anos-2000,  strength: medium, via: "retro party into 2000s funk; hard cut"}
 
   - id: tech-house-br
     name: Tech-House BR (Dubdogz / Vintage Culture / slap house)
