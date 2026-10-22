@@ -6,6 +6,16 @@ import pytest
 from mutagen.flac import FLAC
 from mutagen.id3 import GEOB, ID3, TBPM, TIT2, TKEY, TPE1
 
+# -------------------------------------------------------------- environment ----
+
+
+@pytest.fixture(autouse=True)
+def no_owner_library(monkeypatch):
+    """Hide the owner's NEXTRACK_AUDIO_ROOT (exported in ~/.bashrc) from every test, so
+    that a test that forgets `--root` fails instead of touching the real library."""
+    monkeypatch.delenv("NEXTRACK_AUDIO_ROOT", raising=False)
+
+
 # --------------------------------------------------------- synthetic audio ----
 
 
