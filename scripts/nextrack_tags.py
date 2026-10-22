@@ -43,8 +43,8 @@ try:
 except ImportError:
     sys.exit(
         "mutagen not installed.\n"
-        "  Run:  sudo apt-get install -y python3-mutagen\n"
-        "  Then: python3 -c \"import mutagen; print(mutagen.version)\""
+        "  Run:  uv sync   (then: uv run scripts/nextrack_tags.py ...)\n"
+        "  Or:   sudo apt-get install -y python3-mutagen"
     )
 
 ROOT_ENV = "NEXTRACK_AUDIO_ROOT"  # machine-specific, so it lives outside the repo
