@@ -77,18 +77,12 @@ graph LR
   SAMBA --- MPB
   FORRO --- SERT
   MPB --- ORG
-  MPB --- SAMBA
   ORG --- DEEP
   ORG --- AFRO
-  ORG --- AFROBR
   DEEP --- TECH
   DEEP --- AFRO
-  TECH --- BBASS
   AFRO --- AMA
-  AFRO --- AFROBR
   MELO --- TEKNO
-  MELO --- BBASS
-  GBASS --- FUNK
   DISCO --- DEEP
 
   FUNK -.-> BBASS
@@ -161,6 +155,15 @@ into a [radio](../radios/) (a themed program) and slice it into
 ## Growing the graph
 
 1. Add or refine a node in [`../genres/graph.yml`](../genres/graph.yml).
-2. Add the plain-language entry in [taxonomy.md](taxonomy.md).
-3. After a gig, **update edge `strength`** based on what actually worked. The
-   graph gets smarter every time you play.
+2. Add the plain-language entry in [taxonomy.md](taxonomy.md), under a
+   `` ### `id` `` heading (text may follow the id, as in
+   `` ### `brazilian-funk` — Funk ``).
+3. Add the node's declaration (`ALIAS["id"]`) and its edges to the Mermaid map
+   above: a solid line (`A --- B`) for `strong`, a dashed one (`A -.-> B`) for
+   `medium`, nothing for `weak`. Draw each pair once, whichever direction is
+   stronger.
+4. After a gig, **update edge `strength`** based on what actually worked. The
+   graph gets smarter every time you play. A changed `strength` can change the
+   map line too.
+5. Run `uv run scripts/check_repo.py`. It checks that `graph.yml`, the taxonomy
+   and this map agree, and that every relative link in the docs resolves.
