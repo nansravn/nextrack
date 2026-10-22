@@ -954,3 +954,377 @@ def test_unreadable_markdown_is_one_parse_error_per_file(mini_repo):
         ("notes/n.md", 0, "parse-error"),
     ]
     assert mini_repo.findings(LINKS_RULE) == []
+
+
+# --------------------------------------------------------------- pool rules ----
+
+ALPHA = "tracks/alpha.yml"
+POOL_RULES = {
+    "pool-file-is-node",
+    "track-schema",
+    "track-genre-matches-pool",
+    "track-title-first",
+    "track-unique",
+}
+# The pool is a comment, then two entries; each entry starts with its `- title:` line.
+_, FIRST_ENTRY, SECOND_ENTRY = MINI_REPO_FILES[ALPHA].split("\n\n")
+FIRST_TITLE = '- title: "Dançarina"'
+SECOND_TITLE = '- title: "Voa Voa (Ao Vivo)"'
+SWAPPED = '- artist: "Chiclete com Banana"\n  title: "Voa Voa (Ao Vivo)"'
+
+
+def track(title='"Outra Música"', artist='"Outro Artista"', genre="beta"):
+    """One valid pool entry; `title` and `artist` are raw YAML, so they can be any type."""
+    return (
+        f"- title: {title}\n  artist: {artist}\n  genre: {genre}\n"
+        "  bpm: null\n  key: null\n  energy: 5\n  status: to-download\n"
+    )
+
+
+def pool_findings(mini_repo):
+    """`(path, line, rule)` of every finding of the five pool rules."""
+    return [f for f in mini_repo.findings() if f[2] in POOL_RULES]
+
+
+def pool_messages(mini_repo, rule_id):
+    return [f.message for f in check(mini_repo.root) if f.rule == rule_id]
+
+
+def title_lines(text):
+    """The 1-based lines of `text` that start an entry."""
+    return [n for n, line in enumerate(text.split("\n"), 1) if line.startswith("- title:")]
+
+
+def test_pool_rules_are_registered():
+    assert {fn.rule_id for fn in check_repo.RULES} >= POOL_RULES
+
+
+# ---- pool-file-is-node ----
+
+
+def test_pool_file_is_node(mini_repo):
+    mini_repo.write("tracks/delta.yml", track(genre="delta"))
+    assert mini_repo.findings() == [("tracks/delta.yml", 0, "pool-file-is-node")]
+
+
+def test_pool_file_is_node_message_names_the_pool(mini_repo):
+    mini_repo.write("tracks/delta.yml", track(genre="delta"))
+    assert pool_messages(mini_repo, "pool-file-is-node") == [
+        "'delta' is not a node id in genres/graph.yml"
+    ]
+
+
+def test_pool_file_is_node_flags_each_pool_without_a_node(mini_repo):
+    mini_repo.write("tracks/delta.yml", track(genre="delta"))
+    mini_repo.write("tracks/Not_An_Id.yml", track(title='"Mais Uma"', genre="Not_An_Id"))
+    assert mini_repo.findings("pool-file-is-node") == [
+        ("tracks/Not_An_Id.yml", 0, "pool-file-is-node"),
+        ("tracks/delta.yml", 0, "pool-file-is-node"),
+    ]
+
+
+def test_pool_file_is_node_checks_graph_ok_itself(mini_repo):
+    mini_repo.write("tracks/delta.yml", track(genre="delta"))
+    repo = load_repo(mini_repo.root)
+    (fn,) = (fn for fn in check_repo.RULES if fn.rule_id == "pool-file-is-node")
+    assert [f.path for f in fn(repo)] == ["tracks/delta.yml"]
+    repo.graph_ok = False
+    assert list(fn(repo)) == []
+
+
+def test_a_graph_that_did_not_load_does_not_flood_pool_file_is_node(mini_repo):
+    mini_repo.write("genres/graph.yml", "- alpha\n")
+    assert [rule_id for _path, _line, rule_id in mini_repo.findings()] == ["parse-error"]
+
+
+def test_the_other_pool_rules_do_not_need_the_graph(mini_repo):
+    mini_repo.write("genres/graph.yml", "- alpha\n")
+    mini_repo.edit(ALPHA, "status: downloaded", "status: lost")
+    line = mini_repo.line_of(ALPHA, FIRST_TITLE)
+    assert mini_repo.findings("track-schema") == [(ALPHA, line, "track-schema")]
+
+
+# ---- track-schema ----
+
+
+@pytest.mark.parametrize(
+    ("old", "new", "anchor"),
+    [
+        ("  status: to-download\n", "", SECOND_TITLE),
+        ("status: to-download", "status: lost", SECOND_TITLE),
+        ("bpm: 135", 'bpm: "135"', FIRST_TITLE),
+        ("bpm: 135", "bpm: 0", FIRST_TITLE),
+        ("key: 8A", "key: 13A", FIRST_TITLE),
+        ("key: 8A", "key: 8C", FIRST_TITLE),
+        ("energy: 8", "energy: 11", FIRST_TITLE),
+        ("energy: 8", "energy: yes", FIRST_TITLE),
+        ('  notes: "opens the block"\n', '  notes: "opens the block"\n  artsit: "x"\n', SECOND_TITLE),
+        ('title: "Dançarina"', 'title: ""', '- title: ""'),
+        ("  bpm: null\n", "", SECOND_TITLE),
+        ("tags: [funk, singalong]", "tags: funk", FIRST_TITLE),
+        # Beyond the table: the other clauses of the rule, and more wrong types.
+        ("bpm: 135", "bpm: 301", FIRST_TITLE),
+        ("bpm: 135", "bpm: 135.5", FIRST_TITLE),
+        ("bpm: 135", "bpm: true", FIRST_TITLE),
+        ("bpm: 135", "bpm: [135]", FIRST_TITLE),
+        ("key: 8A", "key: 0A", FIRST_TITLE),
+        ("key: 8A", "key: 8a", FIRST_TITLE),
+        ("key: 8A", "key: 8", FIRST_TITLE),
+        ("key: 8A", "key: [8A]", FIRST_TITLE),
+        ("energy: 8", "energy: 0", FIRST_TITLE),
+        ("energy: 8", "energy: 7.5", FIRST_TITLE),
+        ("energy: 8", 'energy: "8"', FIRST_TITLE),
+        ("status: downloaded", "status: [downloaded]", FIRST_TITLE),
+        ("  key: null\n", "", SECOND_TITLE),
+        ("  energy: 7\n", "", SECOND_TITLE),
+        ("  genre: alpha\n  bpm: null", "  bpm: null", SECOND_TITLE),
+        ('  artist: "Pedro Sampaio & MC Pedrinho"\n', "", FIRST_TITLE),
+        ('artist: "Pedro Sampaio & MC Pedrinho"', "artist:", FIRST_TITLE),
+        ('title: "Dançarina"', "title: 5", "- title: 5"),
+        ('title: "Dançarina"', "title: [a]", "- title: [a]"),
+        ("tags: [funk, singalong]", "tags: {a: b}", FIRST_TITLE),
+    ],
+    ids=[
+        "missing-status", "bad-status", "bpm-string", "bpm-zero", "key-number", "key-letter",
+        "energy-eleven", "energy-bool", "unknown-key", "empty-title", "missing-bpm", "tags-scalar",
+        "bpm-301", "bpm-float", "bpm-bool", "bpm-list", "key-zero", "key-lowercase", "key-int",
+        "key-list", "energy-zero", "energy-float", "energy-string", "status-list", "missing-key",
+        "missing-energy", "missing-genre", "missing-artist", "null-artist", "title-int",
+        "title-list", "tags-mapping",
+    ],
+)  # fmt: skip
+def test_track_schema(mini_repo, old, new, anchor):
+    mini_repo.edit(ALPHA, old, new)
+    line = mini_repo.line_of(ALPHA, anchor)
+    assert mini_repo.findings("track-schema") == [(ALPHA, line, "track-schema")]
+    # No other pool rule reports the same mistake, and none raises on the wrong type.
+    assert pool_findings(mini_repo) == [(ALPHA, line, "track-schema")]
+
+
+@pytest.mark.parametrize(
+    ("old", "new"),
+    [
+        ("bpm: 135", "bpm: 1"),
+        ("bpm: 135", "bpm: 300"),
+        ("key: 8A", "key: 12B"),
+        ("key: 8A", "key: 1A"),
+        ("energy: 8", "energy: 1"),
+        ("energy: 8", "energy: 10"),
+        ("status: downloaded", "status: organized"),
+        ("tags: [funk, singalong]", "tags: []"),
+        (
+            'notes: "opens the block"',
+            'notes: "opens the block"\n  remixer: ""\n  duration: "3:20"\n  year: 2024\n  source: beatport',
+        ),
+    ],
+    ids=["bpm-1", "bpm-300", "key-12B", "key-1A", "energy-1", "energy-10", "organized", "no-tags", "optional-keys"],
+)  # fmt: skip
+def test_track_schema_accepts_the_limits_and_the_optional_keys(mini_repo, old, new):
+    mini_repo.edit(ALPHA, old, new)
+    assert pool_findings(mini_repo) == []
+
+
+def test_track_schema_reports_each_problem_of_an_entry(mini_repo):
+    mini_repo.edit(ALPHA, "status: downloaded", "status: lost\n  artsit: x")
+    mini_repo.edit(ALPHA, "energy: 8", "energy: 11")
+    line = mini_repo.line_of(ALPHA, FIRST_TITLE)
+    assert mini_repo.findings("track-schema") == [(ALPHA, line, "track-schema")] * 3
+
+
+@pytest.mark.parametrize(
+    ("old", "new", "fragments"),
+    [
+        ("  status: to-download\n", "", ["missing key 'status'"]),
+        ("status: to-download", "status: lost", ["status 'lost'"]),
+        ("bpm: 135", 'bpm: "135"', ["bpm '135'", "integer"]),
+        ("bpm: 135", "bpm: 0", ["bpm 0", "1 to 300"]),
+        ("key: 8A", "key: 13A", ["key '13A'", "Camelot"]),
+        ("key: 8A", "key: 8C", ["key '8C'", "Camelot"]),
+        ("energy: 8", "energy: 11", ["energy 11", "1 to 10"]),
+        ("energy: 8", "energy: yes", ["energy True", "integer"]),
+        ('  notes: "opens the block"\n', '  notes: "x"\n  artsit: "x"\n', ["unknown key 'artsit'"]),
+        ('title: "Dançarina"', 'title: ""', ["title ''", "non-empty string"]),
+        ("  bpm: null\n", "", ["missing key 'bpm'"]),
+        ("tags: [funk, singalong]", "tags: funk", ["tags 'funk'", "list"]),
+    ],
+    ids=[
+        "missing-status", "bad-status", "bpm-string", "bpm-zero", "key-number", "key-letter",
+        "energy-eleven", "energy-bool", "unknown-key", "empty-title", "missing-bpm", "tags-scalar",
+    ],
+)  # fmt: skip
+def test_track_schema_messages_name_the_offender(mini_repo, old, new, fragments):
+    mini_repo.edit(ALPHA, old, new)
+    [message] = pool_messages(mini_repo, "track-schema")
+    for fragment in fragments:
+        assert fragment in message
+
+
+def test_pool_rules_never_raise_on_a_non_mapping_entry(mini_repo):
+    # The loader keeps such a pool out of `repo.pools`, so build the case by hand.
+    repo = load_repo(mini_repo.root)
+    repo.pools[0].entries.append("a bare string")
+    pool_rules = {fn.rule_id: fn for fn in check_repo.RULES if fn.rule_id in POOL_RULES}
+    assert set(pool_rules) == POOL_RULES
+    found = {rule_id: list(fn(repo)) for rule_id, fn in pool_rules.items()}
+    assert [(f.path, f.line, f.message) for f in found.pop("track-schema")] == [
+        (ALPHA, 0, "entry 'a bare string' is not a mapping")
+    ]
+    assert found == {rule_id: [] for rule_id in POOL_RULES - {"track-schema"}}
+
+
+# ---- track-genre-matches-pool ----
+
+BETA_GENRE = ("  genre: alpha\n  bpm: null", "  genre: beta\n  bpm: null")  # the second entry's
+
+
+def test_track_genre_matches_pool(mini_repo):
+    mini_repo.edit(ALPHA, *BETA_GENRE)
+    line = mini_repo.line_of(ALPHA, SECOND_TITLE)
+    assert pool_findings(mini_repo) == [(ALPHA, line, "track-genre-matches-pool")]
+
+
+def test_track_genre_matches_pool_message_names_both(mini_repo):
+    mini_repo.edit(ALPHA, *BETA_GENRE)
+    assert pool_messages(mini_repo, "track-genre-matches-pool") == [
+        "genre 'beta' is not 'alpha', the pool it is in"
+    ]
+
+
+@pytest.mark.parametrize("genre", ["5", "[alpha]", "null", "ALPHA", "alpha-sub"])
+def test_track_genre_matches_pool_flags_any_other_value(mini_repo, genre):
+    mini_repo.edit(ALPHA, BETA_GENRE[0], f"  genre: {genre}\n  bpm: null")
+    line = mini_repo.line_of(ALPHA, SECOND_TITLE)
+    assert pool_findings(mini_repo) == [(ALPHA, line, "track-genre-matches-pool")]
+
+
+def test_track_genre_matches_pool_leaves_a_missing_genre_to_track_schema(mini_repo):
+    mini_repo.edit(ALPHA, BETA_GENRE[0], "  bpm: null")
+    line = mini_repo.line_of(ALPHA, SECOND_TITLE)
+    assert pool_findings(mini_repo) == [(ALPHA, line, "track-schema")]
+
+
+# ---- track-title-first ----
+
+
+def test_track_title_first(mini_repo):
+    mini_repo.edit(ALPHA, f'{SECOND_TITLE}\n  artist: "Chiclete com Banana"', SWAPPED)
+    line = mini_repo.line_of(ALPHA, SWAPPED)
+    assert pool_findings(mini_repo) == [(ALPHA, line, "track-title-first")]
+
+
+def test_track_title_first_message(mini_repo):
+    mini_repo.edit(ALPHA, f'{SECOND_TITLE}\n  artist: "Chiclete com Banana"', SWAPPED)
+    assert pool_messages(mini_repo, "track-title-first") == [
+        "entry does not start with a `- title:` line at column 0"
+    ]
+
+
+FLOW_ENTRY = (
+    '- {title: "Voa Voa (Ao Vivo)", artist: "Chiclete com Banana", genre: alpha, bpm: null,'
+    " key: null, energy: 7, status: to-download}"
+)
+
+
+@pytest.mark.parametrize(
+    ("old", "new", "anchor"),
+    [
+        (SECOND_ENTRY, SECOND_ENTRY.replace("- t", "-  t").replace("\n  ", "\n   "), '-  title: "Voa'),
+        (SECOND_TITLE, '-\n  title: "Voa Voa (Ao Vivo)"', '  title: "Voa'),
+        (SECOND_ENTRY, FLOW_ENTRY + "\n", "- {title:"),
+    ],
+    ids=["extra-space", "dash-on-its-own-line", "flow-mapping"],
+)
+def test_track_title_first_wants_the_exact_line(mini_repo, old, new, anchor):
+    """`nextrack_tags.py` is told where an entry starts by a `- title:` line."""
+    mini_repo.edit(ALPHA, old, new)
+    line = mini_repo.line_of(ALPHA, anchor)
+    assert pool_findings(mini_repo) == [(ALPHA, line, "track-title-first")]
+
+
+def test_track_title_first_counts_title_lines_that_are_not_entries(mini_repo):
+    # PyYAML lets a quoted string continue at column 0. The library tool would take
+    # that `- title:` line for an entry, so the number of lines and entries differ.
+    mini_repo.edit(ALPHA, 'notes: "opens the block"', 'notes: "opens\n- title: fake"')
+    line = mini_repo.line_of(ALPHA, "- title: fake")
+    assert pool_findings(mini_repo) == [(ALPHA, line, "track-title-first")]
+    assert "not the start of an entry" in pool_messages(mini_repo, "track-title-first")[0]
+
+
+def test_track_title_first_allows_comments_and_blank_lines_between_entries(mini_repo):
+    mini_repo.edit(ALPHA, f"\n{SECOND_TITLE}", f"\n# um comentário\n\n{SECOND_TITLE}")
+    assert pool_findings(mini_repo) == []
+
+
+# ---- track-unique ----
+
+
+def test_track_unique_within_a_pool(mini_repo):
+    copy = FIRST_ENTRY.replace("Dançarina", "DANÇARINA")
+    mini_repo.write(ALPHA, mini_repo.read(ALPHA) + "\n" + copy + "\n")
+    assert mini_repo.line_of(ALPHA, FIRST_TITLE) == 3
+    line = mini_repo.line_of(ALPHA, '- title: "DANÇARINA"')
+    assert pool_findings(mini_repo) == [(ALPHA, line, "track-unique")]
+    [message] = pool_messages(mini_repo, "track-unique")
+    assert "tracks/alpha.yml:3" in message
+
+
+def test_track_unique_across_pools(mini_repo):
+    mini_repo.write("tracks/beta.yml", FIRST_ENTRY.replace("genre: alpha", "genre: beta") + "\n")
+    assert pool_findings(mini_repo) == [("tracks/beta.yml", 1, "track-unique")]
+    [message] = pool_messages(mini_repo, "track-unique")
+    assert "tracks/alpha.yml:3" in message
+
+
+def test_track_unique_reports_every_later_copy_against_the_first(mini_repo):
+    copy = SECOND_ENTRY.replace("genre: alpha", "genre: beta").replace("Chiclete com", "CHICLETE  com")
+    mini_repo.write("tracks/beta.yml", "# beta\n" + copy + "\n" + copy)
+    first = mini_repo.line_of(ALPHA, SECOND_TITLE)
+    findings = [(f.path, f.line, f.message) for f in check(mini_repo.root) if f.rule == "track-unique"]
+    assert [(path, line) for path, line, _message in findings] == [
+        ("tracks/beta.yml", n) for n in title_lines(mini_repo.read("tracks/beta.yml"))
+    ]
+    assert len(findings) == 2
+    assert all(f"tracks/alpha.yml:{first}" in message for _path, _line, message in findings)
+
+
+@pytest.mark.parametrize(
+    ("artist", "title"),
+    [
+        ('"Pedro Sampaio  &  MC Pedrinho"', '"Dancarina"'),
+        ('"pedro sampaio mc pedrinho"', '"DANÇARINA!"'),
+        ('"Pedro Sampaio & MC Pedrinho"', '"Dançarina"'),
+    ],
+    ids=["accent-and-spaces", "case-and-punctuation", "exact"],
+)
+def test_track_unique_compares_the_normalized_pair(mini_repo, artist, title):
+    mini_repo.write("tracks/beta.yml", track(title=title, artist=artist))
+    assert pool_findings(mini_repo) == [("tracks/beta.yml", 1, "track-unique")]
+
+
+@pytest.mark.parametrize(
+    ("artist", "title"),
+    [
+        ('"Pedro Sampaio & MC Pedrinho"', '"Outra Música"'),
+        ('"Outro Artista"', '"Dançarina"'),
+        ('"Pedro Sampaio"', '"Dançarina"'),
+        ('"Pedro Sampaio & MC Pedrinho"', '"Dançarina (Remix)"'),
+    ],
+    ids=["same-artist", "same-title", "shorter-artist", "longer-title"],
+)
+def test_track_unique_needs_both_artist_and_title_to_match(mini_repo, artist, title):
+    mini_repo.write("tracks/beta.yml", track(title=title, artist=artist))
+    assert pool_findings(mini_repo) == []
+
+
+def test_track_unique_skips_entries_whose_artist_or_title_is_not_a_string(mini_repo):
+    mini_repo.write("tracks/beta.yml", track(title="5", artist="5") + "\n" + track(title="5", artist="5"))
+    assert mini_repo.findings("track-unique") == []
+    assert {rule for _path, _line, rule in pool_findings(mini_repo)} == {"track-schema"}
+
+
+# ---- a pool with no tracks ----
+
+
+def test_comment_only_pool_is_clean(mini_repo):
+    mini_repo.write("tracks/beta.yml", "# beta — vazio por enquanto\n")
+    assert mini_repo.findings() == []

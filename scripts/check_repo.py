@@ -776,6 +776,134 @@ def links_resolve(repo: Repo) -> Iterable[Finding]:
                 yield Finding(rel, line, "links-resolve", f"link to {link[1]!r} does not exist")
 
 
+# ---- pools (tracks/*.yml) ----
+#
+# Entry findings point at the entry's `__line__`, the line of its first key, which
+# is its `- title:` line in a well-formed pool; findings about a whole file use line
+# 0. Only `pool-file-is-node` reads node ids, so only it yields nothing when
+# `graph_ok` is False. A pool that did not parse is not in `repo.pools`; the loader
+# reported it. The loader keeps only pools of mappings, but the rules do not rely on
+# it: a bare value in a list of entries is a `track-schema` finding, never a crash.
+
+TRACK_REQUIRED = ("title", "artist", "genre", "bpm", "key", "energy", "status")
+TRACK_OPTIONAL = ("remixer", "duration", "year", "source", "tags", "notes")
+STATUSES = ("to-download", "downloaded", "organized")
+CAMELOT_RE = re.compile(r"(?:[1-9]|1[0-2])[AB]")
+ENTRY_START = "- title:"
+
+
+def _pool_finding(pool: Pool, line: int, rule_id: str, message: str) -> Finding:
+    return Finding(pool.path, line, rule_id, message)
+
+
+def _mappings(pool: Pool) -> list[dict]:
+    """The entries of `pool` that are mappings, the only ones with a `__line__`."""
+    return [entry for entry in pool.entries if isinstance(entry, dict)]
+
+
+def _is_int_within(v, lo: int, hi: int) -> bool:
+    return is_int(v) and lo <= v <= hi
+
+
+def _track_problems(entry: dict) -> Iterable[str]:
+    yield from _key_problems(entry, TRACK_REQUIRED + TRACK_OPTIONAL, TRACK_REQUIRED)
+    for key in ("title", "artist"):
+        if key in entry and not (isinstance(entry[key], str) and entry[key]):
+            yield f"{key} {_show(entry[key])} is not a non-empty string"
+    if "bpm" in entry and not (entry["bpm"] is None or _is_int_within(entry["bpm"], 1, 300)):
+        yield f"bpm {_show(entry['bpm'])} is not null or an integer from 1 to 300"
+    if "key" in entry and not (
+        entry["key"] is None
+        or (isinstance(entry["key"], str) and CAMELOT_RE.fullmatch(entry["key"]))
+    ):
+        yield f"key {_show(entry['key'])} is not null or a Camelot key such as 8A or 12B"
+    if "energy" in entry and not _is_int_within(entry["energy"], 1, 10):
+        yield f"energy {_show(entry['energy'])} is not an integer from 1 to 10"
+    if "status" in entry and entry["status"] not in STATUSES:  # a tuple test: may be unhashable
+        yield f"status {_show(entry['status'])} is not 'to-download', 'downloaded' or 'organized'"
+    if "tags" in entry and not isinstance(entry["tags"], list):
+        yield f"tags {_show(entry['tags'])} is not a list"
+
+
+@rule("pool-file-is-node")
+def pool_file_is_node(repo: Repo) -> Iterable[Finding]:
+    if not repo.graph_ok:
+        return
+    ids = repo.node_ids()
+    for pool in repo.pools:
+        if pool.stem not in ids:
+            message = f"{pool.stem!r} is not a node id in {GRAPH_PATH}"
+            yield _pool_finding(pool, 0, "pool-file-is-node", message)
+
+
+@rule("track-schema")
+def track_schema(repo: Repo) -> Iterable[Finding]:
+    for pool in repo.pools:
+        for entry in pool.entries:
+            if not isinstance(entry, dict):
+                # A scalar has no line of its own, and no neighbour to borrow one from.
+                message = f"entry {_show(entry)} is not a mapping"
+                yield _pool_finding(pool, 0, "track-schema", message)
+                continue
+            for problem in _track_problems(entry):
+                yield _pool_finding(pool, entry["__line__"], "track-schema", problem)
+
+
+@rule("track-genre-matches-pool")
+def track_genre_matches_pool(repo: Repo) -> Iterable[Finding]:
+    for pool in repo.pools:
+        for entry in _mappings(pool):
+            if "genre" not in entry:
+                continue  # track-schema reports it
+            if entry["genre"] != pool.stem:
+                message = f"genre {_show(entry['genre'])} is not {pool.stem!r}, the pool it is in"
+                yield _pool_finding(pool, entry["__line__"], "track-genre-matches-pool", message)
+
+
+@rule("track-title-first")
+def track_title_first(repo: Repo) -> Iterable[Finding]:
+    """Every entry starts on a `- title:` line at column 0, and every such line starts
+    an entry, so the number of lines equals the number of entries.
+
+    `nextrack_tags.py` finds the entries of a pool by these lines. A line that
+    looks like one inside a quoted string would split an entry in two for it.
+    """
+    for pool in repo.pools:
+        starts = {n for n, text in enumerate(_lines(pool.text), 1) if text.startswith(ENTRY_START)}
+        entry_lines = set()
+        for entry in _mappings(pool):
+            entry_lines.add(entry["__line__"])
+            if entry["__line__"] not in starts:
+                message = f"entry does not start with a `{ENTRY_START}` line at column 0"
+                yield _pool_finding(pool, entry["__line__"], "track-title-first", message)
+        for line in sorted(starts - entry_lines):
+            message = f"`{ENTRY_START}` line at column 0 is not the start of an entry"
+            yield _pool_finding(pool, line, "track-title-first", message)
+
+
+@rule("track-unique")
+def track_unique(repo: Repo) -> Iterable[Finding]:
+    """No two entries, in one pool or two, share `(norm(artist), norm(title))`.
+
+    Every later entry is reported, against the first one in file order (pools are
+    sorted by path). An entry whose artist or title is not a string is skipped:
+    track-schema reports it.
+    """
+    first: dict[tuple[str, str], str] = {}  # (artist, title) -> "path:line" of the first
+    for pool in repo.pools:
+        for entry in _mappings(pool):
+            artist, title = entry.get("artist"), entry.get("title")
+            if not (isinstance(artist, str) and isinstance(title, str)):
+                continue
+            key = (norm(artist), norm(title))
+            where = f"{pool.path}:{entry['__line__']}"
+            if key not in first:
+                first[key] = where
+                continue
+            message = f"duplicate of {first[key]} (artist {artist!r}, title {title!r})"
+            yield _pool_finding(pool, entry["__line__"], "track-unique", message)
+
+
 # ------------------------------------------------------------------------ run --
 
 
