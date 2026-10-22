@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import check_repo
@@ -18,3 +19,9 @@ def test_scripts_readme_lists_every_rule():
     rule_ids = [fn.rule_id for fn in check_repo.RULES] + ["parse-error"]
     missing = [rule_id for rule_id in rule_ids if f"`{rule_id}`" not in text]
     assert not missing, f"scripts/README.md does not list: {', '.join(missing)}"
+
+
+def test_the_owners_library_variable_never_reaches_a_test():
+    """The owner exports NEXTRACK_AUDIO_ROOT in ~/.bashrc; no test may see it, or
+    one that forgets `--root` could touch the real library."""
+    assert "NEXTRACK_AUDIO_ROOT" not in os.environ
