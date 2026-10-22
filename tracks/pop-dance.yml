@@ -6,7 +6,7 @@
   artist: "Mari Fernandez"
   remixer: "Dennis"
   genre: pop-dance
-  bpm: null
+  bpm: 145
   key: null
   energy: 7
   status: downloaded
@@ -17,7 +17,7 @@
 - title: "Love Generation"
   artist: "Bob Sinclar"
   genre: pop-dance
-  bpm: null
+  bpm: 128
   key: null
   energy: 6
   status: downloaded
@@ -26,7 +26,7 @@
 - title: "Rock This Party (Everybody Dance Now)"
   artist: "Bob Sinclar"
   genre: pop-dance
-  bpm: null
+  bpm: 128
   key: null
   energy: 7
   status: downloaded
@@ -35,7 +35,7 @@
 - title: "What A Feeling (Flashdance)"
   artist: "Global Deejays"
   genre: pop-dance
-  bpm: null
+  bpm: 129
   key: null
   energy: 6
   status: downloaded
@@ -44,7 +44,7 @@
 - title: "Movin On"
   artist: "Ian Van Dahl"
   genre: pop-dance
-  bpm: null
+  bpm: 132
   key: null
   energy: 7
   status: downloaded
@@ -53,7 +53,7 @@
 - title: "I Don't Know Why"
   artist: "Moony"
   genre: pop-dance
-  bpm: null
+  bpm: 127
   key: null
   energy: 6
   status: downloaded
@@ -62,7 +62,7 @@
 - title: "Call on Me"
   artist: "Eric Prydz"
   genre: pop-dance
-  bpm: null
+  bpm: 126
   key: null
   energy: 7
   status: downloaded
@@ -80,7 +80,7 @@
 - title: "Sexy Bitch"
   artist: "David Guetta"
   genre: pop-dance
-  bpm: null
+  bpm: 130
   key: null
   energy: 7
   status: downloaded
@@ -89,7 +89,7 @@
 - title: "Titanium"
   artist: "David Guetta"
   genre: pop-dance
-  bpm: null
+  bpm: 126
   key: null
   energy: 8
   status: downloaded
@@ -98,7 +98,7 @@
 - title: "Love Is Gone"
   artist: "David Guetta"
   genre: pop-dance
-  bpm: null
+  bpm: 128
   key: null
   energy: 7
   status: downloaded
@@ -107,7 +107,7 @@
 - title: "Where Them Girls At"
   artist: "David Guetta"
   genre: pop-dance
-  bpm: null
+  bpm: 130
   key: null
   energy: 7
   status: downloaded
@@ -116,7 +116,7 @@
 - title: "Axel F"
   artist: "Crazy Frog"
   genre: pop-dance
-  bpm: null
+  bpm: 138
   key: null
   energy: 7
   status: downloaded
@@ -125,7 +125,7 @@
 - title: "All I Ever Wanted"
   artist: "Basshunter"
   genre: pop-dance
-  bpm: null
+  bpm: 145
   key: null
   energy: 8
   status: downloaded
@@ -134,7 +134,7 @@
 - title: "Pump It Up"
   artist: "Danzel"
   genre: pop-dance
-  bpm: null
+  bpm: 129
   key: null
   energy: 8
   status: downloaded
@@ -143,7 +143,7 @@
 - title: "Don't You Worry Child"
   artist: "Swedish House Mafia"
   genre: pop-dance
-  bpm: null
+  bpm: 129
   key: null
   energy: 9
   status: downloaded
@@ -152,7 +152,7 @@
 - title: "One (Your Name)"
   artist: "Swedish House Mafia"
   genre: pop-dance
-  bpm: null
+  bpm: 125
   key: null
   energy: 8
   status: downloaded
@@ -161,7 +161,7 @@
 - title: "Barbra Streisand"
   artist: "Duck Sauce"
   genre: pop-dance
-  bpm: null
+  bpm: 128
   key: null
   energy: 8
   status: downloaded
@@ -170,7 +170,7 @@
 - title: "Shining Star"
   artist: "Get Far"
   genre: pop-dance
-  bpm: null
+  bpm: 127
   key: null
   energy: 7
   status: downloaded
@@ -179,7 +179,7 @@
 - title: "Get Up (In The Club)"
   artist: "DJ Ross"
   genre: pop-dance
-  bpm: null
+  bpm: 130
   key: null
   energy: 7
   status: downloaded
@@ -188,7 +188,7 @@
 - title: "California Dreamin'"
   artist: "Royal Gigolos"
   genre: pop-dance
-  bpm: null
+  bpm: 130
   key: null
   energy: 7
   status: downloaded
@@ -206,7 +206,7 @@
 - title: "Like A G6"
   artist: "Far East Movement"
   genre: pop-dance
-  bpm: null
+  bpm: 125
   key: null
   energy: 7
   status: downloaded
@@ -215,7 +215,7 @@
 - title: "Astronomia"
   artist: "Tony Igy"
   genre: pop-dance
-  bpm: null
+  bpm: 126
   key: null
   energy: 7
   status: downloaded
