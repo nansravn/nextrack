@@ -9,7 +9,9 @@ the owner's drive, outside the repo.
 
 Hierarchy: **Genre** (graph node) → **Track** (pool entry) → **Block**
 (time-boxed themed sequence) → **Radio** (program of blocks) → **Set** (full gig).
-Start with [README.md](README.md); each folder's `README.md` holds its schema.
+Start with [README.md](README.md); the `README.md` of each content folder
+(`genres/`, `tracks/`, `blocks/`, `radios/`, `sets/`, `lightshows/`, `scripts/`)
+holds its schema.
 
 ## Invariants
 
@@ -68,7 +70,11 @@ Library tool (`audit`, `clean-names`, `fix-tags`, `pull-bpm`; see
   current behavior, including the three write paths.
 - **Add a validator rule:** one function in `RULES`, tests for the passing and
   the failing case, and the README that documents the schema, in the same change.
-  If a rule contradicts a documented convention, the README wins: fix the rule.
+  Add its row to the rule table in [scripts/README.md](scripts/README.md);
+  `tests/test_tooling.py` fails without it. A rule, or a clause of one, that reads
+  node ids or edges must return nothing when `repo.graph_ok` is False, so a broken
+  graph is reported once, as a `parse-error`. If a rule contradicts a documented
+  convention, the README wins: fix the rule.
 
 ## Definition of done
 

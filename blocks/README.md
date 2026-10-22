@@ -74,6 +74,9 @@ these formats. Run it after writing or editing a block.
   `genres/graph.yml` (and the Mermaid map) or choosing another bridge. Backtick
   only node ids there: a word shaped like an id that is not a node is reported as
   a typo, and file names such as `axe-classicos.md` are never checked.
+- **Only the first section of each kind is checked:** the first `## Tracklist…`,
+  the first `## Bridge in…` and the first `## Bridge out…`. A second section with
+  the same heading prefix is ignored, so keep one of each.
 - **Swap options** stay free-form.
 - **Front matter:** exactly the keys of the template above, with the values the
   comments list; `genres` are existing node ids and `lightshow` is `null` or a path
