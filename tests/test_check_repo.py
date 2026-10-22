@@ -231,6 +231,127 @@ def test_parse_errors_never_raise(mini_repo):
     assert paths == {"tracks/alpha.yml", "blocks/alpha-festa.md"}
 
 
+# ----------------------------------- byte-order mark, duplicate keys, `---` ----
+
+BOM = b"\xef\xbb\xbf"
+NOT_POOLS = [rel for rel in MINI_REPO_FILES if not rel.startswith("tracks/")]
+
+
+def save_with_bom(mini_repo, rel, crlf=False):
+    """Rewrite a file of the mini repo as an editor that adds a BOM would."""
+    text = mini_repo.read(rel)
+    mini_repo.path(rel).write_bytes(BOM + (text.replace("\n", "\r\n") if crlf else text).encode())
+
+
+@pytest.mark.parametrize("crlf", [False, True], ids=["lf", "crlf"])
+@pytest.mark.parametrize("rel", NOT_POOLS)
+def test_a_byte_order_mark_is_harmless_in_any_file_but_a_pool(mini_repo, rel, crlf):
+    save_with_bom(mini_repo, rel, crlf)
+    assert mini_repo.findings() == []
+
+
+@pytest.mark.parametrize("crlf", [False, True], ids=["lf", "crlf"])
+def test_a_block_with_a_byte_order_mark_still_has_its_front_matter(mini_repo, crlf):
+    # A bridge with no edge: it is found only if the rules read the block, not skip it.
+    mini_repo.edit("blocks/alpha-festa.md", "← `beta`: hard cut no refrão.\n",
+                   "← `beta`: hard cut no refrão.\n← `gamma`: sem edge.\n")  # fmt: skip
+    line = mini_repo.line_of("blocks/alpha-festa.md", "← `gamma`")
+    save_with_bom(mini_repo, "blocks/alpha-festa.md", crlf)
+    block = load_repo(mini_repo.root).blocks[0]
+    assert block.has_front and block.front["name"] == "Alpha Festa"
+    assert block.front["__line__"] == 2
+    assert mini_repo.findings() == [("blocks/alpha-festa.md", line, "block-bridges-are-edges")]
+
+
+@pytest.mark.parametrize("crlf", [False, True], ids=["lf", "crlf"])
+@pytest.mark.parametrize("entry_first", [False, True], ids=["comment-first", "entry-first"])
+def test_a_byte_order_mark_in_a_pool_is_a_parse_error(mini_repo, entry_first, crlf):
+    # `nextrack_tags.py` reads a pool as plain UTF-8, so a BOM hides an entry that is
+    # on the first line from it; the validator asks for the file to be re-saved.
+    if entry_first:
+        mini_repo.write("tracks/alpha.yml", mini_repo.read("tracks/alpha.yml").split("\n\n", 1)[1])
+    save_with_bom(mini_repo, "tracks/alpha.yml", crlf)
+    assert mini_repo.findings() == [("tracks/alpha.yml", 1, "parse-error")]
+    (finding,) = check(mini_repo.root)
+    assert "byte-order mark" in finding.message
+    assert "nextrack_tags.py" in finding.message
+
+
+def test_a_pool_with_a_byte_order_mark_is_still_checked(mini_repo):
+    mini_repo.edit("tracks/alpha.yml", "status: downloaded", "status: lost")
+    line = mini_repo.line_of("tracks/alpha.yml", '- title: "Dançarina"')
+    save_with_bom(mini_repo, "tracks/alpha.yml")
+    assert mini_repo.findings() == [
+        ("tracks/alpha.yml", 1, "parse-error"),
+        ("tracks/alpha.yml", line, "track-schema"),
+    ]
+
+
+def test_a_comment_only_pool_with_a_byte_order_mark_is_one_parse_error(mini_repo):
+    mini_repo.write("tracks/beta.yml", "# beta — vazio por enquanto\n")
+    save_with_bom(mini_repo, "tracks/beta.yml")
+    assert mini_repo.findings() == [("tracks/beta.yml", 1, "parse-error")]
+
+
+@pytest.mark.parametrize(
+    ("rel", "old", "new", "key", "anchor"),
+    [
+        (
+            "genres/graph.yml",
+            '      - {to: beta,  strength: medium, via: "ease down"}\n',
+            '      - {to: beta,  strength: medium, via: "ease down"}\n    neighbors: []\n',
+            "neighbors",
+            "    neighbors: []",
+        ),
+        (
+            "genres/graph.yml",
+            '{to: beta,  strength: medium, via: "ease down"}',
+            '{to: beta,  strength: medium, to: alpha, via: "ease down"}',
+            "to",
+            "medium, to: alpha",
+        ),
+        ("tracks/alpha.yml", "  bpm: 135\n", "  bpm: null\n  bpm: 135\n", "bpm", "  bpm: 135"),
+        (
+            "blocks/alpha-festa.md",
+            "name: Alpha Festa\n",
+            "name: Alpha Festa\nname: Other\n",
+            "name",
+            "name: Other",
+        ),
+    ],
+    ids=["graph-node", "graph-edge", "track", "block-front-matter"],
+)
+def test_a_duplicate_key_is_a_parse_error_at_the_second_one(mini_repo, rel, old, new, key, anchor):
+    # PyYAML keeps the last duplicate, so without this the first one would be silently lost.
+    mini_repo.edit(rel, old, new)
+    line = mini_repo.line_of(rel, anchor)
+    assert mini_repo.findings() == [(rel, line, "parse-error")]
+    (finding,) = check(mini_repo.root)
+    assert f"duplicate key {key!r}" in finding.message
+
+
+def test_load_yaml_rejects_a_duplicate_key_but_not_a_merge_override_or_look_alikes():
+    with pytest.raises(yaml.YAMLError, match="duplicate key 'a'"):
+        load_yaml("a: 1\nb:\n  c: 1\na: 2\n")
+    with pytest.raises(yaml.YAMLError, match="duplicate key"):
+        load_yaml("{a: 1, a: 1}\n")
+    # An explicit key may override one that comes from a merge; and 1 is not "1".
+    assert load_yaml("base: &x {k: 1}\nuse: {<<: *x, k: 2}\n")["use"]["k"] == 2
+    assert load_yaml("1: a\n'1': b\n")["1"] == "b"
+
+
+@pytest.mark.parametrize("delimiter", ["--- ", "---\t", "---   "], ids=["space", "tab", "spaces"])
+@pytest.mark.parametrize("which", ["opening", "closing"])
+def test_front_matter_delimiters_may_have_trailing_whitespace(mini_repo, which, delimiter):
+    text = mini_repo.read("blocks/alpha-festa.md")
+    old, new = ("---\n", delimiter + "\n") if which == "opening" else ("\n---\n", "\n" + delimiter + "\n")
+    mini_repo.write("blocks/alpha-festa.md", text.replace(old, new, 1))
+    assert mini_repo.findings() == []
+    block = load_repo(mini_repo.root).blocks[0]
+    assert block.has_front and block.front["name"] == "Alpha Festa"
+    assert block.body[0] == (12, "")  # the body still starts right after the closing line
+
+
 # -------------------------------------------------------------------- CLI ----
 
 

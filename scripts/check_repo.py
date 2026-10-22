@@ -22,11 +22,12 @@ Python API: `check(root) -> list[Finding]`.
 from __future__ import annotations
 
 import argparse
+import codecs
 import os
 import re
 import sys
 import unicodedata
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Hashable, Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -94,8 +95,10 @@ class Repo:
     yield nothing when `graph_ok` is False, so that a broken graph is reported
     once, as a `parse-error`, and not again as a flood of dangling references.
 
-    A pool that fails to parse is reported in `errors` and left out of `pools`. A
-    block that fails to parse is kept, with `front` set to None.
+    A pool that fails to parse is reported in `errors` and left out of `pools`; a
+    pool that starts with a byte-order mark is reported but kept. A block whose front
+    matter fails to parse is kept, with `front` set to None; a block that is not
+    UTF-8 is reported and left out of `blocks`.
 
     `errors` holds the loader's `parse-error` findings; `check` adds them to
     those of the rules.
@@ -127,15 +130,23 @@ class Repo:
 
 
 def read_text(path: Path) -> str:
-    """Read a repo text file as UTF-8, with `\\r\\n` turned into `\\n`."""
-    return path.read_bytes().decode("utf-8").replace("\r\n", "\n")
+    """Read a repo text file as UTF-8, with `\\r\\n` turned into `\\n`.
+
+    A leading byte-order mark is dropped, so that a file saved with one is read as
+    the text it shows; `_load_pools` reports it in a pool.
+    """
+    return path.read_bytes().decode("utf-8-sig").replace("\r\n", "\n")
+
+
+MERGE_TAG = "tag:yaml.org,2002:merge"
 
 
 class _LineLoader(yaml.SafeLoader):
     """A SafeLoader that stores where each mapping starts under `__line__`.
 
     It also reports a value PyYAML cannot build (`!!int ""`, `2024-13-45`) as a
-    `yaml.YAMLError` at that value's position, whatever exception PyYAML raised.
+    `yaml.YAMLError` at that value's position, whatever exception PyYAML raised,
+    and a key repeated in one mapping (YAML 1.2 forbids it) at the repeat.
     """
 
     first_line = 1
@@ -150,6 +161,18 @@ class _LineLoader(yaml.SafeLoader):
             raise yaml.constructor.ConstructorError(None, None, problem, node.start_mark) from exc
 
     def construct_mapping(self, node, deep=False):
+        # PyYAML keeps the last of two equal keys and drops the first without a word.
+        seen = set()
+        for key_node, _ in node.value:
+            if key_node.tag == MERGE_TAG:  # `<<`: an explicit key may override a merged one
+                continue
+            key = self.construct_object(key_node, deep=True)
+            if not isinstance(key, Hashable):
+                continue  # super() reports the unhashable key
+            if key in seen:
+                problem = f"duplicate key {key!r}"
+                raise yaml.constructor.ConstructorError(None, None, problem, key_node.start_mark)
+            seen.add(key)
         mapping = super().construct_mapping(node, deep=True)
         mapping["__line__"] = node.start_mark.line + self.first_line
         return mapping
@@ -228,12 +251,30 @@ def _load_graph(root: Path, errors: list[Finding]) -> tuple[list[dict], bool]:
     return nodes, True
 
 
+BOM_MESSAGE = (
+    "starts with a UTF-8 byte-order mark; nextrack_tags.py can miss the first entry "
+    "— re-save as UTF-8 without BOM"
+)
+
+
+def _starts_with_bom(path: Path) -> bool:
+    try:
+        with path.open("rb") as f:
+            return f.read(len(codecs.BOM_UTF8)) == codecs.BOM_UTF8
+    except OSError:
+        return False  # `_read` has already reported a file that cannot be read
+
+
 def _load_pools(root: Path, errors: list[Finding]) -> list[Pool]:
     pools = []
     for path in sorted((root / "tracks").glob("*.yml")):
         rel = path.relative_to(root).as_posix()
         try:
             text = _read(root, rel)
+            if _starts_with_bom(path):
+                # `read_text` drops it, but `nextrack_tags.py` reads plain UTF-8 and
+                # would not see an entry on the first line. The pool is still checked.
+                errors.append(Finding(rel, 1, "parse-error", BOM_MESSAGE))
             entries = _parse(rel, text)
             if entries is None:  # only comments: a node with no tracks yet
                 entries = []
@@ -248,9 +289,10 @@ def _load_pools(root: Path, errors: list[Finding]) -> list[Pool]:
 
 def _split_block(rel: str, text: str, errors: list[Finding]) -> Block:
     lines = _lines(text)
-    if not text.startswith("---\n"):
+    # A delimiter is `---` alone on its line; trailing whitespace is invisible in an editor.
+    if not lines or lines[0].rstrip() != "---":
         return Block(rel, text, False, None, list(enumerate(lines, 1)))
-    close = next((i for i in range(1, len(lines)) if lines[i] == "---"), None)
+    close = next((i for i in range(1, len(lines)) if lines[i].rstrip() == "---"), None)
     if close is None:
         errors.append(Finding(rel, 0, "parse-error", "unclosed front matter: no closing `---`"))
         return Block(rel, text, True, None, [])

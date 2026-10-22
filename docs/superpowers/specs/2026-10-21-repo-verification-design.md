@@ -116,6 +116,11 @@ The file has two sections:
    YAML is parsed with a `yaml.SafeLoader` subclass that stores each mapping's
    1-based start line under the key `__line__`, so findings can name a line, including
    inside a single-line `{to: …}` edge. Rules ignore `__line__` when checking keys.
+   A key repeated in one mapping is a `parse-error` at the repeat (PyYAML would keep
+   the last one silently). Files are read as UTF-8 and a leading byte-order mark is
+   ignored, except in a `tracks/*.yml` pool, where it is a `parse-error` at line 1
+   because `nextrack_tags.py` reads pools as plain UTF-8 and would miss the first
+   entry. A front-matter delimiter is `---` alone on its line; trailing whitespace is allowed.
 2. **Rules.** One function per rule, listed in `RULES`.
 
 ### Shared definitions

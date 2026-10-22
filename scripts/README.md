@@ -130,7 +130,7 @@ if a rule contradicts one of them, the README wins.
 
 | rule id | what it checks |
 |---------|----------------|
-| `parse-error` | A file could not be loaded: it is missing or not UTF-8, its YAML is invalid, `graph.yml` has no `nodes` list of mappings, a pool is not a list of mappings, or a block's front matter is unclosed or not a mapping. |
+| `parse-error` | A file could not be loaded: it is missing or not UTF-8, its YAML is invalid (a key repeated in one mapping counts: YAML 1.2 forbids it and PyYAML would silently keep the last), `graph.yml` has no `nodes` list of mappings, a pool is not a list of mappings, or a block's front matter is unclosed or not a mapping. A pool that starts with a UTF-8 byte-order mark is also reported, because `nextrack_tags.py` would miss an entry on its first line; in any other file a BOM is ignored. |
 | `graph-node-schema` | Each node has exactly the keys `id`, `name`, `family`, `bpm`, `energy`, `neighbors` (plus optional `feel`, `subgenres`) with valid values: a kebab-case `id`, `family` is `brazilian` or `global`, `bpm` and `energy` are `[min, max]` integer ranges with min <= max (`energy` within 1-10), `neighbors` is a list. |
 | `graph-unique-ids` | No two nodes share an `id`. |
 | `graph-edge-schema` | Each edge has exactly `to`, `strength` (`strong`, `medium` or `weak`) and `via` (a non-empty string). |
