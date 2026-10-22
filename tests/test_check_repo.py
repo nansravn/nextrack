@@ -199,6 +199,17 @@ def test_explicit_tag_that_cannot_be_built_is_a_parse_error(mini_repo, value):
     assert mini_repo.findings("parse-error") == [("tracks/beta.yml", 3, "parse-error")]
 
 
+@pytest.mark.parametrize("escape", [r"\UFFFFFFFF", r"\U00110000"])
+def test_bad_unicode_escape_is_a_parse_error(mini_repo, escape):
+    # PyYAML's scanner raises a bare ValueError (`chr() arg not in range`) for these.
+    mini_repo.write("tracks/beta.yml", f'- title: "{escape}"\n')
+    mini_repo.edit("blocks/alpha-festa.md", "name: Alpha Festa", f'name: "{escape}"')
+    assert mini_repo.findings("parse-error") == [
+        ("blocks/alpha-festa.md", 0, "parse-error"),
+        ("tracks/beta.yml", 0, "parse-error"),
+    ]
+
+
 def test_absurdly_nested_yaml_is_a_parse_error(mini_repo):
     mini_repo.write("tracks/beta.yml", "- " + "[" * 1000 + "]" * 1000 + "\n")
     assert mini_repo.findings("parse-error") == [("tracks/beta.yml", 0, "parse-error")]

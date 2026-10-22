@@ -164,8 +164,12 @@ def load_yaml(text: str, first_line: int = 1) -> object:
     loader.first_line = first_line
     try:
         return loader.get_single_data()
-    except RecursionError as exc:  # absurdly deep nesting fails in the parser
-        raise yaml.YAMLError("nested too deeply") from exc
+    except yaml.YAMLError:
+        raise
+    except Exception as exc:
+        # PyYAML's scanner and parser can raise a bare ValueError (`"\UFFFFFFFF"`) or
+        # RecursionError (absurd nesting) outside construct_object.
+        raise yaml.YAMLError(str(exc)) from exc
     finally:
         loader.dispose()
 
