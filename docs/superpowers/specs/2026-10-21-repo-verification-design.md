@@ -51,7 +51,7 @@ auto-detectable setup; the repo has none of them.
 | Strictness | Every finding is an error; prose formats are documented | Drift is what we are preventing; all 5 existing blocks already follow the formats. |
 | Approach | One validator script built from rule functions | Matches the `scripts/` one-CLI-per-file pattern; a rule plus its two tests is one plan task. |
 | Unknown keys | Error, in graph nodes, edges, tracks and block front matter | Catches typos such as `artsit:`. A new field means updating the rule and the README in the same change. |
-| Worktrees | `.worktrees/` (git-ignored), consent given in `CLAUDE.md` | Plan execution stays isolated from the owner's checkout; the audio library is outside the repo, so worktrees stay small. |
+| Worktrees | Plans run in a worktree, allowed without asking. Prefer the native `EnterWorktree` tool (`.claude/worktrees/`, branches from `origin/main`) and enter it before writing the spec; the manual `git worktree add` fallback goes under `.worktrees/`. Both directories are git-ignored. | Plan execution stays isolated from the owner's checkout, and spec, plan and code share one branch; the audio library is outside the repo, so worktrees stay small. |
 
 ## 1. Tooling and layout
 
@@ -109,8 +109,10 @@ Commands:
 
 The file has two sections:
 
-1. **Loader.** `load_repo(root) -> Repo` reads `genres/graph.yml`, `tracks/*.yml`,
-   `blocks/*.md` (excluding `README.md`) and the Markdown files the rules need.
+1. **Loader.** `load_repo(root) -> Repo` reads `genres/graph.yml`, `tracks/*.yml` and
+   `blocks/*.md` (excluding `README.md`). The docs rules read the Markdown files they
+   need on demand, through a shared helper; a file that cannot be read becomes a
+   `parse-error` finding, and identical findings are de-duplicated.
    YAML is parsed with a `yaml.SafeLoader` subclass that stores each mapping's
    1-based start line under the key `__line__`, so findings can name a line, including
    inside a single-line `{to: …}` edge. Rules ignore `__line__` when checking keys.
@@ -262,7 +264,7 @@ asserts nothing the code computes counts as a review finding.
   - Specs go in `docs/superpowers/specs/`, plans in `docs/superpowers/plans/`.
   - Content work (new tracks, blocks or edges) needs no spec; the validator is its gate.
   - Script features and schema changes go brainstorm → spec → plan → subagent-driven development.
-  - Worktrees live under `.worktrees/`, are allowed without asking, and get set up with `uv sync`.
+  - Plans run in a worktree, allowed without asking. Prefer the native `EnterWorktree` tool (`.claude/worktrees/`, branches from `origin/main`) and enter it before writing the spec; the manual `git worktree add` fallback goes under `.worktrees/`. Both directories are git-ignored. Each fresh worktree gets `uv sync`.
   - Branches are named `feat/`, `fix/` or `chore/`. Work reaches `main` as a pull request merged with rebase.
 
 Documentation updates:

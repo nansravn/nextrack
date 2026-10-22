@@ -69,7 +69,10 @@ nextrack/
 ├── radios/          # thematic programs (arcs of blocks)
 ├── sets/            # full performances per gig
 ├── lightshows/      # per-block lighting scenes (future)
-└── scripts/         # library tooling — retag/rename audio, pull BPM/key into tracks/
+├── scripts/         # tooling — retag/rename audio, pull BPM/key into tracks/, check_repo.py validator
+├── tests/           # pytest suite for scripts/ (synthetic audio only, never committed)
+├── CLAUDE.md        # instructions for coding agents: invariants, commands, checklists
+└── pyproject.toml   # uv dependencies and pytest config (uv.lock pins them)
 ```
 
 Each folder has a `README.md` explaining its schema and a template to copy.
@@ -84,6 +87,9 @@ Each folder has a `README.md` explaining its schema and a template to copy.
    pick a genre lane from the graph, target a time frame and energy arc.
 4. When you're ready to play it, download the tracks into your mirrored audio
    folder (git-ignored) and rehearse the transitions noted in the block.
+5. Before committing, check that everything still agrees: `uv sync` once, then
+   `uv run scripts/check_repo.py`. It validates the graph, taxonomy, Mermaid map,
+   pools and blocks against each other; see [`scripts/README.md`](scripts/README.md).
 
 ---
 
