@@ -58,6 +58,27 @@ entry to `status: downloaded`.
 - Slot the track into one or more [blocks](../blocks/).
 - Set `status: organized` once it's tagged, in a block, and ready to play.
 
+### Library hygiene (filenames + embedded tags)
+
+A downloaded file is only useful if it identifies itself. The convention:
+
+- **Folder = genre-id.** Each file lives in `<audio-root>/<genre-id>/`, mirroring
+  the pools (§3).
+- **Filename = `Artist - Title.ext`.** No download-site junk (`[NotSlider.nl]`,
+  `vk.com`, trailing ` - Tech House`, `(infantil)`). Version info in parens/brackets
+  (`(Extended Mix)`, `[Salsa Version]`) stays.
+- **Embedded `Title` / `Artist` match the filename.** Downloaded MP3s often arrive
+  with a blank or garbage title tag — so opening the file in Serato/Explorer shows
+  nothing useful. Keep the embedded tags in sync with the name.
+- **BPM / key come from Serato.** Your DJ software writes them into the file on
+  analysis (MP3 `TBPM`/`TKEY`, FLAC `BPM`/`INITIALKEY`); copy those into the pool's
+  `bpm`/`key` (Camelot).
+
+[`scripts/nextrack_tags.py`](../scripts/) automates all four — `audit` to see the
+state, `clean-names` / `fix-tags` to repair files, `pull-bpm` to harvest analysis
+back into the YAML. It edits tags in place (via `mutagen`, never ffmpeg) so Serato's
+beatgrids survive, and it's dry-run until you pass `--apply`.
+
 ## The payoff
 
 Because everything is documented, planning a gig becomes assembling:

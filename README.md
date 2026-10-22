@@ -68,7 +68,8 @@ nextrack/
 ├── blocks/          # ⭐ time-boxed themed sequences (the DJ + lightshow unit)
 ├── radios/          # thematic programs (arcs of blocks)
 ├── sets/            # full performances per gig
-└── lightshows/      # per-block lighting scenes (future)
+├── lightshows/      # per-block lighting scenes (future)
+└── scripts/         # library tooling — retag/rename audio, pull BPM/key into tracks/
 ```
 
 Each folder has a `README.md` explaining its schema and a template to copy.
