@@ -45,3 +45,6 @@ desktop.ini
 # --- Python ---
 __pycache__/
 *.pyc
+.venv/
+.worktrees/
+.claude/worktrees/
