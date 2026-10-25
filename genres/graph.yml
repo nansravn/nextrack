@@ -334,6 +334,7 @@ nodes:
       - {to: brazilian-bass,  strength: strong, via: "BR house sibling; blend"}
       - {to: pop-dance,       strength: medium, via: "these ARE remixes of the eletrohits classics"}
       - {to: melodic-house-techno, strength: medium, via: "lift the melody for a build"}
+      - {to: axe,             strength: medium, via: "the anthem back to the trio (Make U Sweat -> Eva); hard cut on the chorus"}
 
   - id: samba-cover
     name: Samba-Cover (versões samba de hits — Grupo Sambô)
