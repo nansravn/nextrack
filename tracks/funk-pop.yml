@@ -32,17 +32,17 @@
   energy: 8
   status: downloaded
   tags: [funk-pop, baile, singalong]
-  notes: "3 arquivos na pasta (versões/dups) — 1 faixa só."
+  notes: "2 arquivos na pasta: o mp3 e o flac, que é outra edição (os primeiros ~55 s mudam). O mp3 duplicado foi pra lixeira."
 
 - title: "Joga Pra Lua"
   artist: "Anitta, Pedro Sampaio & Dennis"
   genre: funk-pop
-  bpm: 134
+  bpm: 133
   key: 9A
   energy: 7
   status: downloaded
   tags: [funk-pop, dance]
-  notes: "2 arquivos na pasta (dups) — puxa mais pro dance."
+  notes: "Puxa mais pro dance. Ficou só o flac; o mp3 era o mesmo áudio e foi pra lixeira."
 
 - title: "Galopa"
   artist: "Pedro Sampaio"
