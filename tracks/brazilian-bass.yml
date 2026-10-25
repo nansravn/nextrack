@@ -1,0 +1,138 @@
+# tracks/brazilian-bass.yml — Brazilian Bass pool for the `brazilian-bass` node (unordered).
+# A lane Alok / Cat Dealers / JRD: house melódico brasileiro de festival.
+# status: downloaded (subpasta brazilian-bass/). bpm/key = null até o pull-bpm ler a análise do Serato.
+
+- title: "Tsunami"
+  artist: "Alok x Ely Oaks"
+  genre: brazilian-bass
+  bpm: 75
+  key: 2A
+  energy: 7
+  status: downloaded
+  tags: [brazilian-bass]
+
+- title: "Don't Say Goodbye"
+  artist: "Alok, Ilkay Sencan feat. Tove Lo"
+  genre: brazilian-bass
+  bpm: 120
+  key: 5A
+  energy: 6
+  status: downloaded
+  tags: [brazilian-bass]
+
+- title: "Deep Down (Never Dull's In My Mind Mix)"
+  artist: "Alok, Kenny Dope feat. Ella Eyre & Crystal Waters"
+  genre: brazilian-bass
+  bpm: 122
+  key: 8A
+  energy: 6
+  status: downloaded
+  tags: [brazilian-bass]
+
+- title: "It Don’t Matter"
+  artist: "Alok, Sofi Tukker, INNA"
+  genre: brazilian-bass
+  bpm: 118
+  key: 2A
+  energy: 6
+  status: downloaded
+  tags: [brazilian-bass]
+
+- title: "Jungle"
+  artist: "Alok, The Chainsmokers feat. Mae Stephens"
+  genre: brazilian-bass
+  bpm: 70
+  key: 12A
+  energy: 6
+  status: downloaded
+  tags: [brazilian-bass]
+
+- title: "Epitáfio"
+  artist: "Alok, Titãs feat. Bhaskar"
+  genre: brazilian-bass
+  bpm: 122
+  key: 9A
+  energy: 6
+  status: downloaded
+  tags: [brazilian-bass]
+
+- title: "Hear Me Now"
+  artist: "Alok, Zeeba, Bruno Martini"
+  genre: brazilian-bass
+  bpm: 122
+  key: 2A
+  energy: 6
+  status: downloaded
+  tags: [brazilian-bass]
+
+- title: "Amarelo Azul E Branco (JRD Remix)"
+  artist: "Anavitria feat. Rita Lee"
+  genre: brazilian-bass
+  bpm: 126
+  key: 1A
+  energy: 6
+  status: downloaded
+  tags: [brazilian-bass, br, remix]
+
+- title: "Felicidade"
+  artist: "André Sarate, Capu Feat Serginho Moah"
+  genre: brazilian-bass
+  bpm: 124
+  key: 11A
+  energy: 6
+  status: downloaded
+  tags: [brazilian-bass]
+
+- title: "Anunciação"
+  artist: "Jopin, Alceu Valença"
+  genre: brazilian-bass
+  bpm: 126
+  key: 9B
+  energy: 6
+  status: downloaded
+  tags: [brazilian-bass]
+
+- title: "Piece Of Your Heart (Alok Extended Remix)"
+  artist: "Meduza ft. Goodboys"
+  genre: brazilian-bass
+  bpm: 124
+  key: 3A
+  energy: 7
+  status: downloaded
+  tags: [brazilian-bass, remix]
+
+- title: "Epitáfio (Remix)"
+  artist: "Titãs, Pontifexx"
+  genre: brazilian-bass
+  bpm: 125
+  key: 6A
+  energy: 6
+  status: downloaded
+  tags: [brazilian-bass, br, remix]
+
+- title: "Say It Lovezinho (Victor Siriani Remix)"
+  artist: "Treyce & Nelly Furtado"
+  genre: brazilian-bass
+  bpm: 126
+  key: 9A
+  energy: 7
+  status: downloaded
+  tags: [brazilian-bass, br]
+
+- title: "Lovezinho"
+  artist: "Treyce feat. Santti, Malifoo"
+  genre: brazilian-bass
+  bpm: 128
+  key: 9A
+  energy: 7
+  status: downloaded
+  tags: [brazilian-bass, br]
+
+- title: "Ai Ai Ai (Felguk & Cat Dealers Remix)"
+  artist: "Vanessa Da Mata, Felguk, Cat Dealers"
+  genre: brazilian-bass
+  bpm: 124
+  key: 6A
+  energy: 6
+  status: downloaded
+  tags: [brazilian-bass, br, remix]

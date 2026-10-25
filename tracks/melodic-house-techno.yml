@@ -1,0 +1,30 @@
+# tracks/melodic-house-techno.yml — Melodic House & Techno pool for the `melodic-house-techno` node (unordered).
+# Melodic house / techno e progressive.
+# status: downloaded (subpasta melodic-house-techno/). bpm/key = null até o pull-bpm ler a análise do Serato.
+
+- title: "Liberate"
+  artist: "Eric Prydz"
+  genre: melodic-house-techno
+  bpm: 127
+  key: 7B
+  energy: 7
+  status: downloaded
+  tags: [melodic-house-techno, progressive]
+
+- title: "Grey"
+  artist: "Kölsch"
+  genre: melodic-house-techno
+  bpm: 125
+  key: 9A
+  energy: 7
+  status: downloaded
+  tags: [melodic-house-techno]
+
+- title: "You Were Right (Raphael Siqueira, EME & Güerino Remix)"
+  artist: "RÜFÜS DU SOL"
+  genre: melodic-house-techno
+  bpm: 125
+  key: 4A
+  energy: 7
+  status: downloaded
+  tags: [melodic-house-techno, remix, br]

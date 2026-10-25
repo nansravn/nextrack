@@ -76,6 +76,12 @@ MPB, bossa nova, tropicália, and their downtempo/electronic reinterpretations.
 Warmup and cooldown gold; also `tecnobrega`/`brega` textures.
 - **BPM:** ~90–115 · **Energy:** 2–5 · **Feel:** warm, nostalgic, melodic.
 
+### `kids`
+Kids' songs for the family moment of a party: Disney songs (in Portuguese and
+English) and Mundo Bita. An **open-format** lane, joined to the 90s dance routines of
+`pagodao-baiano` and to the dance hits kids know by hard cuts.
+- **BPM:** ~80–130 · **Energy:** 3–7 · **Feel:** playful, singalong, family.
+
 ---
 
 ## 🌍 Global / EDM families
@@ -87,7 +93,8 @@ Bedouin vibe). The universal warmup and sunset lane.
 
 ### `deep-house`
 Groove-forward, soulful, sub-heavy house. The dependable mid-warmup connective
-tissue.
+tissue. Also holds the 2014–17 deep/tropical house radio wave (Kygo, Robin Schulz,
+Duke Dumont).
 - **BPM:** ~118–124 · **Energy:** 4–7 · **Feel:** smooth, groovy.
 
 ### `tech-house`
@@ -120,7 +127,8 @@ crossover, vocal.
 
 ### `global-bass`
 The percussive global-club umbrella: baile-influenced global bass, moombahton,
-reggaeton, dembow, guaracha. Shares rhythmic DNA with `brazilian-funk`.
+reggaeton, dembow, guaracha, and the latin pop hits and their house remixes.
+Shares rhythmic DNA with `brazilian-funk`.
 - **BPM:** ~90–130 · **Energy:** 6–9 · **Feel:** rhythmic, tropical, vocal.
 
 ### `pop-dance`
@@ -134,6 +142,18 @@ Tech-house / slap house brasileiro — a leva Dubdogz, Vintage Culture e cia:
 remixes e originais de festival, feitos pra mixar. Muitos são versões modernas
 dos próprios clássicos eletrohits.
 - **BPM:** ~122–128 · **Energy:** 6–9 · **Feel:** driving, groovy, festival.
+
+### `rock`
+Classic rock, blues rock, pop-rock and rock BR (Mamonas Assassinas as the `rock-br`
+subgenre). Either a singalong moment, reached from `pop-dance` by an echo out, or
+listening rock for the background.
+- **BPM:** song-dependent (~70–140) · **Energy:** 3–8 · **Feel:** anthemic, singalong, guitar.
+
+### `acoustic-lounge`
+Acoustic and lounge background (Jack Johnson, Michael Bublé) for brunch, dinner or
+the hour before the dancing. Pairs with `mpb-bossa` and `samba-cover` as the
+acoustic end of the map.
+- **BPM:** ~80–120 · **Energy:** 1–4 · **Feel:** warm, acoustic, background.
 
 ---
 

@@ -1,0 +1,67 @@
+# tracks/acoustic-lounge.yml — Acoustic / Lounge pool for the `acoustic-lounge` node (unordered).
+# Acústico / lounge: fundo pra brunch e jantar (Jack Johnson, Bublé).
+# status: downloaded (subpasta acoustic-lounge/). bpm/key = null até o pull-bpm ler a análise do Serato.
+
+- title: "Banana Pancakes"
+  artist: "Jack Johnson"
+  genre: acoustic-lounge
+  bpm: 85
+  key: 9B
+  energy: 2
+  status: downloaded
+  tags: [acoustic-lounge, acoustic, breakfast]
+
+- title: "Better Together"
+  artist: "Jack Johnson"
+  genre: acoustic-lounge
+  bpm: 110
+  key: 8B
+  energy: 2
+  status: downloaded
+  tags: [acoustic-lounge, acoustic, breakfast]
+
+- title: "Escape (The Pina Colada Song)"
+  artist: "Jack Johnson"
+  genre: acoustic-lounge
+  bpm: 135
+  key: 11B
+  energy: 2
+  status: downloaded
+  tags: [acoustic-lounge, acoustic, breakfast]
+
+- title: "I Got You"
+  artist: "Jack Johnson"
+  genre: acoustic-lounge
+  bpm: 98
+  key: 12B
+  energy: 2
+  status: downloaded
+  tags: [acoustic-lounge, acoustic, breakfast]
+
+- title: "Upside Down"
+  artist: "Jack Johnson"
+  genre: acoustic-lounge
+  bpm: 103
+  key: 12B
+  energy: 2
+  status: downloaded
+  tags: [acoustic-lounge, acoustic, breakfast]
+
+- title: "Feeling Good"
+  artist: "Michael Bublé"
+  genre: acoustic-lounge
+  bpm: 115
+  key: 2A
+  energy: 4
+  status: downloaded
+  tags: [acoustic-lounge, jazz-pop]
+
+- title: "I'm Feeling Good (minus)"
+  artist: "Michael Bublé"
+  genre: acoustic-lounge
+  bpm: 116
+  key: 4A
+  energy: 3
+  status: downloaded
+  tags: [acoustic-lounge, jazz-pop, instrumental]
+  notes: "Instrumental (minus) pra cantar por cima."

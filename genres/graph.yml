@@ -122,6 +122,7 @@ nodes:
       - {to: samba-pagode,    strength: strong, via: "same lineage, lift the swing"}
       - {to: amapiano,        strength: weak,   via: "spacious, patient bridge upward"}
       - {to: samba-cover,     strength: strong, via: "acoustic samba covers; warm singalong"}
+      - {to: acoustic-lounge, strength: strong, via: "same background slot; switch to English (Jack Johnson)"}
 
   # ----------------------------- GLOBAL ---------------------------------------
 
@@ -144,7 +145,7 @@ nodes:
     bpm: [118, 124]
     energy: [4, 7]
     feel: [smooth, groovy]
-    subgenres: [soulful, deep, lo-fi-house]
+    subgenres: [soulful, deep, lo-fi-house, tropical-house]
     neighbors:
       - {to: tech-house,      strength: strong, via: "raise energy, punchier drums"}
       - {to: afro-house,      strength: strong, via: "add percussion, keep the groove"}
@@ -233,7 +234,7 @@ nodes:
     bpm: [90, 130]
     energy: [6, 9]
     feel: [rhythmic, tropical, vocal]
-    subgenres: [moombahton, reggaeton, dembow, baile-global, guaracha]
+    subgenres: [moombahton, reggaeton, dembow, baile-global, guaracha, latin-pop]
     neighbors:
       - {to: brazilian-funk,  strength: strong, via: "shared rhythmic DNA; ramp to the baile"}
       - {to: tech-house,      strength: medium, via: "resolve to 4-on-the-floor, raise tempo"}
@@ -278,6 +279,7 @@ nodes:
       - {to: funk-anos-2000,  strength: medium, via: "2000s throwback party; hard cut"}
       - {to: tech-house-br,   strength: medium, via: "modern remixes of the eletrohits classics; blend"}
       - {to: brazilian-bass,  strength: medium, via: "modern BR remixes of the hits (Dubdogz, Vintage Culture); blend"}
+      - {to: rock,            strength: medium, via: "throwback party: echo out into a rock anthem"}
 
   - id: funk-pop
     name: Funk-Pop (commercial funk / crossover)
@@ -318,6 +320,7 @@ nodes:
       - {to: samba-pagode,    strength: medium, via: "pagode roots; ramp the swing"}
       - {to: funk-pop,        strength: medium, via: "party crossover; hard cut on the hook"}
       - {to: funk-anos-2000,  strength: medium, via: "retro party into 2000s funk; hard cut"}
+      - {to: kids,            strength: medium, via: "family moment: hard cut into a Disney singalong"}
 
   - id: tech-house-br
     name: Tech-House BR (Dubdogz / Vintage Culture / slap house)
@@ -343,3 +346,43 @@ nodes:
       - {to: samba-pagode,    strength: strong, via: "same samba root; ramp into traditional pagode"}
       - {to: mpb-bossa,       strength: strong, via: "acoustic/melodic cooldown"}
       - {to: nu-disco-funk,   strength: weak,   via: "vocal/groove crossover if you lift it"}
+
+  # ------------------------ MOMENT LANES (rock / kids / background) ----------
+
+  - id: rock
+    name: Rock (classic rock · pop-rock · rock BR)
+    family: global
+    bpm: [70, 140]
+    energy: [3, 8]
+    feel: [anthemic, singalong, guitar, retro]
+    subgenres: [classic-rock, blues-rock, pop-rock, rock-br]
+    neighbors:
+      - {to: pop-dance,       strength: medium, via: "rock anthem gone house (Livin' On A Prayer, Groove Selectors mix); hard cut on the chorus"}
+      - {to: acoustic-lounge, strength: medium, via: "unplug: drop to an acoustic background"}
+      - {to: samba-cover,     strength: medium, via: "pop/rock hits in samba (Sambô); recognition swap"}
+      - {to: axe,             strength: medium, via: "90s BR nostalgia (Mamonas) into the axé party; hard cut"}
+
+  - id: kids
+    name: Kids / Infantil (Disney · Mundo Bita)
+    family: brazilian
+    bpm: [80, 130]
+    energy: [3, 7]
+    feel: [playful, singalong, family]
+    subgenres: [disney, infantil-br]
+    neighbors:
+      - {to: pagodao-baiano,  strength: strong, via: "the 90s dance routines kids still do (Dança da Mãozinha, Vai no Cavalinho); hard cut"}
+      - {to: pop-dance,       strength: medium, via: "dance hits kids know (Crazy Frog, Astronomia); hard cut"}
+      - {to: axe,             strength: medium, via: "carnival singalong for the whole family; hard cut"}
+
+  - id: acoustic-lounge
+    name: Acoustic / Lounge (Jack Johnson · Bublé — background)
+    family: global
+    bpm: [80, 120]
+    energy: [1, 4]
+    feel: [warm, acoustic, background]
+    subgenres: [acoustic, surf-folk, jazz-pop, lounge]
+    neighbors:
+      - {to: mpb-bossa,       strength: strong, via: "same background slot; switch to Portuguese"}
+      - {to: samba-cover,     strength: strong, via: "acoustic singalong; add the samba swing"}
+      - {to: organic-house,   strength: medium, via: "add a soft four-on-the-floor to open the night"}
+      - {to: rock,            strength: medium, via: "plug in for a classic-rock moment"}

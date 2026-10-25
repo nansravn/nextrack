@@ -370,3 +370,70 @@
   energy: 7
   status: downloaded
   tags: [funk-pop, funk]
+
+# --- Arquivos que estavam soltos na raiz da biblioteca (organizados em 2026-10-24) ---
+- title: "Tem Café"
+  artist: "DENNIS, Gaab"
+  genre: funk-pop
+  bpm: 122
+  key: 9A
+  energy: 6
+  status: downloaded
+  tags: [funk-pop]
+  notes: "Gênero a confirmar."
+
+- title: "Sei Que Tu Me Odeia"
+  artist: "MC Danny"
+  genre: funk-pop
+  bpm: 130
+  key: 10A
+  energy: 7
+  status: downloaded
+  tags: [funk-pop]
+  notes: "Do álbum Ensaios da Anitta."
+
+- title: "Toma Toma Vapo Vapo"
+  artist: "MC Danny"
+  genre: funk-pop
+  bpm: 164
+  key: 9A
+  energy: 8
+  status: downloaded
+  tags: [funk-pop, viral]
+  notes: "Do álbum Joseph, do Zé Felipe."
+
+- title: "Fuleragem"
+  artist: "MC WM"
+  genre: funk-pop
+  bpm: 95
+  key: 2A
+  energy: 8
+  status: downloaded
+  tags: [funk-pop]
+
+- title: "Rabetania"
+  artist: "MC WM"
+  genre: funk-pop
+  bpm: 133
+  key: 9A
+  energy: 7
+  status: downloaded
+  tags: [funk-pop]
+
+- title: "Senta braba"
+  artist: "MC WM"
+  genre: funk-pop
+  bpm: 100
+  key: 7A
+  energy: 8
+  status: downloaded
+  tags: [funk-pop]
+
+- title: "Sua Amiga Vou Pegar"
+  artist: "MC WM"
+  genre: funk-pop
+  bpm: 130
+  key: 4A
+  energy: 7
+  status: downloaded
+  tags: [funk-pop]

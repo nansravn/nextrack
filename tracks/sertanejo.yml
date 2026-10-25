@@ -1,0 +1,102 @@
+# tracks/sertanejo.yml — Sertanejo pool for the `sertanejo` node (unordered).
+# Sertanejo universitário, sofrência e agronejo.
+# status: downloaded (subpasta sertanejo/). bpm/key = null até o pull-bpm ler a análise do Serato.
+
+- title: "Pipoco"
+  artist: "Ana Castela"
+  genre: sertanejo
+  bpm: 135
+  key: 5A
+  energy: 7
+  status: downloaded
+  tags: [sertanejo, agronejo]
+
+- title: "Na hora da raiva"
+  artist: "Henrique e Juliano"
+  genre: sertanejo
+  bpm: 118
+  key: 8A
+  energy: 5
+  status: downloaded
+  tags: [sertanejo]
+
+- title: "Vidinha de Balada"
+  artist: "Henrique e Juliano"
+  genre: sertanejo
+  bpm: 136
+  key: 9A
+  energy: 7
+  status: downloaded
+  tags: [sertanejo]
+
+- title: "Pirraça"
+  artist: "Jorge & Mateus"
+  genre: sertanejo
+  bpm: 72
+  key: 12B
+  energy: 5
+  status: downloaded
+  tags: [sertanejo]
+
+- title: "Pode Chorar"
+  artist: "Jorge & Mateus"
+  genre: sertanejo
+  bpm: 94
+  key: 8A
+  energy: 5
+  status: downloaded
+  tags: [sertanejo]
+
+- title: "Flor"
+  artist: "Jorge & Mateus"
+  genre: sertanejo
+  bpm: 100
+  key: 1A
+  energy: 5
+  status: downloaded
+  tags: [sertanejo]
+
+- title: "Sinonimos"
+  artist: "Jorge & Mateus"
+  genre: sertanejo
+  bpm: 84
+  key: 1B
+  energy: 4
+  status: downloaded
+  tags: [sertanejo]
+
+- title: "Posto 24h (feat. Wesley Safadão) (Ao Vivo)"
+  artist: "Lucas Lucco"
+  genre: sertanejo
+  bpm: 127
+  key: 2A
+  energy: 7
+  status: downloaded
+  tags: [sertanejo, ao-vivo]
+
+- title: "Aquele 1% (feat. Wesley Safadão)"
+  artist: "Marcos & Belutti"
+  genre: sertanejo
+  bpm: 113
+  key: 8A
+  energy: 6
+  status: downloaded
+  tags: [sertanejo]
+
+- title: "Borboletas"
+  artist: "Victor & Leo"
+  genre: sertanejo
+  bpm: 138
+  key: 10A
+  energy: 4
+  status: downloaded
+  tags: [sertanejo]
+
+- title: "Roça Em Mim"
+  artist: "Zé Felipe"
+  genre: sertanejo
+  bpm: 135
+  key: 8A
+  energy: 7
+  status: downloaded
+  tags: [sertanejo, agronejo]

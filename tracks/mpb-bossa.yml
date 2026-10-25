@@ -1,0 +1,85 @@
+# tracks/mpb-bossa.yml — MPB / Bossa pool for the `mpb-bossa` node (unordered).
+# MPB e bossa: aquecimento e encerramento.
+# status: downloaded (subpasta mpb-bossa/). bpm/key = null até o pull-bpm ler a análise do Serato.
+
+- title: "Madalena"
+  artist: "Elis Regina"
+  genre: mpb-bossa
+  bpm: 89
+  key: 10A
+  energy: 4
+  status: downloaded
+  tags: [mpb-bossa]
+
+- title: "O bêbado e a equilibrista"
+  artist: "Elis Regina"
+  genre: mpb-bossa
+  bpm: null
+  key: 12B
+  energy: 2
+  status: downloaded
+  tags: [mpb-bossa]
+
+- title: "La Belle de Jour"
+  artist: "Alceu Valença"
+  genre: mpb-bossa
+  bpm: null
+  key: null
+  energy: 4
+  status: downloaded
+  tags: [mpb-bossa]
+  notes: "WAV com artista e título trocados no nome do arquivo; o pull-bpm pula WAV."
+
+- title: "Cara valente"
+  artist: "Maria Rita"
+  genre: mpb-bossa
+  bpm: 79
+  key: 11B
+  energy: 4
+  status: downloaded
+  tags: [mpb-bossa]
+
+- title: "Não Vá Embora"
+  artist: "Marisa Monte"
+  genre: mpb-bossa
+  bpm: 88
+  key: 9A
+  energy: 3
+  status: downloaded
+  tags: [mpb-bossa]
+
+- title: "Mas Que Nada"
+  artist: "Sergio Mendes feat. Gracinha Leporace"
+  genre: mpb-bossa
+  bpm: 94
+  key: 4A
+  energy: 5
+  status: downloaded
+  tags: [mpb-bossa, bossa]
+
+- title: "Samba de uma Nota Só"
+  artist: "Silvia Telles"
+  genre: mpb-bossa
+  bpm: 86
+  key: 6A
+  energy: 3
+  status: downloaded
+  tags: [mpb-bossa, bossa]
+
+- title: "Boa Sorte Good Luck"
+  artist: "Vanessa Da Mata feat. Ben Harper"
+  genre: mpb-bossa
+  bpm: 111
+  key: 11A
+  energy: 3
+  status: downloaded
+  tags: [mpb-bossa]
+
+- title: "Palpite"
+  artist: "Vanessa Rangel"
+  genre: mpb-bossa
+  bpm: 83
+  key: 12B
+  energy: 3
+  status: downloaded
+  tags: [mpb-bossa]

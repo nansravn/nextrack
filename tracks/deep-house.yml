@@ -1,0 +1,183 @@
+# tracks/deep-house.yml — Deep House pool for the `deep-house` node (unordered).
+# Deep house e a onda deep/tropical de rádio de 2014–17 (Kygo, Robin Schulz, Duke Dumont).
+# status: downloaded (subpasta deep-house/). bpm/key = null até o pull-bpm ler a análise do Serato.
+
+- title: "How Deep Is Your Love"
+  artist: "Calvin Harris, Disciples"
+  genre: deep-house
+  bpm: 122
+  key: 9A
+  energy: 6
+  status: downloaded
+  tags: [deep-house]
+
+- title: "Latch"
+  artist: "Disclosure feat. Sam Smith"
+  genre: deep-house
+  bpm: 123
+  key: 4A
+  energy: 6
+  status: downloaded
+  tags: [deep-house]
+
+- title: "Ocean Drive"
+  artist: "Duke Dumont"
+  genre: deep-house
+  bpm: 115
+  key: 1A
+  energy: 5
+  status: downloaded
+  tags: [deep-house]
+
+- title: "I Got U"
+  artist: "Duke Dumont feat. Jax Jones"
+  genre: deep-house
+  bpm: 121
+  key: 8A
+  energy: 6
+  status: downloaded
+  tags: [deep-house]
+
+- title: "Ain't Nobody (Loves Me Better)"
+  artist: "Felix Jaehn feat. Jasmine Thompson"
+  genre: deep-house
+  bpm: 118
+  key: 8B
+  energy: 5
+  status: downloaded
+  tags: [deep-house, tropical]
+
+- title: "My Love"
+  artist: "Jess Glynne feat. Route 94"
+  genre: deep-house
+  bpm: 120
+  key: 5A
+  energy: 5
+  status: downloaded
+  tags: [deep-house]
+
+- title: "Fast Car"
+  artist: "Jonas Blue feat. Dakota"
+  genre: deep-house
+  bpm: 124
+  key: 11B
+  energy: 5
+  status: downloaded
+  tags: [deep-house, tropical]
+
+- title: "Know Your Worth (Rob Schneider x San Loco Remix)"
+  artist: "Khalid, Disclosure"
+  genre: deep-house
+  bpm: 120
+  key: 8A
+  energy: 5
+  status: downloaded
+  tags: [deep-house, remix]
+
+- title: "Finally"
+  artist: "Kings Of Tomorrow"
+  genre: deep-house
+  bpm: 128
+  key: 8A
+  energy: 6
+  status: downloaded
+  tags: [deep-house, soulful, classic]
+
+- title: "Jubel (Nora En Pure Remix)"
+  artist: "Klingande"
+  genre: deep-house
+  bpm: 125
+  key: 8A
+  energy: 5
+  status: downloaded
+  tags: [deep-house, remix]
+
+- title: "It Ain't Me (Ramzan Abitov Remix)"
+  artist: "Kygo & Selena Gomez"
+  genre: deep-house
+  bpm: 120
+  key: 8A
+  energy: 5
+  status: downloaded
+  tags: [deep-house, tropical, remix]
+
+- title: "Firestone (DJ Jan Steen & Alex Pushkarev Remix)"
+  artist: "Kygo feat. Conrad"
+  genre: deep-house
+  bpm: 124
+  key: 9A
+  energy: 5
+  status: downloaded
+  tags: [deep-house, tropical, remix]
+
+- title: "Prayer In C (Robin Schulz Remix)"
+  artist: "Lilly Wood & The Prick and Robin Schulz"
+  genre: deep-house
+  bpm: 123
+  key: 8A
+  energy: 6
+  status: downloaded
+  tags: [deep-house, tropical]
+
+- title: "Are You With Me (2)"
+  artist: "Lost Frequencies"
+  genre: deep-house
+  bpm: 128
+  key: 4A
+  energy: 5
+  status: downloaded
+  tags: [deep-house, tropical]
+
+- title: "Don't Call Me Up (Q o d ë s Remix)"
+  artist: "Mabel"
+  genre: deep-house
+  bpm: 122
+  key: 12B
+  energy: 5
+  status: downloaded
+  tags: [deep-house, remix]
+
+- title: "Treasured Soul"
+  artist: "Michael Calfan"
+  genre: deep-house
+  bpm: 125
+  key: 9A
+  energy: 5
+  status: downloaded
+  tags: [deep-house]
+
+- title: "Headlights (Feat. Ilsey)"
+  artist: "Robin Schulz"
+  genre: deep-house
+  bpm: 122
+  key: 1B
+  energy: 5
+  status: downloaded
+  tags: [deep-house, tropical]
+
+- title: "Show Me Love"
+  artist: "Sam Feldt feat. Kimberly Anne"
+  genre: deep-house
+  bpm: 121
+  key: 8A
+  energy: 5
+  status: downloaded
+  tags: [deep-house, tropical]
+
+- title: "Breathe"
+  artist: "Seeb feat. Neev"
+  genre: deep-house
+  bpm: 120
+  key: 5A
+  energy: 5
+  status: downloaded
+  tags: [deep-house, tropical]
+
+- title: "Faded"
+  artist: "ZHU"
+  genre: deep-house
+  bpm: 125
+  key: 8A
+  energy: 5
+  status: downloaded
+  tags: [deep-house]
