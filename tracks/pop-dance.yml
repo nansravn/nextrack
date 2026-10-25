@@ -220,3 +220,382 @@
   energy: 7
   status: downloaded
   tags: [eletrohits, house]
+
+# --- Arquivos que estavam soltos na raiz da biblioteca (organizados em 2026-10-24) ---
+- title: "Short Dick Man (Grakk Serj Kovalski Remix)"
+  artist: "20 Fingers"
+  genre: pop-dance
+  bpm: 124
+  key: 4A
+  energy: 7
+  status: downloaded
+  tags: [pop-dance, eurodance, remix]
+
+- title: "Heroes"
+  artist: "Alesso feat. Tove Lo"
+  genre: pop-dance
+  bpm: 126
+  key: 7A
+  energy: 7
+  status: downloaded
+  tags: [pop-dance, edm]
+
+- title: "Waiting For Love"
+  artist: "Avicii feat. John Legend"
+  genre: pop-dance
+  bpm: 128
+  key: 11A
+  energy: 8
+  status: downloaded
+  tags: [pop-dance, edm]
+
+- title: "More Than You Know"
+  artist: "Axwell & Ingrosso"
+  genre: pop-dance
+  bpm: 123
+  key: 4A
+  energy: 7
+  status: downloaded
+  tags: [pop-dance, edm]
+
+- title: "Satisfaction (A Capella)"
+  artist: "Benny Benassi pres. The Biz"
+  genre: pop-dance
+  bpm: 130
+  key: 2A
+  energy: 8
+  status: downloaded
+  tags: [pop-dance, acapella, tool, eletrohits]
+  notes: "Acapella pra jogar por cima de um instrumental."
+
+- title: "Blessings (feat. Clementine Douglas)"
+  artist: "Calvin Harris"
+  genre: pop-dance
+  bpm: 130
+  key: 10A
+  energy: 7
+  status: downloaded
+  tags: [pop-dance]
+
+- title: "This Is What You Came For"
+  artist: "Calvin Harris, Rihanna"
+  genre: pop-dance
+  bpm: 124
+  key: 8A
+  energy: 7
+  status: downloaded
+  tags: [pop-dance]
+
+- title: "Rather Be (Steve James Remix)"
+  artist: "Clean Bandit feat. Jess Glynne"
+  genre: pop-dance
+  bpm: 125
+  key: 1A
+  energy: 7
+  status: downloaded
+  tags: [pop-dance]
+
+- title: "I Don't Wanna Wait (Extended Mix)"
+  artist: "David Guetta & OneRepublic"
+  genre: pop-dance
+  bpm: 130
+  key: 12A
+  energy: 7
+  status: downloaded
+  tags: [pop-dance]
+
+- title: "Flames (Extended)"
+  artist: "David Guetta & Sia"
+  genre: pop-dance
+  bpm: 94
+  key: 4A
+  energy: 6
+  status: downloaded
+  tags: [pop-dance, edm]
+
+- title: "Livin On A Prayer (Groove Selectors DePoniente Mix)"
+  artist: "Deep Josh, Luisen Merino"
+  genre: pop-dance
+  bpm: 128
+  key: 9A
+  energy: 8
+  status: downloaded
+  tags: [pop-dance, remix, rock-anthem]
+  notes: "Versão house (128) do hino do Bon Jovi; ponte pro nó rock."
+
+- title: "Ultimate Countdown 3"
+  artist: "Dirty Funker"
+  genre: pop-dance
+  bpm: 109
+  key: 3A
+  energy: 8
+  status: downloaded
+  tags: [pop-dance, mashup, intro]
+  notes: "Mashup de 45 s com The Final Countdown: abertura ou virada de bloco."
+
+- title: "Don't Start Now (Barry Harris Club Mix)"
+  artist: "Dua Lipa"
+  genre: pop-dance
+  bpm: 124
+  key: 9A
+  energy: 7
+  status: downloaded
+  tags: [pop-dance]
+
+- title: "Don't Start Now"
+  artist: "Dua Lipa"
+  genre: pop-dance
+  bpm: 124
+  key: 9A
+  energy: 7
+  status: downloaded
+  tags: [pop-dance]
+
+- title: "Cold Heart (Claptone Extended Remix)"
+  artist: "Elton John, Dua Lipa"
+  genre: pop-dance
+  bpm: 125
+  key: 3A
+  energy: 7
+  status: downloaded
+  tags: [pop-dance]
+
+- title: "Sweet Dreams (Steve Angello Remix)"
+  artist: "Eurythmics"
+  genre: pop-dance
+  bpm: 126
+  key: 5A
+  energy: 7
+  status: downloaded
+  tags: [pop-dance, remix, 80s]
+
+- title: "Runaway (U & I) (Extended Mix)"
+  artist: "Galantis"
+  genre: pop-dance
+  bpm: 126
+  key: 3B
+  energy: 8
+  status: downloaded
+  tags: [pop-dance, edm]
+
+- title: "Where Are Ü Now (with Justin Bieber)"
+  artist: "Jack Ü, Skrillex, Diplo feat. Justin Bieber"
+  genre: pop-dance
+  bpm: 126
+  key: 9A
+  energy: 7
+  status: downloaded
+  tags: [pop-dance]
+
+- title: "CAN YOU FEEL IT (Radio Edit)"
+  artist: "Jean Roch"
+  genre: pop-dance
+  bpm: 126
+  key: 8A
+  energy: 8
+  status: downloaded
+  tags: [pop-dance, eletrohits]
+
+- title: "The World Is Mine"
+  artist: "Joachim Garraud"
+  genre: pop-dance
+  bpm: 128
+  key: 11A
+  energy: 8
+  status: downloaded
+  tags: [pop-dance, eletrohits]
+
+- title: "Vois sur ton chemin"
+  artist: "John Revox"
+  genre: pop-dance
+  bpm: 124
+  key: 7A
+  energy: 7
+  status: downloaded
+  tags: [pop-dance, viral]
+  notes: "Versão club (124) de 'Vois sur ton chemin' (Les Choristes), o viral do techno."
+
+- title: "Can't Get Over (Dimy Soler 2022 Remix) (Radio Edit)"
+  artist: "kasino"
+  genre: pop-dance
+  bpm: 124
+  key: 5B
+  energy: 7
+  status: downloaded
+  tags: [pop-dance, eurodance, remix]
+
+- title: "Can't Get You out of My Head"
+  artist: "Kylie Minogue"
+  genre: pop-dance
+  bpm: 126
+  key: 8A
+  energy: 7
+  status: downloaded
+  tags: [pop-dance, 2000s]
+
+- title: "Sweet Dreams (Acapella Mix)"
+  artist: "Lika Morgan"
+  genre: pop-dance
+  bpm: 121
+  key: 5A
+  energy: 6
+  status: downloaded
+  tags: [pop-dance, 80s, cover]
+
+- title: "If You... (Disco Mix)"
+  artist: "Magic Box"
+  genre: pop-dance
+  bpm: 130
+  key: 1A
+  energy: 8
+  status: downloaded
+  tags: [pop-dance, eurodance, eletrohits]
+
+- title: "Deve ser horrível dormir sem mim"
+  artist: "Manu Gavassi"
+  genre: pop-dance
+  bpm: 95
+  key: 2A
+  energy: 5
+  status: downloaded
+  tags: [pop-dance, br, pop]
+  notes: "Pop BR; não há nó pop-br, pop-dance é a lane mais próxima."
+
+- title: "Happier"
+  artist: "Marshmello x Bastille"
+  genre: pop-dance
+  bpm: 100
+  key: 7A
+  energy: 6
+  status: downloaded
+  tags: [pop-dance, edm]
+
+- title: "Intoxicated"
+  artist: "Martin Solveig & GTA"
+  genre: pop-dance
+  bpm: 125
+  key: 8A
+  energy: 7
+  status: downloaded
+  tags: [pop-dance]
+
+- title: "I Took A Pill In Ibiza (Seeb)"
+  artist: "Mike Posner"
+  genre: pop-dance
+  bpm: 102
+  key: 5A
+  energy: 6
+  status: downloaded
+  tags: [pop-dance, remix]
+
+- title: "Push The Feeling On (Mk Dub Revisited Edit)"
+  artist: "Nightcrawlers"
+  genre: pop-dance
+  bpm: 123
+  key: 11A
+  energy: 7
+  status: downloaded
+  tags: [pop-dance, 90s, eletrohits]
+
+- title: "Friday (feat. Mufasa & Hypeman)"
+  artist: "Nightcrawlers, Riton, Mufasa & Hypeman"
+  genre: pop-dance
+  bpm: 123
+  key: 11A
+  energy: 7
+  status: downloaded
+  tags: [pop-dance]
+
+- title: "Gecko"
+  artist: "Oliver Heldens, Becky Hill"
+  genre: pop-dance
+  bpm: 125
+  key: 5A
+  energy: 7
+  status: downloaded
+  tags: [pop-dance]
+
+- title: "Roses (Imanbek Extended Remix)"
+  artist: "SAINt JHN"
+  genre: pop-dance
+  bpm: 122
+  key: 4A
+  energy: 7
+  status: downloaded
+  tags: [pop-dance, remix, slap-house]
+  notes: "O arquivo se chama 'Roses - Roses (...)': falta o artista no nome."
+
+- title: "Elastic Heart"
+  artist: "Sia"
+  genre: pop-dance
+  bpm: 128
+  key: 11A
+  energy: 7
+  status: downloaded
+  tags: [pop-dance]
+
+- title: "Alors On Danse"
+  artist: "Stromae"
+  genre: pop-dance
+  bpm: 123
+  key: 1A
+  energy: 7
+  status: downloaded
+  tags: [pop-dance, eletrohits]
+  notes: "Original; o remix da Dubdogz está em tech-house-br."
+
+- title: "Don't Let Me Down (PS Project & Anngel D Remix)"
+  artist: "The Chainsmokers feat. Daya"
+  genre: pop-dance
+  bpm: 124
+  key: 1A
+  energy: 7
+  status: downloaded
+  tags: [pop-dance]
+
+- title: "Roses (DJ Nil & Anthony El Mejor Mix)"
+  artist: "The Chainsmokers feat. Rozes"
+  genre: pop-dance
+  bpm: 122
+  key: 12B
+  energy: 7
+  status: downloaded
+  tags: [pop-dance]
+
+- title: "Sweet Dreams (A Cappella Holly Henry Cover)"
+  artist: "The Eurythmics"
+  genre: pop-dance
+  bpm: 87
+  key: 6A
+  energy: 4
+  status: downloaded
+  tags: [pop-dance, acapella, tool, 80s]
+  notes: "Acapella (cover de Holly Henry) pra jogar por cima."
+
+- title: "The Business (Extended Mix)"
+  artist: "Tiësto"
+  genre: pop-dance
+  bpm: 124
+  key: 8A
+  energy: 7
+  status: downloaded
+  tags: [pop-dance]
+  notes: "Original; o remix de Vintage Culture & Dubdogz está em tech-house-br."
+
+- title: "King"
+  artist: "Years & Years"
+  genre: pop-dance
+  bpm: 120
+  key: 9A
+  energy: 7
+  status: downloaded
+  tags: [pop-dance]
+
+- title: "Stay the Night (feat. Hayley Williams)"
+  artist: "Zedd"
+  genre: pop-dance
+  bpm: 128
+  key: 4B
+  energy: 7
+  status: downloaded
+  tags: [pop-dance]

@@ -53,6 +53,7 @@ graph LR
     FUNK2000["funk-anos-2000"]
     PAGBA["pagodao-baiano"]
     SAMBACOVER["samba-cover"]
+    KIDS["kids"]
   end
   subgraph GL["🌍 Global"]
     ORG["organic-house"]
@@ -66,6 +67,8 @@ graph LR
     GBASS["global-bass"]
     POPD["pop-dance"]
     THB["tech-house-br"]
+    ROCK["rock"]
+    LOUNGE["acoustic-lounge"]
   end
 
   FUNK --- GBASS
@@ -137,6 +140,19 @@ graph LR
 
   SAMBACOVER --- SAMBA
   SAMBACOVER --- MPB
+
+  ROCK -.-> POPD
+  ROCK -.-> SAMBACOVER
+  ROCK -.-> AXE
+
+  KIDS --- PAGBA
+  KIDS -.-> POPD
+  KIDS -.-> AXE
+
+  LOUNGE --- MPB
+  LOUNGE --- SAMBACOVER
+  LOUNGE -.-> ORG
+  LOUNGE -.-> ROCK
 ```
 
 ## Reading a journey off the map

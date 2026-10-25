@@ -340,3 +340,41 @@
   energy: 6
   status: downloaded
   tags: [piseiro, arrocha, romantic]
+
+# --- Arquivos que estavam soltos na raiz da biblioteca (organizados em 2026-10-24) ---
+- title: "Falso amor"
+  artist: "Aldair PlayBoy"
+  genre: forro-piseiro
+  bpm: 77
+  key: 1B
+  energy: 6
+  status: downloaded
+  tags: [forro-piseiro]
+  notes: "Já tem cue marcado no Serato."
+
+- title: "Se Joga No Passinho Post"
+  artist: "Brisa Star ft Thiago Jhonathan"
+  genre: forro-piseiro
+  bpm: 84
+  key: 10A
+  energy: 7
+  status: downloaded
+  tags: [forro-piseiro, viral]
+
+- title: "Novinha do Onlyfans (Tchan Ran Tchan Tchan)"
+  artist: "Kadu Martins"
+  genre: forro-piseiro
+  bpm: 95
+  key: 9A
+  energy: 7
+  status: downloaded
+  tags: [forro-piseiro]
+
+- title: "Vou Dar Virote (Ao Vivo)"
+  artist: "Wesley Safadão"
+  genre: forro-piseiro
+  bpm: 110
+  key: 12B
+  energy: 7
+  status: downloaded
+  tags: [forro-piseiro, ao-vivo, forro-eletronico]

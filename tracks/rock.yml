@@ -1,0 +1,129 @@
+# tracks/rock.yml — Rock pool for the `rock` node (unordered).
+# Rock clássico, pop-rock e rock BR (Mamonas): pra cantar junto ou de fundo.
+# status: downloaded (subpasta rock/). bpm/key = null até o pull-bpm ler a análise do Serato.
+
+- title: "Layla"
+  artist: "Eric Clapton"
+  genre: rock
+  bpm: 114
+  key: 8A
+  energy: 6
+  status: downloaded
+  tags: [rock, classic-rock]
+
+- title: "Chopis Centis"
+  artist: "Mamonas Assassinas"
+  genre: rock
+  bpm: 138
+  key: 8A
+  energy: 7
+  status: downloaded
+  tags: [rock, rock-br, 90s, singalong]
+
+- title: "Jumento Celestino"
+  artist: "Mamonas Assassinas"
+  genre: rock
+  bpm: 72
+  key: 6A
+  energy: 6
+  status: downloaded
+  tags: [rock, rock-br, 90s, singalong]
+
+- title: "Lá Vem o Alemão"
+  artist: "Mamonas Assassinas"
+  genre: rock
+  bpm: 89
+  key: 9A
+  energy: 6
+  status: downloaded
+  tags: [rock, rock-br, 90s, singalong]
+
+- title: "Pelados Em Santos"
+  artist: "Mamonas Assassinas"
+  genre: rock
+  bpm: 135
+  key: 10B
+  energy: 8
+  status: downloaded
+  tags: [rock, rock-br, 90s, singalong]
+
+- title: "Robocop Gay"
+  artist: "Mamonas Assassinas"
+  genre: rock
+  bpm: 73
+  key: 5A
+  energy: 7
+  status: downloaded
+  tags: [rock, rock-br, 90s, singalong]
+
+- title: "Vira-Vira"
+  artist: "Mamonas Assassinas"
+  genre: rock
+  bpm: 101
+  key: 12B
+  energy: 8
+  status: downloaded
+  tags: [rock, rock-br, 90s, singalong]
+
+- title: "Border Reiver"
+  artist: "Mark Knopfler"
+  genre: rock
+  bpm: 114
+  key: 5A
+  energy: 4
+  status: downloaded
+  tags: [rock, classic-rock]
+
+- title: "The Long Road"
+  artist: "Mark Knopfler"
+  genre: rock
+  bpm: 93
+  key: 9B
+  energy: 4
+  status: downloaded
+  tags: [rock, classic-rock]
+
+- title: "What It Is"
+  artist: "Mark Knopfler"
+  genre: rock
+  bpm: 122
+  key: 11A
+  energy: 4
+  status: downloaded
+  tags: [rock, classic-rock]
+
+- title: "Beggin'"
+  artist: "Måneskin"
+  genre: rock
+  bpm: 134
+  key: 10A
+  energy: 7
+  status: downloaded
+  tags: [rock]
+
+- title: "Bridge Of Sighs"
+  artist: "Robin Trower"
+  genre: rock
+  bpm: 93
+  key: 2A
+  energy: 4
+  status: downloaded
+  tags: [rock, blues-rock]
+
+- title: "Start Me Up"
+  artist: "The Rolling Stones"
+  genre: rock
+  bpm: 139
+  key: 6B
+  energy: 7
+  status: downloaded
+  tags: [rock, classic-rock, singalong]
+
+- title: "Werewolves Of London"
+  artist: "Warren Zevon"
+  genre: rock
+  bpm: 103
+  key: 6A
+  energy: 6
+  status: downloaded
+  tags: [rock, classic-rock, singalong]

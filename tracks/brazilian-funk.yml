@@ -1,0 +1,97 @@
+# tracks/brazilian-funk.yml — Brazilian Funk pool for the `brazilian-funk` node (unordered).
+# Funk de baile: 150 / mandelão, brega funk e remixes de funk.
+# status: downloaded (subpasta brazilian-funk/). bpm/key = null até o pull-bpm ler a análise do Serato.
+
+- title: "Eu quero é botar meu remix na rua"
+  artist: "Cabra Guaraná"
+  genre: brazilian-funk
+  bpm: 85
+  key: 9A
+  energy: 7
+  status: downloaded
+  tags: [brazilian-funk, remix]
+  notes: "Gênero a confirmar: Cabra Guaraná é remixador de funk/brega de Brasília."
+
+- title: "Fala mal de mim"
+  artist: "Cabra Guaraná"
+  genre: brazilian-funk
+  bpm: 130
+  key: 4A
+  energy: 7
+  status: downloaded
+  tags: [brazilian-funk, remix]
+  notes: "Gênero a confirmar; não é a mesma gravação de Pedro Sampaio em funk-pop."
+
+- title: "TREPA TREPA"
+  artist: "Cabra Guaraná"
+  genre: brazilian-funk
+  bpm: 127
+  key: 9A
+  energy: 7
+  status: downloaded
+  tags: [brazilian-funk, remix]
+  notes: "Gênero a confirmar: Cabra Guaraná é remixador de funk/brega de Brasília."
+
+- title: "Surtada (Remix Brega Funk)"
+  artist: "Dadá Boladão"
+  genre: brazilian-funk
+  bpm: 154
+  key: 4A
+  energy: 7
+  status: downloaded
+  tags: [brazilian-funk, brega-funk, remix]
+
+- title: "Vidrado Em Você"
+  artist: "DJ Guuga"
+  genre: brazilian-funk
+  bpm: 162
+  key: 7A
+  energy: 9
+  status: downloaded
+  tags: [brazilian-funk, funk-150]
+
+- title: "Trava na Pose (feat Mc Rennan)"
+  artist: "DJ Patrick Muniz Dj Olliver Mc Topre"
+  genre: brazilian-funk
+  bpm: 130
+  key: 7A
+  energy: 8
+  status: downloaded
+  tags: [brazilian-funk]
+
+- title: "Carinha de Neném"
+  artist: "Japãozin"
+  genre: brazilian-funk
+  bpm: 162
+  key: 1A
+  energy: 8
+  status: downloaded
+  tags: [brazilian-funk, paredao]
+  notes: "Gênero a confirmar (brega funk / paredão)."
+
+- title: "Evoluiu"
+  artist: "MC Kevin o Chris"
+  genre: brazilian-funk
+  bpm: 150
+  key: 5A
+  energy: 8
+  status: downloaded
+  tags: [brazilian-funk, funk-150]
+
+- title: "Medley da Gaiola"
+  artist: "MC Kevin o Chris"
+  genre: brazilian-funk
+  bpm: 140
+  key: 8A
+  energy: 8
+  status: downloaded
+  tags: [brazilian-funk, funk-150]
+
+- title: "Resenha lá em casa"
+  artist: "MC Kevin o Chris"
+  genre: brazilian-funk
+  bpm: 185
+  key: 4A
+  energy: 8
+  status: downloaded
+  tags: [brazilian-funk, funk-150]

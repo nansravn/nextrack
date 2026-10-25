@@ -273,3 +273,22 @@
   status: downloaded
   tags: [tech-house-br, edit, br, slap-house]
   notes: "Versão eletrônica do hino 'Eva' (Banda Eva). Ponte entre o axé e o slap house — mesmo refrão."
+
+# --- Arquivos que estavam soltos na raiz da biblioteca (organizados em 2026-10-24) ---
+- title: "Trava Na Pose"
+  artist: "David Owa"
+  genre: tech-house-br
+  bpm: 126
+  key: 8A
+  energy: 7
+  status: downloaded
+  tags: [tech-house-br]
+
+- title: "Não Quero Dinheiro (Só Quero Amar)"
+  artist: "Make U Sweat, Jetlag Music feat. Tiago Abravanel"
+  genre: tech-house-br
+  bpm: 122
+  key: 11B
+  energy: 7
+  status: downloaded
+  tags: [tech-house-br]

@@ -1,0 +1,12 @@
+# tracks/afro-house.yml — Afro House pool for the `afro-house` node (unordered).
+# Afro house global (lane Black Coffee / Keinemusik).
+# status: downloaded (subpasta afro-house/). bpm/key = null até o pull-bpm ler a análise do Serato.
+
+- title: "Drive"
+  artist: "Black Coffee, David Guetta feat. Delilah Montagu"
+  genre: afro-house
+  bpm: 118
+  key: 11A
+  energy: 6
+  status: downloaded
+  tags: [afro-house]

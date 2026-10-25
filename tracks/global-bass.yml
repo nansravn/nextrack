@@ -1,0 +1,219 @@
+# tracks/global-bass.yml — Global Bass pool for the `global-bass` node (unordered).
+# Latino: reggaeton, latin pop, moombahton, guaracha e os remixes house desses hits.
+# status: downloaded (subpasta global-bass/). bpm/key = null até o pull-bpm ler a análise do Serato.
+
+- title: "Titi Me Pregunto (DLMT Remix)"
+  artist: "Bad Bunny"
+  genre: global-bass
+  bpm: 127
+  key: 4A
+  energy: 8
+  status: downloaded
+  tags: [global-bass, latin, remix]
+
+- title: "Dembow"
+  artist: "Danny Ocean"
+  genre: global-bass
+  bpm: 100
+  key: 2A
+  energy: 6
+  status: downloaded
+  tags: [global-bass, latin, dembow]
+
+- title: "Me Rehúso"
+  artist: "Danny Ocean"
+  genre: global-bass
+  bpm: 105
+  key: 3B
+  energy: 5
+  status: downloaded
+  tags: [global-bass, latin, reggaeton]
+
+- title: "Say My Name"
+  artist: "David Guetta feat. Bebe Rexha, J Balvin"
+  genre: global-bass
+  bpm: 120
+  key: 3A
+  energy: 6
+  status: downloaded
+  tags: [global-bass, latin]
+
+- title: "Instagram (feat. Natti Natasha, Daddy Yankee, Afro Bros)"
+  artist: "Dimitri Vegas, Like Mike & David Guetta"
+  genre: global-bass
+  bpm: 96
+  key: 1A
+  energy: 7
+  status: downloaded
+  tags: [global-bass]
+
+- title: "Subeme La Radio (Dave Aude Mix)"
+  artist: "Enrique Iglesias"
+  genre: global-bass
+  bpm: 126
+  key: 8A
+  energy: 7
+  status: downloaded
+  tags: [global-bass, latin, remix]
+
+- title: "Pepas (Steve Aoki Remix)"
+  artist: "Farruko"
+  genre: global-bass
+  bpm: 128
+  key: 8A
+  energy: 9
+  status: downloaded
+  tags: [global-bass, latin, guaracha]
+
+- title: "Pepas"
+  artist: "Farruko"
+  genre: global-bass
+  bpm: 130
+  key: 9A
+  energy: 9
+  status: downloaded
+  tags: [global-bass, latin, guaracha]
+
+- title: "Sigamos Bailando (Bass prod. by #Rose)"
+  artist: "Gianluca Vacchi & Luis Fonsi feat. Yandel"
+  genre: global-bass
+  bpm: 126
+  key: 8A
+  energy: 7
+  status: downloaded
+  tags: [global-bass, latin, remix]
+
+- title: "Sigamos Bailando"
+  artist: "Gianluca Vacchi ft Luis Fonsi & Yandel"
+  genre: global-bass
+  bpm: 108
+  key: 8A
+  energy: 7
+  status: downloaded
+  tags: [global-bass]
+
+- title: "Mi Gente (Alesso Remix)"
+  artist: "J Balvin"
+  genre: global-bass
+  bpm: 125
+  key: 9A
+  energy: 8
+  status: downloaded
+  tags: [global-bass, latin, remix]
+
+- title: "Machika"
+  artist: "J Balvin, Jeon, Anitta"
+  genre: global-bass
+  bpm: 106
+  key: 9A
+  energy: 7
+  status: downloaded
+  tags: [global-bass, latin, reggaeton, br]
+
+- title: "Qué Más Pues"
+  artist: "J Balvin, Maria Becerra"
+  genre: global-bass
+  bpm: 102
+  key: 4A
+  energy: 6
+  status: downloaded
+  tags: [global-bass, latin, reggaeton]
+
+- title: "In Da Getto"
+  artist: "J Balvin, Skrillex"
+  genre: global-bass
+  bpm: 128
+  key: 9A
+  energy: 8
+  status: downloaded
+  tags: [global-bass, latin]
+
+- title: "Mi Gente"
+  artist: "J Balvin, Willy William"
+  genre: global-bass
+  bpm: 105
+  key: 9A
+  energy: 8
+  status: downloaded
+  tags: [global-bass, latin, reggaeton]
+
+- title: "Body On My"
+  artist: "Loud Luxury, Pitbull, Brando, Nicky Jam"
+  genre: global-bass
+  bpm: 122
+  key: 4A
+  energy: 7
+  status: downloaded
+  tags: [global-bass]
+
+- title: "Echame La Culpa"
+  artist: "Luis Fonsi"
+  genre: global-bass
+  bpm: 122
+  key: 8A
+  energy: 7
+  status: downloaded
+  tags: [global-bass]
+
+- title: "Lean On (J Balvin & Farruko Remix)"
+  artist: "Major Lazer & DJ Snake"
+  genre: global-bass
+  bpm: 98
+  key: 6A
+  energy: 7
+  status: downloaded
+  tags: [global-bass, latin, moombahton, remix]
+
+- title: "Felices los 4 (feat. Marc Anthony) [Salsa Version]"
+  artist: "Maluma"
+  genre: global-bass
+  bpm: 95
+  key: 8B
+  energy: 6
+  status: downloaded
+  tags: [global-bass, latin, salsa]
+
+- title: "X"
+  artist: "Nicky Jam, J Balvin"
+  genre: global-bass
+  bpm: 90
+  key: 8A
+  energy: 7
+  status: downloaded
+  tags: [global-bass]
+
+- title: "X (Equis) (MashUp)"
+  artist: "Nicky Jam, J. Balvin"
+  genre: global-bass
+  bpm: 126
+  key: 8A
+  energy: 7
+  status: downloaded
+  tags: [global-bass, latin, mashup]
+
+- title: "Mad Love"
+  artist: "Sean Paul, David Guetta feat. Becky G"
+  genre: global-bass
+  bpm: 102
+  key: 9A
+  energy: 6
+  status: downloaded
+  tags: [global-bass, latin, dancehall]
+
+- title: "1, 2, 3 (Amice Remix)"
+  artist: "Sofia Reyes feat. Jason Derulo & De La Ghetto"
+  genre: global-bass
+  bpm: 120
+  key: 1A
+  energy: 6
+  status: downloaded
+  tags: [global-bass, latin, remix]
+
+- title: "Azukita (Deville 'Spanish Girls' Intro Break)"
+  artist: "Steve Aoki, Daddy Yankee, Play-N-Skillz, Elvis Crespo, Pharrell"
+  genre: global-bass
+  bpm: 130
+  key: 5A
+  energy: 8
+  status: downloaded
+  tags: [global-bass, latin, intro]
