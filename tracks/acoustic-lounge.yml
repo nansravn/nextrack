@@ -1,6 +1,6 @@
 # tracks/acoustic-lounge.yml — Acoustic / Lounge pool for the `acoustic-lounge` node (unordered).
 # Acústico / lounge: fundo pra brunch e jantar (Jack Johnson, Bublé).
-# status: downloaded (subpasta acoustic-lounge/). bpm/key = análise do rekordbox (XML de 2026-10-29); null ou valor do Serato onde ele não tem a faixa.
+# status: downloaded (subpasta acoustic-lounge/). bpm/key = análise do rekordbox; null ou valor do Serato onde ele não tem a faixa.
 
 - title: "Banana Pancakes"
   artist: "Jack Johnson"

@@ -1,6 +1,6 @@
 # tracks/mpb-bossa.yml — MPB / Bossa pool for the `mpb-bossa` node (unordered).
 # MPB e bossa: aquecimento e encerramento.
-# status: downloaded (subpasta mpb-bossa/). bpm/key = análise do rekordbox (XML de 2026-10-29); null ou valor do Serato onde ele não tem a faixa.
+# status: downloaded (subpasta mpb-bossa/). bpm/key = análise do rekordbox; null ou valor do Serato onde ele não tem a faixa.
 
 - title: "Madalena"
   artist: "Elis Regina"

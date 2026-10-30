@@ -1,6 +1,6 @@
 # tracks/global-bass.yml — Global Bass pool for the `global-bass` node (unordered).
 # Latino: reggaeton, latin pop, moombahton, guaracha e os remixes house desses hits.
-# status: downloaded (subpasta global-bass/). bpm/key = análise do rekordbox (XML de 2026-10-29); null ou valor do Serato onde ele não tem a faixa.
+# status: downloaded (subpasta global-bass/). bpm/key = análise do rekordbox; null ou valor do Serato onde ele não tem a faixa.
 
 - title: "Titi Me Pregunto (DLMT Remix)"
   artist: "Bad Bunny"

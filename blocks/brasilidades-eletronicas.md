@@ -21,7 +21,7 @@ Felicidade e sobe até Eva, que entrega a pista pro axé.
 os dois em 6A (tech-house → brazilian-bass). A energia desce de e9 pra e6 no blend.
 
 ## Tracklist (primary)
-1. Vanessa Da Mata, Felguk, Cat Dealers — Ai Ai Ai (Felguk & Cat Dealers Remix) · 6A · 124 · e6  desce do pico no mesmo tom
+1. Vanessa Da Mata, Felguk, Cat Dealers — Ai Ai Ai (Felguk & Cat Dealers Remix) [Extended Mix] · 6A · 124 · e6  desce do pico no mesmo tom
 2. Titãs, Pontifexx — Epitáfio (Remix)                          · 6A  · 125 · e6  🎃
 3. Jopin, Alceu Valença — Anunciação                            · 9B  · 126 · e6  coro
 4. Jovem Dionísio — Acorda Pedrinho (David Owa & Gui Henry Remix) · 10A · 126 · e7  singalong
@@ -36,15 +36,13 @@ os dois em 6A (tech-house → brazilian-bass). A energia desce de e9 pra e6 no b
 - 1→2: 6A→6A, blend.
 - 2→3: 6A→9B não casa: corta no break de Epitáfio e Anunciação entra no coro.
 - 3→7: 9B → 10A → 11A → 10A → 9A, um passo por vez (o 9B → 10A é diagonal): blend no break, sobe de 122 pra 126 devagar.
-- 4 (Acorda Pedrinho): o mp3 não tem artista nas tags, então no rekordbox ele aparece sem artista.
 - 7→10: 9A→8A→8A→8A, blend longo com EQ swap; deixa o coro de cada um aparecer antes de trocar. Eva é a última: deixa o refrão rodar inteiro.
-- 9 (Trava Na Pose): no rekordbox é o WAV da raiz, "Trava Na Pose (David Owa Remix)", que também aparece sem artista.
 
 ## Swap options (flutue com a pista)
 - Mais MPB: Anavitria feat. Rita Lee — Amarelo Azul E Branco (JRD Remix) (e6) · Alok, Titãs feat. Bhaskar — Epitáfio (e6, a outra versão, 9A)
 - Mais percussão BR (Baianá e Mas Que Nada estão em `tech-house/`, fora do rekordbox): Barbatuques — Baianá (Jack Back Club Mix) (e8) · Bob Sinclar — Capoeira Mata Um (Dubdogz & SUBB Remix) (e7) · Oliver Heldens x Ian Asher x Sergio Mendes — Mas Que Nada (e7)
 - Mais festa: Dubdogz, Maxximal & MC Hollywood — Oi Oi Oi (e8) · Matuê — Quer Voar (Zuffo & Watzgood RMX) (e7, 1A: entra por corte)
-- Se importar o arquivo: Make U Sweat, Jetlag Music feat. Tiago Abravanel — Não Quero Dinheiro (Só Quero Amar) (e7, Tim Maia, 11B: vizinho do Felicidade)
+- Tim Maia: Make U Sweat, Jetlag Music feat. Tiago Abravanel — Não Quero Dinheiro (Só Quero Amar) (e7, 11B: vizinho do Felicidade)
 
 ## Bridge out
 - → `axe`: corte seco de Make U Sweat — Eva pro refrão de Voa Voa (`axe-classicos.md`). A Eva original, da Banda Eva, volta no meio do axé e a pista reconhece.

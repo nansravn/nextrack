@@ -1,6 +1,6 @@
 # tracks/brazilian-funk.yml — Brazilian Funk pool for the `brazilian-funk` node (unordered).
 # Funk de baile: 150 / mandelão, brega funk e remixes de funk.
-# status: downloaded (subpasta brazilian-funk/). bpm/key = análise do rekordbox (XML de 2026-10-29); null ou valor do Serato onde ele não tem a faixa.
+# status: downloaded (subpasta brazilian-funk/). bpm/key = análise do rekordbox; null ou valor do Serato onde ele não tem a faixa.
 
 - title: "Surtada (Remix Brega Funk)"
   artist: "Dadá Boladão"
@@ -28,6 +28,7 @@
   energy: 8
   status: downloaded
   tags: [brazilian-funk]
+  notes: "Título completo: 'Trava na Pose, Chama no Zoom, Da um Close'."
 
 - title: "Carinha de Neném"
   artist: "Japãozin"

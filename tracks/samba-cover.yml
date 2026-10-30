@@ -1,6 +1,6 @@
 # tracks/samba-cover.yml — Samba-cover pool for the `samba-cover` node (unordered).
 # Versões em samba de hits (Grupo Sambô). Lane acústica, de reconhecimento/roda.
-# status: downloaded (subpasta samba-cover/). bpm/key = análise do rekordbox (XML de 2026-10-29); null ou valor do Serato onde ele não tem a faixa.
+# status: downloaded (subpasta samba-cover/). bpm/key = análise do rekordbox; null ou valor do Serato onde ele não tem a faixa.
 
 - title: "Valerie"
   artist: "Sambô"

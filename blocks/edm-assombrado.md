@@ -6,7 +6,7 @@ duration: 40m              # 49m de áudio
 genres: [pop-dance, tech-house-br, tech-house]
 bpm: [123, 128]
 energy: [7, 9]             # abre rindo -> caça-fantasmas -> luz apagada -> piratas -> pico
-key_journey: 11A -> 10A -> 9A -> 8A -> 9A -> 6A -> 5A -> 6A -> 7A -> 6A   # 9A -> 6A é o corte dos piratas
+key_journey: 11A -> 11B -> 9A -> 8A -> 9A -> 6A -> 5A -> 6A -> 7A -> 6A   # 11B -> 9A e 9A -> 6A (piratas) são corte
 lightshow: null            # -> ../lightshows/edm-assombrado.md (futuro)
 ---
 
@@ -21,8 +21,8 @@ de Astronomia, que já está nos curingas dos eletrohits. Mesma pista, outro cli
 
 ## Tracklist (primary)
 1. Tony Igy — Astronomia                                    · 11A · 126 · e7  🎃 a melodia do meme do caixão: abre rindo
-2. Dubdogz — Ghostbusters                                   · 10A · 124 · e7  🎃 "who you gonna call?"
-3. Dubdogz — Techno Prank                                   · 9A  · 125 · e7  a travessura do "doces ou travessuras"
+2. Dubdogz — Ghostbusters                                   · 11B · 124 · e7  🎃 "who you gonna call?"
+3. Dubdogz — Techno Prank                                   · 9A  · 124 · e7  a travessura do "doces ou travessuras"
 4. Dubdogz & Ten Tonne Skeleton — Psycho Killer             · 8A  · 123 · e7  🎃
 5. Hot Since 82, Jem Cooke — Buggin'                        · 9A  · 124 · e7  versão longa (8:25)
 6. Chris Lake, Alexis Roberts, Cloonee — Turn Off The Lights (Cloonee Remix) · 9A · 128 · e8  🎃 apaga a luz da sala no drop
@@ -33,13 +33,13 @@ de Astronomia, que já está nos curingas dos eletrohits. Mesma pista, outro cli
 11. FISHER — Losing It                                      · 6A  · 125 · e9  PICO
 
 ## Transitions  (style: hybrid)
-- 1→2: Astronomia é reconhecimento: deixa a melodia do caixão rodar e corta no drop de Ghostbusters. 11A → 10A é vizinho, então dá até um blend curto (pop-dance → tech-house-br).
-- 2→6: 10A → 9A → 8A → 9A → 9A, blend longo, feitas pra mixar. Sobe de 124 pra 128 aos poucos (tech-house-br → tech-house). Buggin' é a versão longa (8:25): corta antes do fim.
+- 1→2: Astronomia é reconhecimento: deixa a melodia do caixão rodar e corta no drop de Ghostbusters. 11A → 11B é a relativa maior, então dá até um blend curto (pop-dance → tech-house-br).
+- 2→3: 11B → 9A não casa, mas os dois estão em 124: corta no drop de Techno Prank.
+- 3→6: 9A → 8A → 9A → 9A, blend longo, feitas pra mixar. Sobe de 124 pra 128 aos poucos (tech-house-br → tech-house). Buggin' é a versão longa (8:25): corta antes do fim.
 - 6: no drop de "turn off the lights", apaga a luz da sala de verdade. É a versão curta (3:18), então o drop chega rápido: combina antes com quem estiver perto do interruptor. É o lightshow da casa.
 - 6→7: 🏴‍☠️ slot dos piratas (faixas na lista de compras do [set](../sets/2026-10-31-halloween-em-casa.md)). Corta o 6 no break, toca 30–60 s do tema original de "He's a Pirate" sem batida e solta o Tiësto Remix no drop. É o lift melódico do bloco. Sem a compra: 9A → 6A não casa, então corta no break e entra seco no Killer's Song.
 - 7: Killer's Song é extended (6:51): corta antes do fim.
 - 7→11: 6A → 5A → 6A → 7A → 6A, tudo vizinho: blend, com a energia subindo até o FISHER. Pjanoo é club mix (7:30): corta antes do fim. Segura o pico com loop de 1 compasso.
-- As 11 estão no rekordbox. Buggin', Turn Off The Lights e Losing It são os FLAC da raiz da biblioteca, não os mp3 de `tech-house/`.
 
 ## Swap options (flutue com a pista)
 - Fantasia: Oliver Heldens — I Was Made For Lovin' You (Dubdogz & Bhaskar Remix) (maquiagem do KISS, e7) · Daft Punk — Robot Rock (e7)

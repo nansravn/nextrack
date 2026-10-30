@@ -43,7 +43,7 @@ Macetando (axe → funk-anos-2000, "carry the folia into retro funk").
 - 6→8: 11A → 11A → 11A, corte limpo ou blend curto.
 - 9 (Créu): deixa as velocidades rodarem inteiras, a brincadeira é essa.
 - 9→12: 6A → 7A → 8A → 8A, um passo por troca: o tom sobe junto com o fim do bloco.
-- 12 (Festa no Apê): o rekordbox tem 3 versões. Usa a flac (8A, 130), que é a do pool.
+- 12 (Festa no Apê): há 3 versões na pasta; a do pool é a de 130 BPM e 8A, não o remix 'Lalá'.
 - Saída: echo out de Festa no Apê pro funk-pop (ver Bridge out).
 
 ## Swap options (flutue com a pista)

@@ -1,6 +1,6 @@
 # tracks/brazilian-bass.yml — Brazilian Bass pool for the `brazilian-bass` node (unordered).
 # A lane Alok / Cat Dealers / JRD: house melódico brasileiro de festival.
-# status: downloaded (subpasta brazilian-bass/). bpm/key = análise do rekordbox (XML de 2026-10-29); null ou valor do Serato onde ele não tem a faixa.
+# status: downloaded (subpasta brazilian-bass/). bpm/key = análise do rekordbox; null ou valor do Serato onde ele não tem a faixa.
 
 - title: "Tsunami"
   artist: "Alok x Ely Oaks"
@@ -128,11 +128,23 @@
   status: downloaded
   tags: [brazilian-bass, br]
 
+- title: "Ai Ai Ai (Felguk & Cat Dealers Remix) [Extended Mix]"
+  artist: "Vanessa Da Mata, Felguk, Cat Dealers"
+  genre: brazilian-bass
+  bpm: 124
+  key: 6A
+  energy: 6
+  duration: "4:23"
+  status: downloaded
+  tags: [brazilian-bass, br, remix]
+
 - title: "Ai Ai Ai (Felguk & Cat Dealers Remix)"
   artist: "Vanessa Da Mata, Felguk, Cat Dealers"
   genre: brazilian-bass
   bpm: 124
   key: 6A
   energy: 6
+  duration: "3:20"
+  year: 2018
   status: downloaded
   tags: [brazilian-bass, br, remix]

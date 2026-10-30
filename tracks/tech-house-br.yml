@@ -1,15 +1,6 @@
 # tracks/tech-house-br.yml — Tech-house BR pool for the `tech-house-br` node (unordered).
 # A leva Dubdogz / Vintage Culture: remixes e originais de festival, feitos pra mixar.
-# status: downloaded (subpasta tech-house-br/). bpm/key = análise do rekordbox (XML de 2026-10-29); null ou valor do Serato onde ele não tem a faixa.
-
-- title: "Capoeira Mata Um (Dubdogz & SUBB Remix)"
-  artist: "Bob Sinclar"
-  genre: tech-house-br
-  bpm: 126
-  key: 1A
-  energy: 7
-  status: downloaded
-  tags: [tech-house-br, remix]
+# status: downloaded (subpasta tech-house-br/). bpm/key = análise do rekordbox; null ou valor do Serato onde ele não tem a faixa.
 
 - title: "World Hold On (Vintage Culture & Dubdogz Remix)"
   artist: "Bob Sinclar"
@@ -38,7 +29,7 @@
   status: downloaded
   tags: [tech-house-br, remix, guaracha]
 
-- title: "Loca"
+- title: "Loca (Extended Mix)"
   artist: "Dubdogz & DLMT"
   genre: tech-house-br
   bpm: 128
@@ -47,7 +38,7 @@
   status: downloaded
   tags: [tech-house-br, tech-house]
 
-- title: "Dancing"
+- title: "Dancing (Extended Mix)"
   artist: "Dubdogz, Liu & Dubdisko"
   genre: tech-house-br
   bpm: 124
@@ -56,7 +47,7 @@
   status: downloaded
   tags: [tech-house-br]
 
-- title: "The Lion"
+- title: "The Lion (Extended Mix)"
   artist: "Dubdogz, Liu & Hard Lights"
   genre: tech-house-br
   bpm: 126
@@ -83,7 +74,7 @@
   status: downloaded
   tags: [tech-house-br]
 
-- title: "Say It Right"
+- title: "Say It Right (Extended Mix)"
   artist: "Dubdogz & farfetch'd"
   genre: tech-house-br
   bpm: 127
@@ -96,7 +87,7 @@
   artist: "Dubdogz"
   genre: tech-house-br
   bpm: 124
-  key: 10A
+  key: 11B
   energy: 7
   status: downloaded
   tags: [tech-house-br]
@@ -104,7 +95,7 @@
 - title: "Techno Prank"
   artist: "Dubdogz"
   genre: tech-house-br
-  bpm: 125
+  bpm: 124
   key: 9A
   energy: 7
   status: downloaded
@@ -119,7 +110,7 @@
   status: downloaded
   tags: [tech-house-br, festival]
 
-- title: "Dog Days"
+- title: "Dog Days (Original Mix)"
   artist: "Dubdogz, Brannco & Rodrigo Luca"
   genre: tech-house-br
   bpm: 125
@@ -128,7 +119,7 @@
   status: downloaded
   tags: [tech-house-br]
 
-- title: "Smack That"
+- title: "Smack That (Extended Mix)"
   artist: "Dubdogz & Dj Susan"
   genre: tech-house-br
   bpm: 126
@@ -155,7 +146,7 @@
   status: downloaded
   tags: [tech-house-br]
 
-- title: "Oi Oi Oi"
+- title: "Oi Oi Oi (Extended Mix)"
   artist: "Dubdogz, Maxximal & MC Hollywood"
   genre: tech-house-br
   bpm: 127
@@ -210,7 +201,7 @@
   status: downloaded
   tags: [tech-house-br, remix, br]
 
-- title: "Algo Parecido (Dubdogz & Bruno Be Remix)"
+- title: "Algo Parecido (Dubdogz & Bruno Be Remix) [Extended Mix]"
   artist: "Skank"
   genre: tech-house-br
   bpm: 109
@@ -219,7 +210,7 @@
   status: downloaded
   tags: [tech-house-br, remix, br]
 
-- title: "Drinkee (Vintage Culture & John Summit Remix)"
+- title: "Drinkee (Vintage Culture & John Summit Extended Mix)"
   artist: "Sofi Tukker"
   genre: tech-house-br
   bpm: 124
@@ -246,7 +237,7 @@
   status: downloaded
   tags: [tech-house-br, remix]
 
-- title: "Are You OK"
+- title: "Are You OK (feat. ILIRA) [Extended Mix]"
   artist: "Yves V & Dubdogz"
   genre: tech-house-br
   bpm: 123
@@ -283,7 +274,7 @@
   energy: 7
   status: downloaded
   tags: [tech-house-br]
-  notes: "No rekordbox está o WAV da raiz da biblioteca, 'David Owa - Trava Na Pose (David Owa Remix).wav' (3:54, sem tags, então aparece sem artista). O mp3 de tech-house-br/ (2:48) não foi importado. bpm/key conferem com o rekordbox (lidos à mão do XML)."
+  notes: "Arquivo sem tags: no rekordbox aparece sem artista."
 
 - title: "Não Quero Dinheiro (Só Quero Amar)"
   artist: "Make U Sweat, Jetlag Music feat. Tiago Abravanel"
@@ -302,10 +293,9 @@
   energy: 8
   duration: "3:23"
   year: 2025
-  source: tidal
   status: downloaded
   tags: [tech-house-br, bass-house, festival]
-  notes: "Arquivo na raiz da biblioteca (Tidal), já analisado no rekordbox; key espera o próximo XML. Energia estimada sem ouvir: confira."
+  notes: "Energia estimada sem ouvir: confira."
 
 - title: "Everybody Wants To Party"
   artist: "Dubdogz, JØRD"
@@ -315,10 +305,9 @@
   energy: 7
   duration: "3:04"
   year: 2021
-  source: tidal
   status: downloaded
   tags: [tech-house-br]
-  notes: "Arquivo na raiz da biblioteca (Tidal), já analisado no rekordbox; key espera o próximo XML. Energia estimada sem ouvir: confira."
+  notes: "Energia estimada sem ouvir: confira."
 
 - title: "Acorda Pedrinho (David Owa & Gui Henry Remix)"
   artist: "Jovem Dionísio"
@@ -330,7 +319,7 @@
   duration: "3:23"
   status: downloaded
   tags: [tech-house-br, remix, br]
-  notes: "O mp3 na raiz da biblioteca não tem artista nas tags, então o rekordbox mostra o artista vazio. bpm/key lidos à mão do XML. Energia estimada sem ouvir: confira."
+  notes: "Arquivo sem artista nas tags: no rekordbox aparece sem artista. Energia estimada sem ouvir: confira."
 
 - title: "Quer Voar (Zuffo & Watzgood RMX)"
   artist: "Matuê"
@@ -342,4 +331,195 @@
   duration: "3:49"
   status: downloaded
   tags: [tech-house-br, remix, br]
-  notes: "WAV na raiz da biblioteca, sem tags: o rekordbox mostra o nome do arquivo como título e o artista vazio. bpm/key lidos à mão do XML. Energia estimada sem ouvir: confira."
+  notes: "Arquivo sem tags: no rekordbox aparece sem artista. Energia estimada sem ouvir: confira."
+
+- title: "Free My Mind (Extended Mix)"
+  artist: "Alok, Rooftime, Dubdogz"
+  genre: tech-house-br
+  bpm: 124
+  key: 9A
+  energy: 7
+  duration: "3:42"
+  year: 2025
+  status: downloaded
+  tags: [tech-house-br]
+  notes: "Energia estimada sem ouvir: confira."
+
+- title: "Capoeira Mata Um (Zum Zum Zum) (Dubdogz & Subb Remix)"
+  artist: "Bob Sinclar, Dubdogz, Subb"
+  genre: tech-house-br
+  bpm: 125
+  key: 1A
+  energy: 7
+  duration: "2:45"
+  year: 2024
+  status: downloaded
+  tags: [tech-house-br]
+
+- title: "Baila Conmigo (Dubdogz Remix)"
+  artist: "Dubdogz"
+  genre: tech-house-br
+  bpm: 126
+  key: 10A
+  energy: 7
+  duration: "2:36"
+  year: 2020
+  status: downloaded
+  tags: [tech-house-br]
+  notes: "Energia estimada sem ouvir: confira."
+
+- title: "Infinity (Dubdogz & Bhaskar Extended Edit)"
+  artist: "Dubdogz, Bhaskar"
+  genre: tech-house-br
+  bpm: 124
+  key: 8A
+  energy: 7
+  duration: "4:54"
+  year: 2024
+  status: downloaded
+  tags: [tech-house-br]
+
+- title: "Dog Days"
+  artist: "Dubdogz, Brannco, Rodrigo Luca, izabelle"
+  genre: tech-house-br
+  bpm: 124
+  key: 9B
+  energy: 7
+  duration: "4:11"
+  year: 2018
+  status: downloaded
+  tags: [tech-house-br]
+
+- title: "Smack That"
+  artist: "Dubdogz, DJ Susan, CJ."
+  genre: tech-house-br
+  bpm: 126
+  key: 11A
+  energy: 7
+  duration: "2:40"
+  year: 2023
+  status: downloaded
+  tags: [tech-house-br]
+
+- title: "Loca"
+  artist: "Dubdogz, DLMT"
+  genre: tech-house-br
+  bpm: 128
+  key: 11A
+  energy: 7
+  duration: "2:55"
+  year: 2023
+  status: downloaded
+  tags: [tech-house-br]
+
+- title: "Say It Right"
+  artist: "Dubdogz, Farfetch'd"
+  genre: tech-house-br
+  bpm: 127
+  key: 7A
+  energy: 7
+  duration: "2:55"
+  year: 2024
+  status: downloaded
+  tags: [tech-house-br]
+
+- title: "Dancing"
+  artist: "Dubdogz, Liu, Dubdisko"
+  genre: tech-house-br
+  bpm: 124
+  key: 7A
+  energy: 7
+  duration: "2:42"
+  year: 2022
+  status: downloaded
+  tags: [tech-house-br]
+
+- title: "The Lion (feat. Sara Sangfelt)"
+  artist: "Dubdogz, Liu, Hard Lights, Sara Sangfelt"
+  genre: tech-house-br
+  bpm: 126
+  key: 12A
+  energy: 7
+  duration: "2:36"
+  year: 2021
+  status: downloaded
+  tags: [tech-house-br]
+
+- title: "Could You Be Loved (Extended Mix)"
+  artist: "Dubdogz, MOJJO"
+  genre: tech-house-br
+  bpm: 125
+  key: 10A
+  energy: 7
+  duration: "4:44"
+  year: 2025
+  status: downloaded
+  tags: [tech-house-br]
+  notes: "Energia estimada sem ouvir: confira."
+
+- title: "Oi Oi Oi"
+  artist: "Dubdogz, Maxximal, MC Hollywood"
+  genre: tech-house-br
+  bpm: 127
+  key: 4A
+  energy: 8
+  duration: "2:17"
+  year: 2023
+  status: downloaded
+  tags: [tech-house-br]
+
+- title: "Algo Parecido (Dubdogz e Bruno Be Remix) (Radio Edit)"
+  artist: "Skank, Dubdogz, Bruno Be"
+  genre: tech-house-br
+  bpm: 103
+  key: 4B
+  energy: 7
+  duration: "2:46"
+  year: 2018
+  status: downloaded
+  tags: [tech-house-br]
+
+- title: "Ainda Gosto Dela (Dubdogz, RQntz & Lowsince Remix)"
+  artist: "Skank, Negra Li, Dubdogz"
+  genre: tech-house-br
+  bpm: 124
+  key: 10A
+  energy: 7
+  duration: "2:56"
+  year: 2019
+  status: downloaded
+  tags: [tech-house-br]
+
+- title: "I Don't Mind (feat. Selva) [Extended Mix]"
+  artist: "VINAI, Dubdogz, Malou, SELVA"
+  genre: tech-house-br
+  bpm: 124
+  key: 8A
+  energy: 7
+  duration: "4:12"
+  year: 2024
+  status: downloaded
+  tags: [tech-house-br]
+  notes: "Energia estimada sem ouvir: confira."
+
+- title: "Are You OK? (feat. ILIRA)"
+  artist: "Yves V, Dubdogz, Ilira"
+  genre: tech-house-br
+  bpm: 123
+  key: 11A
+  energy: 7
+  duration: "2:28"
+  year: 2021
+  status: downloaded
+  tags: [tech-house-br]
+
+- title: "Drinkee (Vintage Culture & John Summit Remix)"
+  artist: "SOFI TUKKER"
+  genre: tech-house-br
+  bpm: 124
+  key: 8A
+  energy: 7
+  duration: "3:25"
+  year: 2024
+  status: downloaded
+  tags: [tech-house-br, remix]

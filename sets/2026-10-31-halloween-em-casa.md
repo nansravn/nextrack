@@ -87,41 +87,23 @@ Do pool, já tocável:
 
 Piratas: **ainda nenhuma faixa no pool.** Billy Ocean — Caribbean Queen e o remake do
 Ghostbusterz, nos Fantasmas, são só a piscadela. Os piratas de verdade continuam na
-lista de compras abaixo. O Thriller já foi comprado.
+lista de compras abaixo.
 
 ## Lista de compras (fora dos pools)
 Ficam fora de `tracks/` até serem baixadas. Depois de baixar: arquivo nomeado
-`Artista - Título`, entrada no pool certo com `bpm` e `key` em `null`, análise no
-rekordbox, e aí a faixa vira linha numerada no bloco. O rekordbox não grava a
-análise dentro do arquivo, como o Serato fazia (testado com os 3 remakes dos
-Fantasmas), então o `pull-bpm` não preenche: por enquanto `bpm` e `key` entram à mão.
+`Artista - Título` na pasta do gênero, análise no rekordbox, entrada no pool com o
+`bpm` e a `key` dele, e aí a faixa vira linha numerada no bloco.
 
 | # | Faixa | Prioridade | Encaixe | Por quê |
 |---|---|---|---|---|
 | 1 | Klaus Badelt — He's a Pirate (Tiësto Remix) | essencial | EDM Assombrado, entre o 6 e o 7 | O must-play pirata em versão de pista, do EP *Pirates Remixed* (2006). O Radio Edit (4:05) basta; o Club Mix (7:03) dá blend longo. |
 | 2 | Klaus Badelt — He's a Pirate (trilha original, 2003) | essencial | Mesmo slot: 30–60 s do tema sem batida antes do drop do Tiësto | O tema que todo mundo reconhece nos primeiros compassos. |
-| 3 | ~~Michael Jackson — Thriller~~ | comprado | Os Fantasmas, #7 | Comprado em 2026-10-30 na versão Steve Aoki Midnight Hour Remix. |
-| 4 | deadmau5 feat. Rob Swire — Ghosts 'n' Stuff | extra | EDM Assombrado, depois do 2 (Ghostbusters) | Clássico de EDM com tema de fantasma. |
-| 5 | Rihanna — Disturbia | extra | EDM Assombrado, no lugar do 5 (Buggin') | Pop dance sombrio que todo mundo canta. |
-| 6 | Rockwell — Somebody's Watching Me | extra | Os Fantasmas, entre o 4 e o 5 | Clássico de Halloween dos anos 80. |
-| 7 | DJ K — álbum *Pânico no Submundo* (2023) | experimental | Baile 150, depois do 1 (Sequência Striptease) | Funk bruxaria: mandelão com samples de terror. É pesado, então vale ouvir antes de comprar. |
+| 3 | deadmau5 feat. Rob Swire — Ghosts 'n' Stuff | extra | EDM Assombrado, depois do 2 (Ghostbusters) | Clássico de EDM com tema de fantasma. |
+| 4 | Rihanna — Disturbia | extra | EDM Assombrado, no lugar do 5 (Buggin') | Pop dance sombrio que todo mundo canta. |
+| 5 | Rockwell — Somebody's Watching Me | extra | Os Fantasmas, entre o 4 e o 5 | Clássico de Halloween dos anos 80. |
+| 6 | DJ K — álbum *Pânico no Submundo* (2023) | experimental | Baile 150, depois do 1 (Sequência Striptease) | Funk bruxaria: mandelão com samples de terror. É pesado, então vale ouvir antes de comprar. |
 
 ## Antes da festa
-- [ ] **Reapontar no rekordbox as 31 faixas que renomeei ou movi em 2026-10-30.** Elas
-  aparecem como faltando até lá:
-  - 14 continuam na raiz, renomeadas pra `Artista - Título`;
-  - 17 do Cabra Guaraná foram pra pasta nova `mashups-br/`. Cinco delas só mudaram de
-    pasta, com o mesmo nome (as três que vieram de `brazilian-funk/`, o Cocoricó e o Michael
-    Jackson x Filho do Piseiro), e essas a realocação automática acha.
-  A lista de caminho antigo → novo está no `_nextrack_rename_log.tsv` da biblioteca.
-- [ ] Ficar com uma das duas cópias de Eu quero é botar meu remix na rua, Fala mal de mim
-  e TREPA TREPA: as de `mashups-br/` ou as do Tidal em `mashups-br/duplicatas/`. Têm a
-  mesma qualidade (24 bits).
-- [ ] **Importar no rekordbox o Tem Café** (DENNIS, Gaab), a última música da noite. É a
-  única faixa do programa ainda fora da coleção; sem ela, a noite fecha em Tremendo
-  Vacilão.
-- [ ] Tirar do rekordbox o mp3 antigo do Drive (`afro-house/`), pra não carregar o errado:
-  o set usa o FLAC da raiz.
 - [ ] Preencher o artista, direto no rekordbox, dos três arquivos sem tags: Trava Na Pose
   (David Owa), Acorda Pedrinho (Jovem Dionísio) e Quer Voar (Matuê).
 - [ ] Ouvir as faixas novas e ajustar no pool as energias que estimei sem ouvir (os

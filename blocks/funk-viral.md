@@ -44,8 +44,8 @@ no Apê pro Turutum (funk-anos-2000 → funk-pop, "nostalgia into commercial fun
 
 ## Swap options (flutue com a pista)
 - Mais viral: MC Fioti — Bum Bum Tam Tam (David Guetta Remix) (e8) · Pedro Sampaio, Felipe Original & JS o Mão de Ouro — Sentadão (e8) · Anitta, Ludmilla & Snoop Dogg — Onda Diferente (e7)
-- MC WM: Rabetania (e7) · Fuleragem (e8) · Senta braba (e8) · Sua Amiga Vou Pegar (e7, fora do rekordbox)
-- MC Danny: Sei Que Tu Me Odeia (e7, fora do rekordbox)
+- MC WM: Rabetania (e7) · Fuleragem (e8) · Senta braba (e8) · Sua Amiga Vou Pegar (e7)
+- MC Danny: Sei Que Tu Me Odeia (e7)
 - Cabra Guaraná em 130: Cabra Guaraná — Cabra Guaraná, Tynkato - ABBRA (Abba Tamborzao REMIX) (e7, 7A)
 
 ## Bridge out

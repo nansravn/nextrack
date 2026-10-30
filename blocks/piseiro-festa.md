@@ -35,7 +35,8 @@ Toca a janela do refrão (~1:30–2:30), não a música inteira.
 
 ## Swap options (flutue com a pista)
 - Mais festa: Nattan — Eu Vou Sentar (e7) · Matheus Fernandes — Lapada Dela (e7)
-- Mais Barões: Amor Falso (e7) · Senta Danada (e7)
+- Mais Barões: Senta Danada (e7)
+- Amor Falso: Aldair Playboy (e7) · a versão com Wesley Safadão e MC Kevinho (e7)
 - Mais brega-pop: Marcynho Sensação — Parada Louca (e7)
 - Vaquejada: Nattan — Americana Na Vaquejada (e7)
 

@@ -35,7 +35,6 @@ Abre a noite: não tem bloco antes. Começa com a sala vazia e o volume baixo.
 - Roda perto de 122–124 BPM com sync; do 7 em diante o BPM desce aos poucos até os 118 do Drive.
 - Blend longo, EQ swap no grave, 32 compassos por troca. Cada troca é vizinha no Camelot (7A → 7A → 8A → 8A → 9A → 9A → 9B → 10A → 11A; o 9B → 10A é diagonal): não reordene sem olhar o tom.
 - 3→4: The Rapture Pt.III é longa (6:57) e escura: deixa rodar, é a virada pro afro.
-- 9: toca o FLAC do Drive que está na raiz da biblioteca, não o mp3 antigo de `afro-house/`.
 
 ## Swap options (flutue com a pista)
 - Mais ensolarado, se a casa pedir: Sam Feldt feat. Kimberly Anne — Show Me Love (e5) · Klingande — Jubel (Nora En Pure Remix) (e5) · Duke Dumont feat. Jax Jones — I Got U (e6)

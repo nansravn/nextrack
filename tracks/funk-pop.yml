@@ -1,7 +1,7 @@
 # tracks/funk-pop.yml — Funk-pop pool for the `funk-pop` node (unordered).
 # Funk comercial / crossover: Pedro Sampaio, Anitta, Lexa, Dennis, Zaac...
 # status: downloaded = já está na sua pasta local (subpasta funk-pop/).
-# bpm/key = análise do rekordbox (XML de 2026-10-29); null ou valor do Serato onde ele não tem a faixa. energy = chute inicial, ajuste à vontade.
+# bpm/key = análise do rekordbox; null ou valor do Serato onde ele não tem a faixa. energy = chute inicial, ajuste à vontade.
 
 # --- Pedro Sampaio ---
 - title: "Dançarina"
@@ -32,7 +32,7 @@
   energy: 8
   status: downloaded
   tags: [funk-pop, baile, singalong]
-  notes: "2 arquivos na pasta: o mp3 e o flac, que é outra edição (os primeiros ~55 s mudam). O mp3 duplicado foi pra lixeira."
+  notes: "Duas edições na pasta: numa delas os primeiros ~55 s mudam."
 
 - title: "Joga Pra Lua"
   artist: "Anitta, Pedro Sampaio & Dennis"
@@ -42,7 +42,7 @@
   energy: 7
   status: downloaded
   tags: [funk-pop, dance]
-  notes: "Puxa mais pro dance. Ficou só o flac; o mp3 era o mesmo áudio e foi pra lixeira."
+  notes: "Puxa mais pro dance."
 
 - title: "Galopa"
   artist: "Pedro Sampaio"
@@ -171,7 +171,7 @@
   bpm: null
   key: null
   energy: 8
-  status: downloaded
+  status: to-download
   tags: [funk-pop, baile, party]
 
 # --- Ludmilla ---
@@ -376,7 +376,7 @@
   artist: "DENNIS, Gaab"
   genre: funk-pop
   bpm: 122
-  key: 9A
+  key: 8A
   energy: 6
   status: downloaded
   tags: [funk-pop]
@@ -396,7 +396,7 @@
   artist: "MC Danny"
   genre: funk-pop
   bpm: 164
-  key: 9A
+  key: 10A
   energy: 8
   status: downloaded
   tags: [funk-pop, viral]
@@ -446,10 +446,9 @@
   energy: 8
   duration: "2:52"
   year: 2026
-  source: tidal
   status: downloaded
   tags: [funk-pop, mega-funk, remix]
-  notes: "Edit em cima de Jetski (Pedro Sampaio), que também está no pool. Arquivo na raiz da biblioteca (Tidal), já analisado no rekordbox; key espera o próximo XML. Energia estimada sem ouvir: confira."
+  notes: "Edit em cima de Jetski (Pedro Sampaio), que também está no pool. Energia estimada sem ouvir: confira."
 
 - title: "Ai Papai"
   artist: "Anitta, MC Danny, Hitmaker"
@@ -459,7 +458,6 @@
   energy: 8
   duration: "2:28"
   year: 2022
-  source: tidal
   status: downloaded
   tags: [funk-pop, baile, singalong]
-  notes: "Arquivo na raiz da biblioteca, já no rekordbox. Energia estimada sem ouvir: confira."
+  notes: "Energia estimada sem ouvir: confira."
