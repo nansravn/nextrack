@@ -107,12 +107,16 @@ Fantasmas), então o `pull-bpm` não preenche: por enquanto `bpm` e `key` entram
 | 7 | DJ K — álbum *Pânico no Submundo* (2023) | experimental | Baile 150, depois do 1 (Sequência Striptease) | Funk bruxaria: mandelão com samples de terror. É pesado, então vale ouvir antes de comprar. |
 
 ## Antes da festa
-- [ ] **Reapontar no rekordbox os 26 arquivos da raiz que renomeei pra `Artista -
-  Título` em 2026-10-30.** Eles aparecem como faltando até lá. A lista de nome antigo →
-  novo está no `_nextrack_rename_log.tsv` da biblioteca.
-- [ ] Tirar do rekordbox uma das duas cópias de Eu quero é botar meu remix na rua, Fala
-  mal de mim e TREPA TREPA (Cabra Guaraná): uma está em `brazilian-funk/`, a outra na
-  raiz.
+- [ ] **Reapontar no rekordbox as 31 faixas que renomeei ou movi em 2026-10-30.** Elas
+  aparecem como faltando até lá:
+  - 14 continuam na raiz, renomeadas pra `Artista - Título`;
+  - 17 do Cabra Guaraná foram pra pasta nova `mashups-br/`. Cinco delas só mudaram de
+    pasta, com o mesmo nome (as três que vieram de `brazilian-funk/`, o Cocoricó e o Michael
+    Jackson x Filho do Piseiro), e essas a realocação automática acha.
+  A lista de caminho antigo → novo está no `_nextrack_rename_log.tsv` da biblioteca.
+- [ ] Ficar com uma das duas cópias de Eu quero é botar meu remix na rua, Fala mal de mim
+  e TREPA TREPA: as de `mashups-br/` ou as do Tidal em `mashups-br/duplicatas/`. Têm a
+  mesma qualidade (24 bits).
 - [ ] **Importar no rekordbox o Tem Café** (DENNIS, Gaab), a última música da noite. É a
   única faixa do programa ainda fora da coleção; sem ela, a noite fecha em Tremendo
   Vacilão.

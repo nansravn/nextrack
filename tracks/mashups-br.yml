@@ -1,0 +1,177 @@
+# tracks/mashups-br.yml — Mashups BR pool for the `mashups-br` node (unordered).
+# Mashups e remixes brasileiros, quase todos do Cabra Guaraná: um hit conhecido refeito
+# em brega funk, bregadeira, tamborzão ou rasteirinha. Curtos e de reconhecimento.
+# status: downloaded (subpasta mashups-br/). bpm/key = análise do rekordbox (XML de 2026-10-29).
+
+- title: "Eu quero é botar meu remix na rua"
+  artist: "Cabra Guaraná"
+  genre: mashups-br
+  bpm: 170
+  key: 10A
+  energy: 7
+  status: downloaded
+  tags: [mashups-br, remix]
+  notes: "Cabra Guaraná é remixador de funk/brega de Brasília. Há uma segunda cópia, do Tidal e com a mesma qualidade (24 bits), em mashups-br/duplicatas/, e as duas estão no rekordbox: fique com uma. O rekordbox leu 10A nesta cópia e 9A na duplicata."
+
+- title: "Fala mal de mim"
+  artist: "Cabra Guaraná"
+  genre: mashups-br
+  bpm: 130
+  key: 4A
+  energy: 7
+  status: downloaded
+  tags: [mashups-br, remix]
+  notes: "Não é a mesma gravação de Pedro Sampaio em funk-pop. Há uma segunda cópia, do Tidal e com a mesma qualidade (24 bits), em mashups-br/duplicatas/, e as duas estão no rekordbox: fique com uma."
+
+- title: "TREPA TREPA"
+  artist: "Cabra Guaraná"
+  genre: mashups-br
+  bpm: 127
+  key: 9A
+  energy: 7
+  status: downloaded
+  tags: [mashups-br, remix]
+  notes: "Cabra Guaraná é remixador de funk/brega de Brasília. Há uma segunda cópia, do Tidal e com a mesma qualidade (24 bits), em mashups-br/duplicatas/, e as duas estão no rekordbox: fique com uma."
+
+- title: "Anitta, Cabra Guaraná - Os Boi Não Chora"
+  artist: "Cabra Guaraná"
+  genre: mashups-br
+  bpm: 176
+  key: 7A
+  energy: 7
+  duration: "2:07"
+  year: 2022
+  source: bandcamp
+  status: downloaded
+  tags: [mashups-br, mashup]
+  notes: "Do álbum Montagens e Mashup Vol. 2 (bandcamp). Energia estimada sem ouvir: confira."
+
+- title: "Nelly Furtado - Say It Right (Cabra Guaraná Brega Remix)"
+  artist: "Cabra Guaraná"
+  genre: mashups-br
+  bpm: 123
+  key: 4A
+  energy: 7
+  duration: "2:34"
+  year: 2022
+  source: bandcamp
+  status: downloaded
+  tags: [mashups-br, brega-funk, mashup]
+  notes: "Do álbum Montagens e Mashup Vol. 2 (bandcamp). Energia estimada sem ouvir: confira."
+
+- title: "Technotronic - Pump Up The Jam (Cabra Guaraná Bregadeira Remix)"
+  artist: "Cabra Guaraná"
+  genre: mashups-br
+  bpm: 125
+  key: 5A
+  energy: 7
+  duration: "2:04"
+  year: 2022
+  source: bandcamp
+  status: downloaded
+  tags: [mashups-br, brega-funk, mashup]
+  notes: "Do álbum Montagens e Mashup Vol. 2 (bandcamp). Energia estimada sem ouvir: confira."
+
+- title: "Xamã - Malvadão 3 ( Cabra Guaraná Bregadeira Remix)"
+  artist: "Cabra Guaraná"
+  genre: mashups-br
+  bpm: 133
+  key: 11A
+  energy: 7
+  duration: "1:49"
+  year: 2022
+  source: bandcamp
+  status: downloaded
+  tags: [mashups-br, brega-funk, mashup]
+  notes: "Do álbum Montagens e Mashup Vol. 2 (bandcamp). Energia estimada sem ouvir: confira."
+
+- title: "Cabra Guarana, Tynkato Android - Toma Falsiane (Falador Passa Mal REMIX)"
+  artist: "Cabra Guaraná"
+  genre: mashups-br
+  bpm: 170
+  key: 11A
+  energy: 7
+  duration: "1:39"
+  year: 2022
+  source: bandcamp
+  status: downloaded
+  tags: [mashups-br, mashup]
+  notes: "Do álbum Montagens e Mashup Vol. 2 (bandcamp). Energia estimada sem ouvir: confira."
+
+- title: "Molchat Doma - Sudno (Cabra Guaraná Tamborzao Bregadeira 149BPM)"
+  artist: "Cabra Guaraná"
+  genre: mashups-br
+  bpm: 150
+  key: 4A
+  energy: 7
+  duration: "1:36"
+  year: 2022
+  source: bandcamp
+  status: downloaded
+  tags: [mashups-br, tamborzao, mashup, dark, halloween]
+  notes: "Pós-punk sombrio (Molchat Doma) virado tamborzão. Do álbum Montagens e Mashup Vol. 2 (bandcamp). Energia estimada sem ouvir: confira."
+
+- title: "Cabra Guarana, Tynkato Android - Cilada (Rasteirinha Remix)"
+  artist: "Cabra Guaraná"
+  genre: mashups-br
+  bpm: 96
+  key: 8A
+  energy: 7
+  duration: "1:47"
+  year: 2022
+  source: bandcamp
+  status: downloaded
+  tags: [mashups-br, rasteirinha, mashup]
+  notes: "Do álbum Montagens e Mashup Vol. 2 (bandcamp). Energia estimada sem ouvir: confira."
+
+- title: "Cabra Guaraná, Tynkato - ABBRA (Abba Tamborzao REMIX)"
+  artist: "Cabra Guaraná"
+  genre: mashups-br
+  bpm: 130
+  key: 7A
+  energy: 7
+  duration: "1:42"
+  year: 2022
+  source: bandcamp
+  status: downloaded
+  tags: [mashups-br, tamborzao, mashup]
+  notes: "Do álbum Montagens e Mashup Vol. 2 (bandcamp). Energia estimada sem ouvir: confira."
+
+- title: "Beyoncé - Younce (Cabra Guaraná Rasteirinha Remix)"
+  artist: "Cabra Guaraná"
+  genre: mashups-br
+  bpm: 94
+  key: 6A
+  energy: 7
+  duration: "1:59"
+  year: 2022
+  source: bandcamp
+  status: downloaded
+  tags: [mashups-br, rasteirinha, mashup]
+  notes: "Do álbum Montagens e Mashup Vol. 2 (bandcamp). Energia estimada sem ouvir: confira."
+
+- title: "Cocoricó x Snoop Dogg - Drop It Like Its Hot Cabra Guaraná Mashup"
+  artist: "Cabra Guaraná"
+  genre: mashups-br
+  bpm: 100
+  key: 9A
+  energy: 7
+  duration: "1:46"
+  year: 2026
+  source: bandcamp
+  status: downloaded
+  tags: [mashups-br, mashup, novelty]
+  notes: "Mashup avulso (bandcamp). Energia estimada sem ouvir: confira."
+
+- title: "Michael Jackson x Filho do Piseiro - They don't care about raparigas"
+  artist: "Cabra Guaraná"
+  genre: mashups-br
+  bpm: 173
+  key: 8A
+  energy: 7
+  duration: "2:10"
+  year: 2026
+  source: bandcamp
+  status: downloaded
+  tags: [mashups-br, piseiro, mashup]
+  notes: "Mashup avulso (bandcamp). Energia estimada sem ouvir: confira."

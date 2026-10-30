@@ -71,6 +71,13 @@ Funk dos anos 2000 — a era Furacão 2000: funk melody, funk de bonde, passinho
 montagens. Nostalgia pura de festa retrô (Bonde do Tigrão, MC Créu, Furacão 2000).
 - **BPM:** ~128–150 · **Energy:** 6–9 · **Feel:** nostálgico, festa, retrô.
 
+### `mashups-br`
+Brazilian mashups and remixes, mostly Cabra Guaraná's: a known hit (Say It Right, Pump
+Up The Jam, ABBA, They Don't Care About Us) rebuilt over brega funk, bregadeira,
+tamborzão or rasteirinha. Recognition-first and short (most run under 2:30), so they
+play open-format: drop one inside a funk block as a surprise.
+- **BPM:** ~90–180 (rasteirinha ~95, bregadeira ~125, tamborzão ~150, double-time ~170) · **Energy:** 6–8 · **Feel:** recognition, party, novelty.
+
 ### `mpb-bossa`
 MPB, bossa nova, tropicália, and their downtempo/electronic reinterpretations.
 Warmup and cooldown gold; also `tecnobrega`/`brega` textures.
