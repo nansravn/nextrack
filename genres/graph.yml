@@ -43,6 +43,7 @@ nodes:
       - {to: pop-dance,       strength: medium, via: "throwback crossover; hard cut on the hook"}
       - {to: funk-pop,        strength: strong, via: "same funk base gone commercial; play the hook"}
       - {to: funk-anos-2000,  strength: strong, via: "same family, retro; nostalgia moment"}
+      - {to: mashups-br,      strength: strong, via: "a known hit inside the baile groove; hard cut into the mashup"}
 
   - id: brazilian-bass
     name: Brazilian Bass
@@ -294,6 +295,7 @@ nodes:
       - {to: global-bass,     strength: strong, via: "remix/reggaeton (e.g. Dançarina x Nicky Jam); hard cut"}
       - {to: axe,             strength: medium, via: "party crossover; hard cut on the downbeat"}
       - {to: funk-anos-2000,  strength: strong, via: "retro funk moment; hard cut"}
+      - {to: mashups-br,      strength: medium, via: "recognition moment: the hit comes back as a brega or tamborzão mashup; hard cut"}
 
   - id: funk-anos-2000
     name: Funk Anos 2000 (Furacão 2000 / funk melody / passinho)
@@ -307,6 +309,19 @@ nodes:
       - {to: funk-pop,        strength: strong, via: "nostalgia into commercial funk; play the hook"}
       - {to: global-bass,     strength: medium, via: "miami-bass roots; hard cut"}
       - {to: pop-dance,       strength: medium, via: "2000s throwback party; echo out"}
+
+  - id: mashups-br
+    name: Mashups BR (Cabra Guaraná — brega, tamborzão, rasteirinha)
+    family: brazilian
+    bpm: [90, 180]
+    energy: [6, 8]
+    feel: [recognition, party, novelty, brazilian]
+    subgenres: [brega-funk, bregadeira, tamborzao, rasteirinha, mashup]
+    neighbors:
+      - {to: brazilian-funk,  strength: strong, via: "same funk base; drop the mashup back into the raw baile"}
+      - {to: funk-pop,        strength: medium, via: "the hit inside the mashup hands over to commercial funk; hard cut on the hook"}
+      - {to: forro-piseiro,   strength: medium, via: "piseiro mashups (Filho do Piseiro) bridge into the forró party; hard cut"}
+      - {to: pop-dance,       strength: medium, via: "play the original after its mashup (Say It Right, Pump Up The Jam); recognition swap"}
 
   - id: pagodao-baiano
     name: Pagodão Baiano (swingueira / arrocha-pagode)

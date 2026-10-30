@@ -3,7 +3,7 @@ name: Baile 150 — Resenha Lá em Casa
 function: peak             # warmup | build | peak | plateau | breakdown | cooldown
 style: open-format         # continuous | open-format | hybrid — corte no hook, echo out, teasing
 duration: 20m              # 30m de áudio
-genres: [funk-pop, brazilian-funk]
+genres: [funk-pop, brazilian-funk, mashups-br]
 bpm: [127, 168]
 energy: [8, 9]             # mandelão 130 -> rampa até o 160 -> último pico da noite
 key_journey: TBD           # open-format com saltos de BPM: a harmonia pesa menos

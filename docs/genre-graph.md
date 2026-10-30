@@ -51,6 +51,7 @@ graph LR
     AXE["axe"]
     FUNKPOP["funk-pop"]
     FUNK2000["funk-anos-2000"]
+    MASHBR["mashups-br"]
     PAGBA["pagodao-baiano"]
     SAMBACOVER["samba-cover"]
     KIDS["kids"]
@@ -127,6 +128,11 @@ graph LR
   FUNK2000 --- FUNKPOP
   FUNK2000 -.-> POPD
   FUNK2000 -.-> GBASS
+
+  MASHBR --- FUNK
+  MASHBR -.-> FUNKPOP
+  MASHBR -.-> FORRO
+  MASHBR -.-> POPD
 
   PAGBA --- AXE
   PAGBA -.-> SAMBA
