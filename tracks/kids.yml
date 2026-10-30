@@ -1,12 +1,12 @@
 # tracks/kids.yml — Kids pool for the `kids` node (unordered).
 # Infantil: Disney e Mundo Bita, pro momento das crianças em festa de família.
-# status: downloaded (subpasta kids/). bpm/key = null até o pull-bpm ler a análise do Serato.
+# status: downloaded (subpasta kids/). bpm/key = análise do rekordbox (XML de 2026-10-29); null ou valor do Serato onde ele não tem a faixa.
 
 - title: "Aqui No Mar"
   artist: "A Pequena Sereia"
   genre: kids
   bpm: 100
-  key: 6A
+  key: 6B
   energy: 5
   status: downloaded
   tags: [kids, disney]
@@ -15,7 +15,7 @@
   artist: "Mundo Bita"
   genre: kids
   bpm: 119
-  key: 9B
+  key: 8B
   energy: 4
   status: downloaded
   tags: [kids, infantil-br]
@@ -23,8 +23,8 @@
 - title: "Hakuna Matata"
   artist: "Rei Leão"
   genre: kids
-  bpm: null
-  key: 8A
+  bpm: 167
+  key: 5A
   energy: 5
   status: downloaded
   tags: [kids, disney]
@@ -33,7 +33,7 @@
   artist: "Samuel E. Wright"
   genre: kids
   bpm: 100
-  key: 5A
+  key: 6B
   energy: 5
   status: downloaded
   tags: [kids, disney]

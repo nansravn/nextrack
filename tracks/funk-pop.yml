@@ -1,7 +1,7 @@
 # tracks/funk-pop.yml — Funk-pop pool for the `funk-pop` node (unordered).
 # Funk comercial / crossover: Pedro Sampaio, Anitta, Lexa, Dennis, Zaac...
 # status: downloaded = já está na sua pasta local (subpasta funk-pop/).
-# bpm/key = null até analisar no Serato. energy = chute inicial, ajuste à vontade.
+# bpm/key = análise do rekordbox (XML de 2026-10-29); null ou valor do Serato onde ele não tem a faixa. energy = chute inicial, ajuste à vontade.
 
 # --- Pedro Sampaio ---
 - title: "Dançarina"
@@ -27,8 +27,8 @@
 - title: "No Chão Novinha"
   artist: "Anitta & Pedro Sampaio"
   genre: funk-pop
-  bpm: 71
-  key: 5A
+  bpm: 142
+  key: 6A
   energy: 8
   status: downloaded
   tags: [funk-pop, baile, singalong]
@@ -37,8 +37,8 @@
 - title: "Joga Pra Lua"
   artist: "Anitta, Pedro Sampaio & Dennis"
   genre: funk-pop
-  bpm: 133
-  key: 9A
+  bpm: 134
+  key: 8A
   energy: 7
   status: downloaded
   tags: [funk-pop, dance]
@@ -57,7 +57,7 @@
   artist: "Pedro Sampaio"
   genre: funk-pop
   bpm: 126
-  key: 2A
+  key: 3A
   energy: 7
   status: downloaded
   tags: [funk-pop, dance-funk]
@@ -74,7 +74,7 @@
 - title: "Jetski"
   artist: "Pedro Sampaio"
   genre: funk-pop
-  bpm: 78
+  bpm: 155
   key: 2A
   energy: 8
   status: downloaded
@@ -93,7 +93,7 @@
   artist: "Pedro Sampaio"
   genre: funk-pop
   bpm: 134
-  key: 11A
+  key: 1B
   energy: 8
   status: downloaded
   tags: [funk-pop, mandelao, dj-tool, peak]
@@ -101,7 +101,7 @@
 - title: "Chama Ela"
   artist: "Lexa & Pedro Sampaio"
   genre: funk-pop
-  bpm: 75
+  bpm: 150
   key: 11A
   energy: 7
   status: downloaded
@@ -110,7 +110,7 @@
 - title: "Voando pro Pará"
   artist: "Joelma & Pedro Sampaio"
   genre: funk-pop
-  bpm: 80
+  bpm: 160
   key: 9A
   energy: 7
   status: downloaded
@@ -131,7 +131,7 @@
   artist: "Dennis"
   genre: funk-pop
   bpm: 135
-  key: 5A
+  key: 5B
   energy: 8
   status: downloaded
   tags: [funk-pop, eletrofunk, dance]
@@ -206,7 +206,7 @@
   artist: "Ludmilla"
   genre: funk-pop
   bpm: 129
-  key: 9A
+  key: 9B
   energy: 8
   status: downloaded
   tags: [funk-pop, baile, party]
@@ -215,8 +215,8 @@
 - title: "Olha a Explosão"
   artist: "MC Kevinho"
   genre: funk-pop
-  bpm: 90
-  key: 2A
+  bpm: 130
+  key: 1A
   energy: 9
   status: downloaded
   tags: [funk-pop, baile, peak, singalong]
@@ -225,7 +225,7 @@
   artist: "MC Kevinho"
   genre: funk-pop
   bpm: 130
-  key: 1A
+  key: 2A
   energy: 7
   status: downloaded
   tags: [funk-pop, baile]
@@ -244,7 +244,7 @@
   artist: "MC's Zaac & Jerry"
   genre: funk-pop
   bpm: 130
-  key: 7A
+  key: 12A
   energy: 8
   status: downloaded
   tags: [funk-pop, baile, peak]
@@ -280,7 +280,7 @@
 - title: "Fala Mal de Mim"
   artist: "Pedro Sampaio"
   genre: funk-pop
-  bpm: 82
+  bpm: 165
   key: 4B
   energy: 7
   status: downloaded
@@ -300,8 +300,8 @@
 - title: "Onda Diferente"
   artist: "Anitta, Ludmilla & Snoop Dogg"
   genre: funk-pop
-  bpm: null
-  key: null
+  bpm: 150
+  key: 12A
   energy: 7
   status: downloaded
   tags: [funk-pop, singalong, tiktok]
@@ -310,7 +310,7 @@
   artist: "MC Fioti"
   genre: funk-pop
   bpm: 132
-  key: 3A
+  key: 4A
   energy: 8
   status: downloaded
   tags: [funk-pop, baile, tiktok, viral]
@@ -328,8 +328,8 @@
 - title: "Sentadão"
   artist: "Pedro Sampaio, Felipe Original & JS o Mão de Ouro"
   genre: funk-pop
-  bpm: 87
-  key: 2A
+  bpm: 174
+  key: 2B
   energy: 8
   status: downloaded
   tags: [funk-pop, baile, tiktok]
@@ -365,8 +365,8 @@
 - title: "Malemolência"
   artist: "Dynho Alves"
   genre: funk-pop
-  bpm: 80
-  key: 11A
+  bpm: 160
+  key: 11B
   energy: 7
   status: downloaded
   tags: [funk-pop, funk]
@@ -406,7 +406,7 @@
   artist: "MC WM"
   genre: funk-pop
   bpm: 95
-  key: 2A
+  key: 1A
   energy: 8
   status: downloaded
   tags: [funk-pop]
@@ -437,3 +437,29 @@
   energy: 7
   status: downloaded
   tags: [funk-pop]
+
+- title: "MEGA JETSKI"
+  artist: "Huve, STEV"
+  genre: funk-pop
+  bpm: 130
+  key: 2A
+  energy: 8
+  duration: "2:52"
+  year: 2026
+  source: tidal
+  status: downloaded
+  tags: [funk-pop, mega-funk, remix]
+  notes: "Edit em cima de Jetski (Pedro Sampaio), que também está no pool. Arquivo na raiz da biblioteca (Tidal), já analisado no rekordbox; key espera o próximo XML. Energia estimada sem ouvir: confira."
+
+- title: "Ai Papai"
+  artist: "Anitta, MC Danny, Hitmaker"
+  genre: funk-pop
+  bpm: 168
+  key: 10A
+  energy: 8
+  duration: "2:28"
+  year: 2022
+  source: tidal
+  status: downloaded
+  tags: [funk-pop, baile, singalong]
+  notes: "Arquivo na raiz da biblioteca, já no rekordbox. Energia estimada sem ouvir: confira."

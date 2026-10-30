@@ -1,6 +1,6 @@
 # tracks/tech-house.yml — Tech House pool for the `tech-house` node (unordered).
 # Tech house global: groove de pista, peak-time (FISHER, CamelPhat, Chris Lake).
-# status: downloaded (subpasta tech-house/). bpm/key = null até o pull-bpm ler a análise do Serato.
+# status: downloaded (subpasta tech-house/). bpm/key = análise do rekordbox (XML de 2026-10-29); null ou valor do Serato onde ele não tem a faixa.
 
 - title: "Too Cool To Be Careless"
   artist: "PAWSA"
@@ -157,6 +157,7 @@
   energy: 9
   status: downloaded
   tags: [tech-house, peak]
+  notes: "No rekordbox está o FLAC da raiz da biblioteca (Tidal, 2026-10-29), mesma versão do mp3 de tech-house/, que não foi importado."
 
 - title: "Atmosphere"
   artist: "FISHER, Kita Alexander"
@@ -170,11 +171,13 @@
 - title: "Buggin'"
   artist: "Hot Since 82, Jem Cooke"
   genre: tech-house
-  bpm: 126
+  bpm: 124
   key: 9A
   energy: 7
+  duration: "8:25"
   status: downloaded
   tags: [tech-house]
+  notes: "No rekordbox está o FLAC da raiz da biblioteca (Tidal, 2026-10-29, 8:25), versão mais longa que o mp3 de tech-house/ (6:27), que não foi importado. bpm do rekordbox; key ainda do Serato."
 
 - title: "Sushi Pjanoo (DJ Baur Edit)"
   artist: "Merk & Kremont vs Pryda & Fisher"
@@ -239,3 +242,16 @@
   energy: 7
   status: downloaded
   tags: [tech-house, remix]
+
+- title: "Turn Off The Lights (Cloonee Remix)"
+  artist: "Chris Lake, Alexis Roberts, Cloonee"
+  genre: tech-house
+  bpm: 128
+  key: 9A
+  energy: 8
+  duration: "3:18"
+  year: 2022
+  source: tidal
+  status: downloaded
+  tags: [tech-house, remix, halloween]
+  notes: "Versão curta do Cloonee Remix; a Extended (6:16) é o mp3 de tech-house/, que não foi importado no rekordbox. Arquivo na raiz da biblioteca (Tidal), já analisado no rekordbox; key espera o próximo XML. Energia estimada sem ouvir: confira."

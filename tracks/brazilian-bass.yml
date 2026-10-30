@@ -1,11 +1,11 @@
 # tracks/brazilian-bass.yml — Brazilian Bass pool for the `brazilian-bass` node (unordered).
 # A lane Alok / Cat Dealers / JRD: house melódico brasileiro de festival.
-# status: downloaded (subpasta brazilian-bass/). bpm/key = null até o pull-bpm ler a análise do Serato.
+# status: downloaded (subpasta brazilian-bass/). bpm/key = análise do rekordbox (XML de 2026-10-29); null ou valor do Serato onde ele não tem a faixa.
 
 - title: "Tsunami"
   artist: "Alok x Ely Oaks"
   genre: brazilian-bass
-  bpm: 75
+  bpm: 150
   key: 2A
   energy: 7
   status: downloaded
@@ -24,7 +24,7 @@
   artist: "Alok, Kenny Dope feat. Ella Eyre & Crystal Waters"
   genre: brazilian-bass
   bpm: 122
-  key: 8A
+  key: 4A
   energy: 6
   status: downloaded
   tags: [brazilian-bass]
@@ -41,7 +41,7 @@
 - title: "Jungle"
   artist: "Alok, The Chainsmokers feat. Mae Stephens"
   genre: brazilian-bass
-  bpm: 70
+  bpm: 140
   key: 12A
   energy: 6
   status: downloaded
@@ -51,7 +51,7 @@
   artist: "Alok, Titãs feat. Bhaskar"
   genre: brazilian-bass
   bpm: 122
-  key: 9A
+  key: 9B
   energy: 6
   status: downloaded
   tags: [brazilian-bass]
@@ -95,7 +95,7 @@
 - title: "Piece Of Your Heart (Alok Extended Remix)"
   artist: "Meduza ft. Goodboys"
   genre: brazilian-bass
-  bpm: 124
+  bpm: 125
   key: 3A
   energy: 7
   status: downloaded
@@ -123,7 +123,7 @@
   artist: "Treyce feat. Santti, Malifoo"
   genre: brazilian-bass
   bpm: 128
-  key: 9A
+  key: 9B
   energy: 7
   status: downloaded
   tags: [brazilian-bass, br]

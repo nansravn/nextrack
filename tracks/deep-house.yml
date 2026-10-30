@@ -1,6 +1,6 @@
 # tracks/deep-house.yml — Deep House pool for the `deep-house` node (unordered).
 # Deep house e a onda deep/tropical de rádio de 2014–17 (Kygo, Robin Schulz, Duke Dumont).
-# status: downloaded (subpasta deep-house/). bpm/key = null até o pull-bpm ler a análise do Serato.
+# status: downloaded (subpasta deep-house/). bpm/key = análise do rekordbox (XML de 2026-10-29); null ou valor do Serato onde ele não tem a faixa.
 
 - title: "How Deep Is Your Love"
   artist: "Calvin Harris, Disciples"
@@ -33,7 +33,7 @@
   artist: "Duke Dumont feat. Jax Jones"
   genre: deep-house
   bpm: 121
-  key: 8A
+  key: 8B
   energy: 6
   status: downloaded
   tags: [deep-house]
@@ -42,7 +42,7 @@
   artist: "Felix Jaehn feat. Jasmine Thompson"
   genre: deep-house
   bpm: 118
-  key: 8B
+  key: 7A
   energy: 5
   status: downloaded
   tags: [deep-house, tropical]
@@ -51,7 +51,7 @@
   artist: "Jess Glynne feat. Route 94"
   genre: deep-house
   bpm: 120
-  key: 5A
+  key: 4A
   energy: 5
   status: downloaded
   tags: [deep-house]
@@ -69,7 +69,7 @@
   artist: "Khalid, Disclosure"
   genre: deep-house
   bpm: 120
-  key: 8A
+  key: 7A
   energy: 5
   status: downloaded
   tags: [deep-house, remix]
@@ -78,7 +78,7 @@
   artist: "Kings Of Tomorrow"
   genre: deep-house
   bpm: 128
-  key: 8A
+  key: 9A
   energy: 6
   status: downloaded
   tags: [deep-house, soulful, classic]
@@ -87,7 +87,7 @@
   artist: "Klingande"
   genre: deep-house
   bpm: 125
-  key: 8A
+  key: 8B
   energy: 5
   status: downloaded
   tags: [deep-house, remix]
@@ -96,7 +96,7 @@
   artist: "Kygo & Selena Gomez"
   genre: deep-house
   bpm: 120
-  key: 8A
+  key: 8B
   energy: 5
   status: downloaded
   tags: [deep-house, tropical, remix]
@@ -105,7 +105,7 @@
   artist: "Kygo feat. Conrad"
   genre: deep-house
   bpm: 124
-  key: 9A
+  key: 10A
   energy: 5
   status: downloaded
   tags: [deep-house, tropical, remix]
@@ -132,7 +132,7 @@
   artist: "Mabel"
   genre: deep-house
   bpm: 122
-  key: 12B
+  key: 11A
   energy: 5
   status: downloaded
   tags: [deep-house, remix]
@@ -141,7 +141,7 @@
   artist: "Michael Calfan"
   genre: deep-house
   bpm: 125
-  key: 9A
+  key: 9B
   energy: 5
   status: downloaded
   tags: [deep-house]
@@ -150,7 +150,7 @@
   artist: "Robin Schulz"
   genre: deep-house
   bpm: 122
-  key: 1B
+  key: 1A
   energy: 5
   status: downloaded
   tags: [deep-house, tropical]
@@ -159,7 +159,7 @@
   artist: "Sam Feldt feat. Kimberly Anne"
   genre: deep-house
   bpm: 121
-  key: 8A
+  key: 8B
   energy: 5
   status: downloaded
   tags: [deep-house, tropical]
@@ -168,7 +168,7 @@
   artist: "Seeb feat. Neev"
   genre: deep-house
   bpm: 120
-  key: 5A
+  key: 6A
   energy: 5
   status: downloaded
   tags: [deep-house, tropical]
@@ -177,7 +177,7 @@
   artist: "ZHU"
   genre: deep-house
   bpm: 125
-  key: 8A
+  key: 7A
   energy: 5
   status: downloaded
   tags: [deep-house]

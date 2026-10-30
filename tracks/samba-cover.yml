@@ -1,6 +1,6 @@
 # tracks/samba-cover.yml — Samba-cover pool for the `samba-cover` node (unordered).
 # Versões em samba de hits (Grupo Sambô). Lane acústica, de reconhecimento/roda.
-# status: downloaded (subpasta samba-cover/). bpm/key = null até analisar no Serato.
+# status: downloaded (subpasta samba-cover/). bpm/key = análise do rekordbox (XML de 2026-10-29); null ou valor do Serato onde ele não tem a faixa.
 
 - title: "Valerie"
   artist: "Sambô"
@@ -16,7 +16,7 @@
   artist: "Sambô"
   genre: samba-cover
   bpm: 115
-  key: 9A
+  key: 10B
   energy: 5
   status: downloaded
   tags: [samba-cover, cover, singalong]
@@ -26,7 +26,7 @@
   artist: "Sambô"
   genre: samba-cover
   bpm: 108
-  key: 8A
+  key: 7A
   energy: 5
   status: downloaded
   tags: [samba-cover, cover, singalong]
@@ -56,7 +56,7 @@
   artist: "Sambô"
   genre: samba-cover
   bpm: 124
-  key: 11A
+  key: 11B
   energy: 4
   status: downloaded
   tags: [samba-cover, samba]
@@ -65,7 +65,7 @@
   artist: "Sambô"
   genre: samba-cover
   bpm: 94
-  key: 8A
+  key: 7A
   energy: 4
   status: downloaded
   tags: [samba-cover, samba]
@@ -73,8 +73,8 @@
 - title: "Doidinha por Meu Samba / Caçamba"
   artist: "Sambô"
   genre: samba-cover
-  bpm: 70
-  key: 5A
+  bpm: 105
+  key: 7B
   energy: 5
   status: downloaded
   tags: [samba-cover, samba, medley]
@@ -91,8 +91,8 @@
 - title: "Falamansa Sambô (Xote dos Milagres / Xote da Alegria / Rindo à Toa)"
   artist: "Sambô"
   genre: samba-cover
-  bpm: 83
-  key: 9A
+  bpm: 166
+  key: 9B
   energy: 5
   status: downloaded
   tags: [samba-cover, medley]
@@ -103,7 +103,7 @@
   artist: "Oba Oba Samba House"
   genre: samba-cover
   bpm: 100
-  key: 9B
+  key: 10A
   energy: 6
   status: downloaded
   tags: [samba-cover, samba-house, cover, singalong]
@@ -113,7 +113,7 @@
   artist: "Oba Oba Samba House"
   genre: samba-cover
   bpm: 100
-  key: 5A
+  key: 6A
   energy: 7
   status: downloaded
   tags: [samba-cover, samba-house, cover, party]

@@ -1,7 +1,7 @@
 # tracks/funk-anos-2000.yml — Funk anos 2000 pool for the `funk-anos-2000` node (unordered).
 # A era Furacão 2000: funk melody, funk de bonde, passinho. Nostalgia de festa retrô.
 # status: downloaded = já está na sua pasta local (subpasta funk-anos-2000/).
-# bpm/key = null até analisar no Serato. energy = chute inicial, ajuste à vontade.
+# bpm/key = análise do rekordbox (XML de 2026-10-29); null ou valor do Serato onde ele não tem a faixa. energy = chute inicial, ajuste à vontade.
 
 # --- Furacão 2000 ---
 - title: "Tchu Tchuca"
@@ -16,8 +16,8 @@
 - title: "Passinho do Volante"
   artist: "Furacão 2000"
   genre: funk-anos-2000
-  bpm: 129
-  key: 8A
+  bpm: 130
+  key: 7A
   energy: 8
   status: downloaded
   tags: [funk-anos-2000, passinho, party, retro]
@@ -53,7 +53,7 @@
   artist: "Furacão 2000"
   genre: funk-anos-2000
   bpm: 127
-  key: 8A
+  key: 10A
   energy: 7
   status: downloaded
   tags: [funk-anos-2000, retro]
@@ -62,7 +62,7 @@
   artist: "Furacão 2000"
   genre: funk-anos-2000
   bpm: 127
-  key: 9A
+  key: 1A
   energy: 7
   status: downloaded
   tags: [funk-anos-2000, retro]
@@ -71,7 +71,7 @@
   artist: "Furacão 2000"
   genre: funk-anos-2000
   bpm: 129
-  key: 9A
+  key: 10A
   energy: 7
   status: downloaded
   tags: [funk-anos-2000, retro]
@@ -90,7 +90,7 @@
   artist: "Bonde do Tigrão"
   genre: funk-anos-2000
   bpm: 129
-  key: 9A
+  key: 11A
   energy: 8
   status: downloaded
   tags: [funk-anos-2000, funk-de-bonde, party, retro]
@@ -108,7 +108,7 @@
   artist: "MC Marcelly"
   genre: funk-anos-2000
   bpm: 130
-  key: 10A
+  key: 11A
   energy: 7
   status: downloaded
   tags: [funk-anos-2000, retro]
@@ -117,8 +117,8 @@
 - title: "Ela Só Pensa em Beijar"
   artist: "MC Leozinho"
   genre: funk-anos-2000
-  bpm: 129
-  key: 4A
+  bpm: 128
+  key: 8A
   energy: 8
   status: downloaded
   tags: [funk-anos-2000, funk-melody, singalong, retro]
@@ -127,8 +127,8 @@
 - title: "Tô Tranquilão"
   artist: "MC Leozinho"
   genre: funk-anos-2000
-  bpm: 129
-  key: null
+  bpm: 130
+  key: 1B
   energy: 7
   status: downloaded
   tags: [funk-anos-2000, funk-melody, retro]
@@ -155,7 +155,7 @@
   artist: "MC Sapão"
   genre: funk-anos-2000
   bpm: 132
-  key: 2A
+  key: 8A
   energy: 7
   status: downloaded
   tags: [funk-anos-2000, retro]
@@ -173,7 +173,7 @@
   artist: "MC Serginho"
   genre: funk-anos-2000
   bpm: 127
-  key: 2A
+  key: 3A
   energy: 8
   status: downloaded
   tags: [funk-anos-2000, party, retro]
@@ -183,7 +183,7 @@
   artist: "DJ Marlboro"
   genre: funk-anos-2000
   bpm: 130
-  key: 10A
+  key: 11A
   energy: 7
   status: downloaded
   tags: [funk-anos-2000, retro]
@@ -193,7 +193,7 @@
   artist: "DJ Marlboro"
   genre: funk-anos-2000
   bpm: 129
-  key: 5A
+  key: 4A
   energy: 7
   status: downloaded
   tags: [funk-anos-2000, retro]
@@ -203,7 +203,7 @@
   artist: "DJ Marlboro"
   genre: funk-anos-2000
   bpm: 128
-  key: 1A
+  key: 8A
   energy: 7
   status: downloaded
   tags: [funk-anos-2000, retro]
@@ -212,7 +212,7 @@
   artist: "DJ Marlboro"
   genre: funk-anos-2000
   bpm: 128
-  key: 2A
+  key: 12A
   energy: 7
   status: downloaded
   tags: [funk-anos-2000, retro]
@@ -221,7 +221,7 @@
   artist: "DJ Marlboro"
   genre: funk-anos-2000
   bpm: 128
-  key: 1A
+  key: 5A
   energy: 7
   status: downloaded
   tags: [funk-anos-2000, retro]
@@ -230,12 +230,12 @@
 - title: "Festa no Apê"
   artist: "Latino"
   genre: funk-anos-2000
-  bpm: null
-  key: null
+  bpm: 130
+  key: 8A
   energy: 8
   status: downloaded
   tags: [funk-anos-2000, pop-funk, singalong, retro]
-  notes: "3 arquivos na pasta (flac + 2 mp3, um deles remix 'Lalá')."
+  notes: "3 arquivos na pasta (flac + 2 mp3, um deles remix 'Lalá'). bpm/key da versão flac no rekordbox; o outro mp3 dá 132/8A e o remix 135/8B."
 
 - title: "Tremendo Vacilão"
   artist: "Perlla"
@@ -250,7 +250,7 @@
   artist: "Bonde do Tigrão"
   genre: funk-anos-2000
   bpm: 127
-  key: 10A
+  key: 11A
   energy: 8
   status: downloaded
   tags: [funk-anos-2000, funk-de-bonde, party, retro]

@@ -1,13 +1,13 @@
 # tracks/pop-dance.yml — Pop / Dance pool for the `pop-dance` node (unordered).
 # status: downloaded = já está na sua pasta local; to-download = ainda buscar.
-# bpm/key = null até analisar no Serato. energy = chute inicial, ajuste à vontade.
+# bpm/key = análise do rekordbox (XML de 2026-10-29); null ou valor do Serato onde ele não tem a faixa. energy = chute inicial, ajuste à vontade.
 
 - title: "Eu Gosto Assim (Dennis Remix)"
   artist: "Mari Fernandez"
   remixer: "Dennis"
   genre: pop-dance
   bpm: 145
-  key: null
+  key: 7A
   energy: 7
   status: downloaded
   tags: [remix, dancefloor, br, singalong]
@@ -18,7 +18,7 @@
   artist: "Bob Sinclar"
   genre: pop-dance
   bpm: 128
-  key: null
+  key: 3B
   energy: 6
   status: downloaded
   tags: [eletrohits, house, summer, singalong]
@@ -27,7 +27,7 @@
   artist: "Bob Sinclar"
   genre: pop-dance
   bpm: 128
-  key: null
+  key: 3A
   energy: 7
   status: downloaded
   tags: [eletrohits, house, party]
@@ -36,7 +36,7 @@
   artist: "Global Deejays"
   genre: pop-dance
   bpm: 129
-  key: null
+  key: 6A
   energy: 6
   status: downloaded
   tags: [eletrohits, eurodance, singalong]
@@ -44,8 +44,8 @@
 - title: "Movin On"
   artist: "Ian Van Dahl"
   genre: pop-dance
-  bpm: 132
-  key: null
+  bpm: 133
+  key: 10B
   energy: 7
   status: downloaded
   tags: [eletrohits, eurodance, trance]
@@ -54,7 +54,7 @@
   artist: "Moony"
   genre: pop-dance
   bpm: 127
-  key: null
+  key: 3B
   energy: 6
   status: downloaded
   tags: [eletrohits, eurodance]
@@ -63,7 +63,7 @@
   artist: "Eric Prydz"
   genre: pop-dance
   bpm: 126
-  key: null
+  key: 6B
   energy: 7
   status: downloaded
   tags: [eletrohits, house, singalong]
@@ -71,8 +71,8 @@
 - title: "Proper Education"
   artist: "Eric Prydz"
   genre: pop-dance
-  bpm: null
-  key: null
+  bpm: 125
+  key: 7A
   energy: 7
   status: downloaded
   tags: [eletrohits, house]
@@ -81,7 +81,7 @@
   artist: "David Guetta"
   genre: pop-dance
   bpm: 130
-  key: null
+  key: 10A
   energy: 7
   status: downloaded
   tags: [eletrohits, dance-pop, singalong]
@@ -90,7 +90,7 @@
   artist: "David Guetta"
   genre: pop-dance
   bpm: 126
-  key: null
+  key: 5A
   energy: 8
   status: downloaded
   tags: [eletrohits, dance-pop, singalong]
@@ -99,7 +99,7 @@
   artist: "David Guetta"
   genre: pop-dance
   bpm: 128
-  key: null
+  key: 9A
   energy: 7
   status: downloaded
   tags: [eletrohits, house]
@@ -108,7 +108,7 @@
   artist: "David Guetta"
   genre: pop-dance
   bpm: 130
-  key: null
+  key: 5B
   energy: 7
   status: downloaded
   tags: [eletrohits, dance-pop]
@@ -117,7 +117,7 @@
   artist: "Crazy Frog"
   genre: pop-dance
   bpm: 138
-  key: null
+  key: 7A
   energy: 7
   status: downloaded
   tags: [eletrohits, novelty, nostalgia]
@@ -126,7 +126,7 @@
   artist: "Basshunter"
   genre: pop-dance
   bpm: 145
-  key: null
+  key: 12A
   energy: 8
   status: downloaded
   tags: [eletrohits, eurodance, singalong]
@@ -134,8 +134,8 @@
 - title: "Pump It Up"
   artist: "Danzel"
   genre: pop-dance
-  bpm: 129
-  key: null
+  bpm: 130
+  key: 10A
   energy: 8
   status: downloaded
   tags: [eletrohits, eurodance, party]
@@ -144,7 +144,7 @@
   artist: "Swedish House Mafia"
   genre: pop-dance
   bpm: 129
-  key: null
+  key: 10A
   energy: 9
   status: downloaded
   tags: [eletrohits, house, euphoric, singalong]
@@ -153,7 +153,7 @@
   artist: "Swedish House Mafia"
   genre: pop-dance
   bpm: 125
-  key: null
+  key: 7A
   energy: 8
   status: downloaded
   tags: [eletrohits, house, peak]
@@ -162,7 +162,7 @@
   artist: "Duck Sauce"
   genre: pop-dance
   bpm: 128
-  key: null
+  key: 1A
   energy: 8
   status: downloaded
   tags: [eletrohits, house, fun]
@@ -171,7 +171,7 @@
   artist: "Get Far"
   genre: pop-dance
   bpm: 127
-  key: null
+  key: 6A
   energy: 7
   status: downloaded
   tags: [eletrohits, eurodance]
@@ -180,7 +180,7 @@
   artist: "DJ Ross"
   genre: pop-dance
   bpm: 130
-  key: null
+  key: 8A
   energy: 7
   status: downloaded
   tags: [eletrohits, eurodance]
@@ -189,7 +189,7 @@
   artist: "Royal Gigolos"
   genre: pop-dance
   bpm: 130
-  key: null
+  key: 12A
   energy: 7
   status: downloaded
   tags: [eletrohits, eurodance]
@@ -197,8 +197,8 @@
 - title: "The Killer's Song"
   artist: "Carolina Marquez"
   genre: pop-dance
-  bpm: null
-  key: null
+  bpm: 128
+  key: 6A
   energy: 7
   status: downloaded
   tags: [eletrohits, eurodance]
@@ -207,7 +207,7 @@
   artist: "Far East Movement"
   genre: pop-dance
   bpm: 125
-  key: null
+  key: 6A
   energy: 7
   status: downloaded
   tags: [eletrohits, dance-pop]
@@ -216,7 +216,7 @@
   artist: "Tony Igy"
   genre: pop-dance
   bpm: 126
-  key: null
+  key: 11A
   energy: 7
   status: downloaded
   tags: [eletrohits, house]
@@ -226,7 +226,7 @@
   artist: "20 Fingers"
   genre: pop-dance
   bpm: 124
-  key: 4A
+  key: 3A
   energy: 7
   status: downloaded
   tags: [pop-dance, eurodance, remix]
@@ -235,7 +235,7 @@
   artist: "Alesso feat. Tove Lo"
   genre: pop-dance
   bpm: 126
-  key: 7A
+  key: 4A
   energy: 7
   status: downloaded
   tags: [pop-dance, edm]
@@ -261,8 +261,8 @@
 - title: "Satisfaction (A Capella)"
   artist: "Benny Benassi pres. The Biz"
   genre: pop-dance
-  bpm: 130
-  key: 2A
+  bpm: 95
+  key: 4B
   energy: 8
   status: downloaded
   tags: [pop-dance, acapella, tool, eletrohits]
@@ -281,7 +281,7 @@
   artist: "Calvin Harris, Rihanna"
   genre: pop-dance
   bpm: 124
-  key: 8A
+  key: 8B
   energy: 7
   status: downloaded
   tags: [pop-dance]
@@ -299,7 +299,7 @@
   artist: "David Guetta & OneRepublic"
   genre: pop-dance
   bpm: 130
-  key: 12A
+  key: 12B
   energy: 7
   status: downloaded
   tags: [pop-dance]
@@ -317,7 +317,7 @@
   artist: "Deep Josh, Luisen Merino"
   genre: pop-dance
   bpm: 128
-  key: 9A
+  key: 7A
   energy: 8
   status: downloaded
   tags: [pop-dance, remix, rock-anthem]
@@ -337,7 +337,7 @@
   artist: "Dua Lipa"
   genre: pop-dance
   bpm: 124
-  key: 9A
+  key: 10A
   energy: 7
   status: downloaded
   tags: [pop-dance]
@@ -346,7 +346,7 @@
   artist: "Dua Lipa"
   genre: pop-dance
   bpm: 124
-  key: 9A
+  key: 10A
   energy: 7
   status: downloaded
   tags: [pop-dance]
@@ -373,7 +373,7 @@
   artist: "Galantis"
   genre: pop-dance
   bpm: 126
-  key: 3B
+  key: 3A
   energy: 8
   status: downloaded
   tags: [pop-dance, edm]
@@ -382,7 +382,7 @@
   artist: "Jack Ü, Skrillex, Diplo feat. Justin Bieber"
   genre: pop-dance
   bpm: 126
-  key: 9A
+  key: 9B
   energy: 7
   status: downloaded
   tags: [pop-dance]
@@ -418,8 +418,8 @@
 - title: "Can't Get Over (Dimy Soler 2022 Remix) (Radio Edit)"
   artist: "kasino"
   genre: pop-dance
-  bpm: 124
-  key: 5B
+  bpm: 145
+  key: 5A
   energy: 7
   status: downloaded
   tags: [pop-dance, eurodance, remix]
@@ -446,7 +446,7 @@
   artist: "Magic Box"
   genre: pop-dance
   bpm: 130
-  key: 1A
+  key: 1B
   energy: 8
   status: downloaded
   tags: [pop-dance, eurodance, eletrohits]
@@ -455,7 +455,7 @@
   artist: "Manu Gavassi"
   genre: pop-dance
   bpm: 95
-  key: 2A
+  key: 3A
   energy: 5
   status: downloaded
   tags: [pop-dance, br, pop]
@@ -465,7 +465,7 @@
   artist: "Marshmello x Bastille"
   genre: pop-dance
   bpm: 100
-  key: 7A
+  key: 7B
   energy: 6
   status: downloaded
   tags: [pop-dance, edm]
@@ -483,7 +483,7 @@
   artist: "Mike Posner"
   genre: pop-dance
   bpm: 102
-  key: 5A
+  key: 6A
   energy: 6
   status: downloaded
   tags: [pop-dance, remix]
@@ -510,7 +510,7 @@
   artist: "Oliver Heldens, Becky Hill"
   genre: pop-dance
   bpm: 125
-  key: 5A
+  key: 6A
   energy: 7
   status: downloaded
   tags: [pop-dance]
@@ -529,7 +529,7 @@
   artist: "Sia"
   genre: pop-dance
   bpm: 128
-  key: 11A
+  key: 11B
   energy: 7
   status: downloaded
   tags: [pop-dance]
@@ -547,7 +547,7 @@
 - title: "Don't Let Me Down (PS Project & Anngel D Remix)"
   artist: "The Chainsmokers feat. Daya"
   genre: pop-dance
-  bpm: 124
+  bpm: 125
   key: 1A
   energy: 7
   status: downloaded
@@ -565,8 +565,8 @@
 - title: "Sweet Dreams (A Cappella Holly Henry Cover)"
   artist: "The Eurythmics"
   genre: pop-dance
-  bpm: 87
-  key: 6A
+  bpm: 97
+  key: 5A
   energy: 4
   status: downloaded
   tags: [pop-dance, acapella, tool, 80s]
@@ -599,3 +599,29 @@
   energy: 7
   status: downloaded
   tags: [pop-dance]
+
+- title: "Pjanoo (Club Mix)"
+  artist: "Eric Prydz"
+  genre: pop-dance
+  bpm: 126
+  key: 6A
+  energy: 8
+  duration: "7:30"
+  year: 2008
+  source: tidal
+  status: downloaded
+  tags: [pop-dance, eletrohits, house, instrumental]
+  notes: "O original que as mashups Pjanoo Evila e Sushi Pjanoo (pool tech-house) citam. Arquivo na raiz da biblioteca (Tidal), já analisado no rekordbox; key espera o próximo XML. Energia estimada sem ouvir: confira."
+
+- title: "Thriller (Steve Aoki Midnight Hour Remix)"
+  artist: "Michael Jackson"
+  genre: pop-dance
+  bpm: 125
+  key: 12A
+  energy: 8
+  duration: "5:00"
+  year: 2017
+  source: tidal
+  status: downloaded
+  tags: [pop-dance, remix, 80s, halloween]
+  notes: "O Thriller da lista de compras do Halloween 2026, em versão de pista. Arquivo na raiz da biblioteca. Energia estimada sem ouvir: confira."

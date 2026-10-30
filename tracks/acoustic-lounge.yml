@@ -1,11 +1,11 @@
 # tracks/acoustic-lounge.yml — Acoustic / Lounge pool for the `acoustic-lounge` node (unordered).
 # Acústico / lounge: fundo pra brunch e jantar (Jack Johnson, Bublé).
-# status: downloaded (subpasta acoustic-lounge/). bpm/key = null até o pull-bpm ler a análise do Serato.
+# status: downloaded (subpasta acoustic-lounge/). bpm/key = análise do rekordbox (XML de 2026-10-29); null ou valor do Serato onde ele não tem a faixa.
 
 - title: "Banana Pancakes"
   artist: "Jack Johnson"
   genre: acoustic-lounge
-  bpm: 85
+  bpm: 115
   key: 9B
   energy: 2
   status: downloaded
@@ -15,7 +15,7 @@
   artist: "Jack Johnson"
   genre: acoustic-lounge
   bpm: 110
-  key: 8B
+  key: 7B
   energy: 2
   status: downloaded
   tags: [acoustic-lounge, acoustic, breakfast]
@@ -23,8 +23,8 @@
 - title: "Escape (The Pina Colada Song)"
   artist: "Jack Johnson"
   genre: acoustic-lounge
-  bpm: 135
-  key: 11B
+  bpm: 136
+  key: 8A
   energy: 2
   status: downloaded
   tags: [acoustic-lounge, acoustic, breakfast]
@@ -33,7 +33,7 @@
   artist: "Jack Johnson"
   genre: acoustic-lounge
   bpm: 98
-  key: 12B
+  key: 1B
   energy: 2
   status: downloaded
   tags: [acoustic-lounge, acoustic, breakfast]
@@ -41,7 +41,7 @@
 - title: "Upside Down"
   artist: "Jack Johnson"
   genre: acoustic-lounge
-  bpm: 103
+  bpm: 102
   key: 12B
   energy: 2
   status: downloaded
@@ -50,7 +50,7 @@
 - title: "Feeling Good"
   artist: "Michael Bublé"
   genre: acoustic-lounge
-  bpm: 115
+  bpm: 77
   key: 2A
   energy: 4
   status: downloaded
@@ -59,8 +59,8 @@
 - title: "I'm Feeling Good (minus)"
   artist: "Michael Bublé"
   genre: acoustic-lounge
-  bpm: 116
-  key: 4A
+  bpm: 97
+  key: 2A
   energy: 3
   status: downloaded
   tags: [acoustic-lounge, jazz-pop, instrumental]

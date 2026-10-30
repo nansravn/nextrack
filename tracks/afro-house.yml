@@ -1,6 +1,6 @@
 # tracks/afro-house.yml — Afro House pool for the `afro-house` node (unordered).
 # Afro house global (lane Black Coffee / Keinemusik).
-# status: downloaded (subpasta afro-house/). bpm/key = null até o pull-bpm ler a análise do Serato.
+# status: downloaded (subpasta afro-house/). bpm/key = análise do rekordbox (XML de 2026-10-29); null ou valor do Serato onde ele não tem a faixa.
 
 - title: "Drive"
   artist: "Black Coffee, David Guetta feat. Delilah Montagu"
@@ -10,3 +10,30 @@
   energy: 6
   status: downloaded
   tags: [afro-house]
+  notes: "Toque o FLAC da raiz da biblioteca (Tidal, 2026-10-29), de melhor qualidade. O mp3 antigo em afro-house/ também está no rekordbox: tire ele de lá pra não carregar o errado."
+
+- title: "The Rapture Pt.III"
+  artist: "&ME, Black Coffee"
+  genre: afro-house
+  bpm: 120
+  key: 8A
+  energy: 6
+  duration: "6:57"
+  year: 2023
+  source: tidal
+  status: downloaded
+  tags: [afro-house, melodic, dark]
+  notes: "Arquivo na raiz da biblioteca (Tidal), já analisado no rekordbox; key espera o próximo XML. Energia estimada sem ouvir: confira."
+
+- title: "We Dance Again"
+  artist: "Black Coffee, Nakhana"
+  genre: afro-house
+  bpm: 122
+  key: 10A
+  energy: 6
+  duration: "4:41"
+  year: 2015
+  source: tidal
+  status: downloaded
+  tags: [afro-house, vocal]
+  notes: "Arquivo na raiz da biblioteca (Tidal), já analisado no rekordbox; key espera o próximo XML. Energia estimada sem ouvir: confira."
