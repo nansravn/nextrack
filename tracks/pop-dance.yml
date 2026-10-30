@@ -1,6 +1,6 @@
 # tracks/pop-dance.yml — Pop / Dance pool for the `pop-dance` node (unordered).
 # status: downloaded = já está na sua pasta local; to-download = ainda buscar.
-# bpm/key = análise do rekordbox (XML de 2026-10-29); null ou valor do Serato onde ele não tem a faixa. energy = chute inicial, ajuste à vontade.
+# bpm/key = análise do rekordbox; null ou valor do Serato onde ele não tem a faixa. energy = chute inicial, ajuste à vontade.
 
 - title: "Eu Gosto Assim (Dennis Remix)"
   artist: "Mari Fernandez"
@@ -608,10 +608,9 @@
   energy: 8
   duration: "7:30"
   year: 2008
-  source: tidal
   status: downloaded
   tags: [pop-dance, eletrohits, house, instrumental]
-  notes: "O original que as mashups Pjanoo Evila e Sushi Pjanoo (pool tech-house) citam. Arquivo na raiz da biblioteca (Tidal), já analisado no rekordbox; key espera o próximo XML. Energia estimada sem ouvir: confira."
+  notes: "O original que as mashups Pjanoo Evila e Sushi Pjanoo (pool tech-house) citam. Energia estimada sem ouvir: confira."
 
 - title: "Thriller (Steve Aoki Midnight Hour Remix)"
   artist: "Michael Jackson"
@@ -621,7 +620,6 @@
   energy: 8
   duration: "5:00"
   year: 2017
-  source: tidal
   status: downloaded
   tags: [pop-dance, remix, 80s, halloween]
-  notes: "O Thriller da lista de compras do Halloween 2026, em versão de pista. Arquivo na raiz da biblioteca. Energia estimada sem ouvir: confira."
+  notes: "Thriller em versão de pista. Energia estimada sem ouvir: confira."

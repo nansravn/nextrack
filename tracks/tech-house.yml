@@ -1,6 +1,6 @@
 # tracks/tech-house.yml — Tech House pool for the `tech-house` node (unordered).
 # Tech house global: groove de pista, peak-time (FISHER, CamelPhat, Chris Lake).
-# status: downloaded (subpasta tech-house/). bpm/key = análise do rekordbox (XML de 2026-10-29); null ou valor do Serato onde ele não tem a faixa.
+# status: downloaded (subpasta tech-house/). bpm/key = análise do rekordbox; null ou valor do Serato onde ele não tem a faixa.
 
 - title: "Too Cool To Be Careless"
   artist: "PAWSA"
@@ -10,7 +10,6 @@
   energy: 8
   status: downloaded
   tags: [tech-house]
-  notes: "bpm/key lidos à mão da análise do Serato. O arquivo perdeu o prefixo '01 - ' em 2026-10-30 e está fora do rekordbox. Há uma cópia idêntica em Downloads/."
 
 - title: "Baianá (Jack Back Club Mix)"
   artist: "Barbatuques"
@@ -157,7 +156,6 @@
   energy: 9
   status: downloaded
   tags: [tech-house, peak]
-  notes: "No rekordbox está o FLAC da raiz da biblioteca (Tidal, 2026-10-29), mesma versão do mp3 de tech-house/, que não foi importado."
 
 - title: "Atmosphere"
   artist: "FISHER, Kita Alexander"
@@ -177,7 +175,6 @@
   duration: "8:25"
   status: downloaded
   tags: [tech-house]
-  notes: "No rekordbox está o FLAC da raiz da biblioteca (Tidal, 2026-10-29, 8:25), versão mais longa que o mp3 de tech-house/ (6:27), que não foi importado. bpm do rekordbox; key ainda do Serato."
 
 - title: "Sushi Pjanoo (DJ Baur Edit)"
   artist: "Merk & Kremont vs Pryda & Fisher"
@@ -251,7 +248,6 @@
   energy: 8
   duration: "3:18"
   year: 2022
-  source: tidal
   status: downloaded
   tags: [tech-house, remix, halloween]
-  notes: "Versão curta do Cloonee Remix; a Extended (6:16) é o mp3 de tech-house/, que não foi importado no rekordbox. Arquivo na raiz da biblioteca (Tidal), já analisado no rekordbox; key espera o próximo XML. Energia estimada sem ouvir: confira."
+  notes: "Versão curta do Cloonee Remix. Energia estimada sem ouvir: confira."

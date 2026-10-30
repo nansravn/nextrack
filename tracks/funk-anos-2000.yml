@@ -1,7 +1,7 @@
 # tracks/funk-anos-2000.yml — Funk anos 2000 pool for the `funk-anos-2000` node (unordered).
 # A era Furacão 2000: funk melody, funk de bonde, passinho. Nostalgia de festa retrô.
 # status: downloaded = já está na sua pasta local (subpasta funk-anos-2000/).
-# bpm/key = análise do rekordbox (XML de 2026-10-29); null ou valor do Serato onde ele não tem a faixa. energy = chute inicial, ajuste à vontade.
+# bpm/key = análise do rekordbox; null ou valor do Serato onde ele não tem a faixa. energy = chute inicial, ajuste à vontade.
 
 # --- Furacão 2000 ---
 - title: "Tchu Tchuca"
@@ -235,7 +235,7 @@
   energy: 8
   status: downloaded
   tags: [funk-anos-2000, pop-funk, singalong, retro]
-  notes: "3 arquivos na pasta (flac + 2 mp3, um deles remix 'Lalá'). bpm/key da versão flac no rekordbox; o outro mp3 dá 132/8A e o remix 135/8B."
+  notes: "3 versões na pasta: duas originais e o remix 'Lalá'. bpm/key da de 130 BPM (a outra original dá 132; o remix, 135/8B)."
 
 - title: "Tremendo Vacilão"
   artist: "Perlla"

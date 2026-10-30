@@ -1,6 +1,6 @@
 # tracks/samba-pagode.yml — Samba / Pagode pool for the `samba-pagode` node (unordered).
 # Pagode romântico e moderno (Thiaguinho, Péricles, Dilsinho, Pixote).
-# status: downloaded (subpasta samba-pagode/). bpm/key = análise do rekordbox (XML de 2026-10-29); null ou valor do Serato onde ele não tem a faixa.
+# status: downloaded (subpasta samba-pagode/). bpm/key = análise do rekordbox; null ou valor do Serato onde ele não tem a faixa.
 
 - title: "Chá De Cama"
   artist: "Akatu, Dilsinho"

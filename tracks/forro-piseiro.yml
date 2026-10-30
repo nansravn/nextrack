@@ -1,6 +1,6 @@
 # tracks/forro-piseiro.yml — Piseiro pool for the `forro-piseiro` node (unordered).
 # status: downloaded = já está na sua pasta local; to-download = ainda buscar.
-# bpm/key = análise do rekordbox (XML de 2026-10-29); null ou valor do Serato onde ele não tem a faixa. energy = chute inicial, ajuste à vontade.
+# bpm/key = análise do rekordbox; null ou valor do Serato onde ele não tem a faixa. energy = chute inicial, ajuste à vontade.
 # subgênero + vibe vivem em `tags` (piseiro / pisadinha / arrocha / brega-pop).
 
 # --- Nattan ---
@@ -68,7 +68,7 @@
   status: downloaded
   tags: [piseiro, arrocha, romantic]
 
-- title: "Love Gostosinho"
+- title: "Love Gostosinho (Ao Vivo)"
   artist: "Nattan e Felipe Amorim"
   genre: forro-piseiro
   bpm: 142
@@ -86,7 +86,7 @@
   energy: 7
   status: downloaded
   tags: [piseiro, pisadinha]
-  notes: "Mesma gravação creditada também a Tarcísio do Acordeon. Ficou só o flac; o mp3 era o mesmo áudio e foi pra lixeira."
+  notes: "Mesma gravação creditada também a Tarcísio do Acordeon."
 
 - title: "Volta Bebê, Volta Neném"
   artist: "DJ Ivis"
@@ -108,15 +108,6 @@
   notes: "Há também uma 'Volta comigo bb' do Zé Vaqueiro na pasta — confirme se é a mesma música."
 
 # --- Os Barões da Pisadinha ---
-- title: "Amor Falso"
-  artist: "Os Barões da Pisadinha"
-  genre: forro-piseiro
-  bpm: 172
-  key: 9A
-  energy: 7
-  status: downloaded
-  tags: [pisadinha, singalong]
-
 - title: "Batom de Cereja, Eu Bebo Cê Beija"
   artist: "Os Barões da Pisadinha"
   genre: forro-piseiro
@@ -127,7 +118,7 @@
   tags: [pisadinha, singalong]
   notes: "O nome do arquivo junta duas músicas ('Batom de Cereja' + 'Eu Bebo Cê Beija') — pode ser medley/2 faixas; confirme."
 
-- title: "Recairei"
+- title: "Recairei (Ao Vivo)"
   artist: "Os Barões da Pisadinha"
   genre: forro-piseiro
   bpm: 168
@@ -217,7 +208,7 @@
 - title: "Volta comigo bb"
   artist: "Zé Vaqueiro"
   genre: forro-piseiro
-  bpm: 82
+  bpm: 164
   key: 1A
   energy: 6
   status: downloaded
@@ -342,20 +333,33 @@
   tags: [piseiro, arrocha, romantic]
 
 # --- Arquivos que estavam soltos na raiz da biblioteca (organizados em 2026-10-24) ---
-- title: "Falso amor"
-  artist: "Aldair PlayBoy"
+- title: "Amor Falso"
+  artist: "Aldair Playboy"
   genre: forro-piseiro
-  bpm: 77
-  key: 1B
+  bpm: 154
+  key: 12A
   energy: 6
   status: downloaded
   tags: [forro-piseiro]
-  notes: "Já tem cue marcado no Serato."
+  duration: "2:57"
+  year: 2018
 
-- title: "Se Joga No Passinho Post"
+- title: "Amor Falso"
+  artist: "Wesley Safadão, Aldair Playboy, Mc Kevinho"
+  genre: forro-piseiro
+  bpm: 154
+  key: 12A
+  energy: 7
+  duration: "2:57"
+  year: 2022
+  status: downloaded
+  tags: [forro-piseiro, piseiro, singalong]
+  notes: "A versão com Wesley Safadão e MC Kevinho do Amor Falso do Aldair Playboy: mesmo BPM e tom da solo. Energia estimada sem ouvir: confira."
+
+- title: "Se Joga no Passinho"
   artist: "Brisa Star ft Thiago Jhonathan"
   genre: forro-piseiro
-  bpm: 84
+  bpm: 168
   key: 10A
   energy: 7
   status: downloaded
@@ -365,7 +369,7 @@
   artist: "Kadu Martins"
   genre: forro-piseiro
   bpm: 95
-  key: 9A
+  key: 10A
   energy: 7
   status: downloaded
   tags: [forro-piseiro]
@@ -373,8 +377,20 @@
 - title: "Vou Dar Virote (Ao Vivo)"
   artist: "Wesley Safadão"
   genre: forro-piseiro
-  bpm: 110
-  key: 12B
+  bpm: 166
+  key: 12A
   energy: 7
   status: downloaded
   tags: [forro-piseiro, ao-vivo, forro-eletronico]
+
+- title: "Meu Pai Paga Minha Faculdade / Mexe Essa Sanfona / Eu Vou Pra Vaquejada / Vuco Vuco / Rei Do Baralho / Sala De Reboco"
+  artist: "Filho do Piseiro, Claudio Ney & Juliana"
+  genre: forro-piseiro
+  bpm: 186
+  key: 9A
+  energy: 7
+  duration: "6:31"
+  year: 2026
+  status: downloaded
+  tags: [forro-piseiro, forro, medley]
+  notes: "Medley de forró de 6:31. O rekordbox lê 186 BPM, provavelmente o dobro de 93. Energia estimada sem ouvir: confira."

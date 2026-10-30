@@ -1,6 +1,6 @@
 # tracks/nu-disco-funk.yml — Nu-Disco / Funk pool for the `nu-disco-funk` node (unordered).
 # Nu-disco, French touch, indie dance e boogie anos 80.
-# status: downloaded (subpasta nu-disco-funk/). bpm/key = análise do rekordbox (XML de 2026-10-29); null ou valor do Serato onde ele não tem a faixa.
+# status: downloaded (subpasta nu-disco-funk/). bpm/key = análise do rekordbox; null ou valor do Serato onde ele não tem a faixa.
 
 - title: "Shooting star (Instrumental)"
   artist: "Bag Raiders"
@@ -38,8 +38,7 @@
   status: downloaded
   tags: [nu-disco-funk, french-touch]
 
-# Remakes house de clássicos com nome de fantasma, comprados no Tidal pro Halloween
-# 2026. Os arquivos estão soltos na raiz da biblioteca, já como "Artista - Título".
+# Remakes house de clássicos com nome de fantasma.
 
 - title: "Carribean Queen"
   artist: "Ghostbusterz"
@@ -49,7 +48,6 @@
   energy: 6
   duration: "4:26"
   year: 2024
-  source: tidal
   status: downloaded
   tags: [nu-disco-funk, remake, 80s, halloween]
   notes: "Remake house de Caribbean Queen (Billy Ocean); o título usa a grafia do lançamento. Energia estimada sem ouvir: confira."
@@ -62,7 +60,6 @@
   energy: 6
   duration: "4:46"
   year: 2021
-  source: tidal
   status: downloaded
   tags: [nu-disco-funk, disco-house, remake, 60s, halloween]
   notes: "Disco house sobre California Dreamin' (The Mamas & the Papas), selo Guareber Recordings. Energia estimada sem ouvir: confira."
@@ -75,7 +72,6 @@
   energy: 6
   duration: "4:57"
   year: 2022
-  source: tidal
   status: downloaded
   tags: [nu-disco-funk, disco-house, remake, 60s, halloween]
   notes: "Disco house sobre (I Can't Get No) Satisfaction (Rolling Stones), selo Guareber Recordings. Energia estimada sem ouvir: confira."

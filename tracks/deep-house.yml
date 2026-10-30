@@ -1,6 +1,6 @@
 # tracks/deep-house.yml — Deep House pool for the `deep-house` node (unordered).
 # Deep house e a onda deep/tropical de rádio de 2014–17 (Kygo, Robin Schulz, Duke Dumont).
-# status: downloaded (subpasta deep-house/). bpm/key = análise do rekordbox (XML de 2026-10-29); null ou valor do Serato onde ele não tem a faixa.
+# status: downloaded (subpasta deep-house/). bpm/key = análise do rekordbox; null ou valor do Serato onde ele não tem a faixa.
 
 - title: "How Deep Is Your Love"
   artist: "Calvin Harris, Disciples"

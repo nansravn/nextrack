@@ -47,7 +47,7 @@ mandelão / baile").
 - Mais curto: corta do 5 direto pro 12.
 - Mais mandelão: Cabra Guaraná — Eu quero é botar meu remix na rua (e7)
 - Mais rápido, Cabra Guaraná: Cabra Guarana, Tynkato Android - Toma Falsiane (e7, 170) · Anitta, Cabra Guaraná - Os Boi Não Chora (e7, 176)
-- Se importar o arquivo: MC Danny — Toma Toma Vapo Vapo (e8, 164)
+- Mais MC Danny: MC Danny — Toma Toma Vapo Vapo (e8, 164, 10A)
 - Mais pop: Pedro Sampaio — Atenção (e7) · Ludmilla — Verdinha (e7)
 
 ## Bridge out

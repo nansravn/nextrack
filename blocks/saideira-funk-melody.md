@@ -6,7 +6,7 @@ duration: 20m              # 30m de áudio
 genres: [funk-anos-2000, funk-pop]
 bpm: [122, 132]
 energy: [7, 6]             # funk melody cantado -> "tem café": hora de ir pra casa
-key_journey: 11A -> 11B -> 12A -> 1B -> 3A -> 8A -> 9A   # open-format: a harmonia pesa menos
+key_journey: 11A -> 11B -> 12A -> 1B -> 3A -> 8A -> 9A -> 8A   # open-format: a harmonia pesa menos
 lightshow: null            # -> ../lightshows/saideira-funk-melody.md (futuro)
 ---
 
@@ -28,14 +28,14 @@ e Glamourosa entra (brazilian-funk → funk-anos-2000, "same family, retro").
 6. MC Leozinho — Só Zueira                      · 3A  · 129 · e7
 7. MC Sapão — Vou Desafiar Você                 · 8A  · 132 · e7
 8. Perlla — Tremendo Vacilão                    · 9A  · 129 · e7  o penúltimo
-9. DENNIS, Gaab — Tem Café                      · 9A  · 122 · e6  a última: tem café, hora de ir pra casa
+9. DENNIS, Gaab — Tem Café                      · 8A  · 122 · e6  a última: tem café, hora de ir pra casa
 
 ## Transitions  (style: open-format)
 - Padrão: corte no fim do refrão, volume do mestre descendo aos poucos ao longo do bloco.
 - 1→5: 11A → 11A → 11B → 12A → 1B, tudo vizinho: dá pra blend curto.
 - 5→7: 1B → 3A → 8A não casa: corte no fim do refrão.
-- 7→9: 8A → 9A → 9A, blend curto até a última.
-- 9: Tem Café toca inteira, sem cortar. Quando acabar, acabou. Ela ainda não está no rekordbox: importa antes da festa. Se não der, a noite fecha no 8 (Tremendo Vacilão).
+- 7→9: 8A → 9A → 8A, tudo vizinho: blend curto até a última.
+- 9: Tem Café toca inteira, sem cortar. Quando acabar, acabou.
 
 ## Swap options (flutue com a pista)
 - Mais Leozinho/Sapão: MC Sapão — Tô Tranquilão (Dennis 2005) (e7)

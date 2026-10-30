@@ -1,6 +1,6 @@
 # tracks/sertanejo.yml — Sertanejo pool for the `sertanejo` node (unordered).
 # Sertanejo universitário, sofrência e agronejo.
-# status: downloaded (subpasta sertanejo/). bpm/key = análise do rekordbox (XML de 2026-10-29); null ou valor do Serato onde ele não tem a faixa.
+# status: downloaded (subpasta sertanejo/). bpm/key = análise do rekordbox; null ou valor do Serato onde ele não tem a faixa.
 
 - title: "Pipoco"
   artist: "Ana Castela"
