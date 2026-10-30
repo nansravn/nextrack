@@ -1,11 +1,11 @@
 # tracks/samba-pagode.yml — Samba / Pagode pool for the `samba-pagode` node (unordered).
 # Pagode romântico e moderno (Thiaguinho, Péricles, Dilsinho, Pixote).
-# status: downloaded (subpasta samba-pagode/). bpm/key = null até o pull-bpm ler a análise do Serato.
+# status: downloaded (subpasta samba-pagode/). bpm/key = análise do rekordbox (XML de 2026-10-29); null ou valor do Serato onde ele não tem a faixa.
 
 - title: "Chá De Cama"
   artist: "Akatu, Dilsinho"
   genre: samba-pagode
-  bpm: 74
+  bpm: 148
   key: 6A
   energy: 5
   status: downloaded
@@ -14,8 +14,8 @@
 - title: "Controle Remoto"
   artist: "Dilsinho"
   genre: samba-pagode
-  bpm: 74
-  key: 9A
+  bpm: 148
+  key: 10B
   energy: 5
   status: downloaded
   tags: [samba-pagode]
@@ -23,8 +23,8 @@
 - title: "Frenesi"
   artist: "Pixote"
   genre: samba-pagode
-  bpm: 88
-  key: 8A
+  bpm: 176
+  key: 10B
   energy: 5
   status: downloaded
   tags: [samba-pagode]
@@ -32,8 +32,8 @@
 - title: "Insegurança"
   artist: "Pixote feat. LUDMILLA"
   genre: samba-pagode
-  bpm: 86
-  key: 5A
+  bpm: 172
+  key: 6B
   energy: 5
   status: downloaded
   tags: [samba-pagode]
@@ -42,7 +42,7 @@
   artist: "Péricles"
   genre: samba-pagode
   bpm: 112
-  key: 9A
+  key: 11B
   energy: 6
   status: downloaded
   tags: [samba-pagode]
@@ -51,7 +51,7 @@
   artist: "Thiaguinho"
   genre: samba-pagode
   bpm: 96
-  key: 6A
+  key: 8B
   energy: 6
   status: downloaded
   tags: [samba-pagode]
@@ -59,7 +59,7 @@
 - title: "Sou o Cara Pra Você"
   artist: "Thiaguinho"
   genre: samba-pagode
-  bpm: 77
+  bpm: 154
   key: 1A
   energy: 5
   status: downloaded
@@ -69,7 +69,7 @@
   artist: "Thiaguinho"
   genre: samba-pagode
   bpm: 105
-  key: 5A
+  key: 8B
   energy: 7
   status: downloaded
   tags: [samba-pagode]

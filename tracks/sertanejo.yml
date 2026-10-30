@@ -1,6 +1,6 @@
 # tracks/sertanejo.yml — Sertanejo pool for the `sertanejo` node (unordered).
 # Sertanejo universitário, sofrência e agronejo.
-# status: downloaded (subpasta sertanejo/). bpm/key = null até o pull-bpm ler a análise do Serato.
+# status: downloaded (subpasta sertanejo/). bpm/key = análise do rekordbox (XML de 2026-10-29); null ou valor do Serato onde ele não tem a faixa.
 
 - title: "Pipoco"
   artist: "Ana Castela"
@@ -15,7 +15,7 @@
   artist: "Henrique e Juliano"
   genre: sertanejo
   bpm: 118
-  key: 8A
+  key: 8B
   energy: 5
   status: downloaded
   tags: [sertanejo]
@@ -24,7 +24,7 @@
   artist: "Henrique e Juliano"
   genre: sertanejo
   bpm: 136
-  key: 9A
+  key: 10B
   energy: 7
   status: downloaded
   tags: [sertanejo]
@@ -42,7 +42,7 @@
   artist: "Jorge & Mateus"
   genre: sertanejo
   bpm: 94
-  key: 8A
+  key: 8B
   energy: 5
   status: downloaded
   tags: [sertanejo]
@@ -51,7 +51,7 @@
   artist: "Jorge & Mateus"
   genre: sertanejo
   bpm: 100
-  key: 1A
+  key: 1B
   energy: 5
   status: downloaded
   tags: [sertanejo]
@@ -59,7 +59,7 @@
 - title: "Sinonimos"
   artist: "Jorge & Mateus"
   genre: sertanejo
-  bpm: 84
+  bpm: 167
   key: 1B
   energy: 4
   status: downloaded
@@ -77,8 +77,8 @@
 - title: "Aquele 1% (feat. Wesley Safadão)"
   artist: "Marcos & Belutti"
   genre: sertanejo
-  bpm: 113
-  key: 8A
+  bpm: 170
+  key: 8B
   energy: 6
   status: downloaded
   tags: [sertanejo]
@@ -86,7 +86,7 @@
 - title: "Borboletas"
   artist: "Victor & Leo"
   genre: sertanejo
-  bpm: 138
+  bpm: 140
   key: 10A
   energy: 4
   status: downloaded

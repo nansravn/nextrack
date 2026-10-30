@@ -1,12 +1,12 @@
 # tracks/pagodao-baiano.yml — Pagodão baiano pool for the `pagodao-baiano` node (unordered).
 # Swingueira / arrocha-pagode da Bahia (Léo Santana, Parangolé...).
-# status: downloaded = já está na pasta local. bpm/key = null até analisar no Serato.
+# status: downloaded = já está na pasta local. bpm/key = análise do rekordbox (XML de 2026-10-29); null ou valor do Serato onde ele não tem a faixa.
 
 - title: "Vai no Cavalinho"
   artist: "Banda Gasparzinho"
   genre: pagodao-baiano
   bpm: 142
-  key: null
+  key: 4A
   energy: 8
   status: downloaded
   tags: [pagodao-baiano, swingueira, party]
@@ -17,7 +17,7 @@
   artist: "Léo Santana"
   genre: pagodao-baiano
   bpm: 135
-  key: null
+  key: 7B
   energy: 8
   status: downloaded
   tags: [pagodao-baiano, arrocha-pagode, singalong]
@@ -26,7 +26,7 @@
   artist: "Léo Santana"
   genre: pagodao-baiano
   bpm: 152
-  key: null
+  key: 3A
   energy: 7
   status: downloaded
   tags: [pagodao-baiano, arrocha-pagode]
@@ -35,7 +35,7 @@
   artist: "Léo Santana"
   genre: pagodao-baiano
   bpm: 134
-  key: null
+  key: 11B
   energy: 8
   status: downloaded
   tags: [pagodao-baiano, swingueira, party]
@@ -44,7 +44,7 @@
   artist: "Léo Santana"
   genre: pagodao-baiano
   bpm: 130
-  key: null
+  key: 8A
   energy: 7
   status: downloaded
   tags: [pagodao-baiano, swingueira]
@@ -57,7 +57,7 @@
   artist: "É o Tchan"
   genre: pagodao-baiano
   bpm: 95
-  key: null
+  key: 10A
   energy: 8
   status: downloaded
   tags: [pagodao-baiano, pagode-baiano-90s, retro, danca]
@@ -66,7 +66,7 @@
   artist: "É o Tchan"
   genre: pagodao-baiano
   bpm: 96
-  key: null
+  key: 10A
   energy: 7
   status: downloaded
   tags: [pagodao-baiano, pagode-baiano-90s, retro, medley, singalong]
@@ -76,7 +76,7 @@
   artist: "As Meninas"
   genre: pagodao-baiano
   bpm: 149
-  key: null
+  key: 9A
   energy: 6
   status: downloaded
   tags: [pagodao-baiano, pagode-baiano-90s, retro, singalong]
@@ -87,7 +87,7 @@
   artist: "Companhia do Pagode"
   genre: pagodao-baiano
   bpm: 108
-  key: null
+  key: 10A
   energy: 8
   status: downloaded
   tags: [pagodao-baiano, pagode-baiano-90s, retro, danca]
@@ -96,8 +96,8 @@
 - title: "Sanduíche"
   artist: "Companhia do Pagode"
   genre: pagodao-baiano
-  bpm: null
-  key: null
+  bpm: 98
+  key: 9B
   energy: 7
   status: downloaded
   tags: [pagodao-baiano, pagode-baiano-90s, retro]
@@ -106,8 +106,8 @@
 - title: "Vem Neném (Ao Vivo)"
   artist: "Harmonia do Samba"
   genre: pagodao-baiano
-  bpm: 95
-  key: null
+  bpm: 97
+  key: 11A
   energy: 7
   status: downloaded
   tags: [pagodao-baiano, pagode-baiano-90s, retro, singalong]
@@ -115,8 +115,8 @@
 - title: "O Rodo"
   artist: "Harmonia do Samba"
   genre: pagodao-baiano
-  bpm: 90
-  key: null
+  bpm: 172
+  key: 10A
   energy: 8
   status: downloaded
   tags: [pagodao-baiano, pagode-baiano-90s, retro, party]
@@ -124,8 +124,8 @@
 - title: "Nossa Paradinha"
   artist: "Harmonia do Samba"
   genre: pagodao-baiano
-  bpm: 87
-  key: null
+  bpm: 174
+  key: 6A
   energy: 7
   status: downloaded
   tags: [pagodao-baiano, pagode-baiano-90s, retro]
@@ -133,8 +133,8 @@
 - title: "Desafio"
   artist: "Harmonia do Samba"
   genre: pagodao-baiano
-  bpm: 93
-  key: null
+  bpm: 91
+  key: 9B
   energy: 7
   status: downloaded
   tags: [pagodao-baiano, pagode-baiano-90s, retro]
@@ -143,8 +143,8 @@
 - title: "Onda Onda (Olha a Onda)"
   artist: "Tchakabum"
   genre: pagodao-baiano
-  bpm: 93
-  key: null
+  bpm: 94
+  key: 11B
   energy: 8
   status: downloaded
   tags: [pagodao-baiano, pagode-baiano-90s, retro, danca, singalong]
@@ -152,8 +152,8 @@
 - title: "Explosão"
   artist: "Tchakabum"
   genre: pagodao-baiano
-  bpm: 90
-  key: null
+  bpm: 136
+  key: 11B
   energy: 8
   status: downloaded
   tags: [pagodao-baiano, pagode-baiano-90s, retro, party]
@@ -161,8 +161,8 @@
 - title: "Dança da Mãozinha"
   artist: "Tchakabum"
   genre: pagodao-baiano
-  bpm: 164
-  key: null
+  bpm: 112
+  key: 9B
   energy: 7
   status: downloaded
   tags: [pagodao-baiano, pagode-baiano-90s, retro, danca]
@@ -171,7 +171,7 @@
   artist: "Tchakabum"
   genre: pagodao-baiano
   bpm: 130
-  key: null
+  key: 11A
   energy: 7
   status: downloaded
   tags: [pagodao-baiano, pagode-baiano-90s, retro, novelty]
@@ -180,8 +180,8 @@
 - title: "Carrinho de Mão"
   artist: "Terra Samba"
   genre: pagodao-baiano
-  bpm: null
-  key: null
+  bpm: 167
+  key: 9B
   energy: 7
   status: downloaded
   tags: [pagodao-baiano, pagode-baiano-90s, retro]
@@ -190,7 +190,7 @@
   artist: "Terra Samba"
   genre: pagodao-baiano
   bpm: 92
-  key: null
+  key: 1B
   energy: 7
   status: downloaded
   tags: [pagodao-baiano, pagode-baiano-90s, retro, danca]
@@ -198,8 +198,8 @@
 - title: "Banho de Chuveiro"
   artist: "Terra Samba"
   genre: pagodao-baiano
-  bpm: 90
-  key: null
+  bpm: 91
+  key: 9B
   energy: 7
   status: downloaded
   tags: [pagodao-baiano, pagode-baiano-90s, retro]
@@ -209,7 +209,7 @@
   artist: "Filhos de Jorge"
   genre: pagodao-baiano
   bpm: 94
-  key: null
+  key: 2A
   energy: 7
   status: downloaded
   tags: [pagodao-baiano, pagode-baiano-90s, retro]
@@ -220,7 +220,7 @@
   artist: "Só Pra Contrariar"
   genre: pagodao-baiano
   bpm: 117
-  key: null
+  key: 8A
   energy: 7
   status: downloaded
   tags: [pagodao-baiano, pagode-baiano-90s, retro, pagode-nacional, novelty]

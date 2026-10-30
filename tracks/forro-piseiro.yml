@@ -1,6 +1,6 @@
 # tracks/forro-piseiro.yml — Piseiro pool for the `forro-piseiro` node (unordered).
 # status: downloaded = já está na sua pasta local; to-download = ainda buscar.
-# bpm/key = null até analisar no Serato. energy = chute inicial, ajuste à vontade.
+# bpm/key = análise do rekordbox (XML de 2026-10-29); null ou valor do Serato onde ele não tem a faixa. energy = chute inicial, ajuste à vontade.
 # subgênero + vibe vivem em `tags` (piseiro / pisadinha / arrocha / brega-pop).
 
 # --- Nattan ---
@@ -8,7 +8,7 @@
   artist: "Nattan"
   genre: forro-piseiro
   bpm: 126
-  key: 12A
+  key: 8A
   energy: 7
   status: downloaded
   tags: [piseiro, party, singalong]
@@ -44,8 +44,8 @@
 - title: "Pela Última Vez"
   artist: "Nattan"
   genre: forro-piseiro
-  bpm: 156
-  key: 9B
+  bpm: 158
+  key: 7A
   energy: 5
   status: downloaded
   tags: [piseiro, arrocha, romantic]
@@ -54,7 +54,7 @@
   artist: "Nattan"
   genre: forro-piseiro
   bpm: 155
-  key: 8A
+  key: 7A
   energy: 6
   status: downloaded
   tags: [piseiro]
@@ -62,7 +62,7 @@
 - title: "Última Noite"
   artist: "Nattan"
   genre: forro-piseiro
-  bpm: 82
+  bpm: 164
   key: 9A
   energy: 5
   status: downloaded
@@ -71,7 +71,7 @@
 - title: "Love Gostosinho"
   artist: "Nattan e Felipe Amorim"
   genre: forro-piseiro
-  bpm: 71
+  bpm: 142
   key: 9A
   energy: 6
   status: downloaded
@@ -81,7 +81,7 @@
 - title: "Esquema Preferido"
   artist: "DJ Ivis"
   genre: forro-piseiro
-  bpm: 162
+  bpm: 160
   key: 7A
   energy: 7
   status: downloaded
@@ -92,7 +92,7 @@
   artist: "DJ Ivis"
   genre: forro-piseiro
   bpm: 164
-  key: 2A
+  key: 2B
   energy: 6
   status: downloaded
   tags: [piseiro, pisadinha]
@@ -100,8 +100,8 @@
 - title: "Volta Comigo BB"
   artist: "DJ Ivis"
   genre: forro-piseiro
-  bpm: 82
-  key: 1A
+  bpm: 164
+  key: 12B
   energy: 6
   status: downloaded
   tags: [piseiro, pisadinha]
@@ -111,7 +111,7 @@
 - title: "Amor Falso"
   artist: "Os Barões da Pisadinha"
   genre: forro-piseiro
-  bpm: 86
+  bpm: 172
   key: 9A
   energy: 7
   status: downloaded
@@ -120,7 +120,7 @@
 - title: "Batom de Cereja, Eu Bebo Cê Beija"
   artist: "Os Barões da Pisadinha"
   genre: forro-piseiro
-  bpm: 86
+  bpm: 172
   key: 10A
   energy: 7
   status: downloaded
@@ -130,7 +130,7 @@
 - title: "Recairei"
   artist: "Os Barões da Pisadinha"
   genre: forro-piseiro
-  bpm: 84
+  bpm: 168
   key: 5A
   energy: 7
   status: downloaded
@@ -151,7 +151,7 @@
   artist: "Matheus Fernandes"
   genre: forro-piseiro
   bpm: 152
-  key: 8A
+  key: 8B
   energy: 6
   status: downloaded
   tags: [forro-pop, singalong]
@@ -161,7 +161,7 @@
   artist: "Matheus Fernandes"
   genre: forro-piseiro
   bpm: 128
-  key: 12A
+  key: 11B
   energy: 7
   status: downloaded
   tags: [piseiro, party]
@@ -178,7 +178,7 @@
 - title: "Lapada Dela"
   artist: "Matheus Fernandes"
   genre: forro-piseiro
-  bpm: 166
+  bpm: 167
   key: 10A
   energy: 7
   status: downloaded
@@ -199,7 +199,7 @@
   artist: "Mari Fernandez"
   genre: forro-piseiro
   bpm: 146
-  key: 5A
+  key: 7A
   energy: 6
   status: downloaded
   tags: [piseiro, singalong]
@@ -208,8 +208,8 @@
 - title: "Letícia"
   artist: "Zé Vaqueiro"
   genre: forro-piseiro
-  bpm: 76
-  key: 11A
+  bpm: 152
+  key: 10A
   energy: 6
   status: downloaded
   tags: [piseiro, arrocha, romantic, singalong]
@@ -228,8 +228,8 @@
 - title: "Cidade Inteira"
   artist: "Eric Land"
   genre: forro-piseiro
-  bpm: 166
-  key: 9A
+  bpm: 168
+  key: 10A
   energy: 5
   status: downloaded
   tags: [piseiro, arrocha, singalong]
@@ -239,7 +239,7 @@
   artist: "João Gomes"
   genre: forro-piseiro
   bpm: 148
-  key: 9A
+  key: 10A
   energy: 5
   status: downloaded
   tags: [piseiro, romantic, singalong]
@@ -248,8 +248,8 @@
 - title: "Viela"
   artist: "Marcynho Sensação"
   genre: forro-piseiro
-  bpm: 172
-  key: 4A
+  bpm: 170
+  key: 4B
   energy: 6
   status: downloaded
   tags: [piseiro, brega-pop, singalong]
@@ -257,8 +257,8 @@
 - title: "Parada Louca"
   artist: "Marcynho Sensação"
   genre: forro-piseiro
-  bpm: 111
-  key: 9A
+  bpm: 166
+  key: 9B
   energy: 7
   status: downloaded
   tags: [brega-pop, party]
@@ -266,7 +266,7 @@
 - title: "Revoada No Colchão"
   artist: "Marcynho Sensação"
   genre: forro-piseiro
-  bpm: 85
+  bpm: 170
   key: 5B
   energy: 7
   status: downloaded
@@ -276,7 +276,7 @@
 - title: "ABC da Vaquejada"
   artist: "Tarcísio do Acordeon"
   genre: forro-piseiro
-  bpm: 166
+  bpm: 168
   key: 3A
   energy: 7
   status: downloaded
@@ -287,7 +287,7 @@
 - title: "Ele É Ele, Eu Sou Eu"
   artist: "Wesley Safadão & Os Barões da Pisadinha"
   genre: forro-piseiro
-  bpm: 82
+  bpm: 164
   key: 12B
   energy: 7
   status: downloaded
@@ -296,8 +296,8 @@
 - title: "Senta Danada"
   artist: "Zé Felipe & Os Barões da Pisadinha"
   genre: forro-piseiro
-  bpm: 83
-  key: 10A
+  bpm: 166
+  key: 9A
   energy: 7
   status: downloaded
   tags: [pisadinha, funknejo, party]
@@ -307,8 +307,8 @@
 - title: "Matadinha de Saudade"
   artist: "Xand Avião"
   genre: forro-piseiro
-  bpm: 104
-  key: 2A
+  bpm: 157
+  key: 4B
   energy: 6
   status: downloaded
   tags: [forro, forro-eletronico, romantic]
@@ -316,8 +316,8 @@
 - title: "Basta Você Me Ligar"
   artist: "Xand Avião"
   genre: forro-piseiro
-  bpm: 166
-  key: 5B
+  bpm: 168
+  key: 4A
   energy: 7
   status: downloaded
   tags: [forro, forro-eletronico, singalong]
@@ -327,7 +327,7 @@
   artist: "Xand Avião"
   genre: forro-piseiro
   bpm: 140
-  key: 9A
+  key: 11A
   energy: 6
   status: downloaded
   tags: [forro, forro-eletronico]
@@ -335,7 +335,7 @@
 - title: "Meia Noite"
   artist: "Zé Vaqueiro"
   genre: forro-piseiro
-  bpm: 104
+  bpm: 156
   key: 8A
   energy: 6
   status: downloaded
@@ -378,3 +378,16 @@
   energy: 7
   status: downloaded
   tags: [forro-piseiro, ao-vivo, forro-eletronico]
+
+- title: "Michael Jackson x Filho do Piseiro - They don't care about raparigas"
+  artist: "Cabra Guaraná"
+  genre: forro-piseiro
+  bpm: 173
+  key: 8A
+  energy: 7
+  duration: "2:10"
+  year: 2026
+  source: bandcamp
+  status: downloaded
+  tags: [forro-piseiro, piseiro, mashup]
+  notes: "Mashup avulso (bandcamp). Energia estimada sem ouvir: confira."

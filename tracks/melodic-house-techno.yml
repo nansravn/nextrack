@@ -1,12 +1,12 @@
 # tracks/melodic-house-techno.yml — Melodic House & Techno pool for the `melodic-house-techno` node (unordered).
 # Melodic house / techno e progressive.
-# status: downloaded (subpasta melodic-house-techno/). bpm/key = null até o pull-bpm ler a análise do Serato.
+# status: downloaded (subpasta melodic-house-techno/). bpm/key = análise do rekordbox (XML de 2026-10-29); null ou valor do Serato onde ele não tem a faixa.
 
 - title: "Liberate"
   artist: "Eric Prydz"
   genre: melodic-house-techno
   bpm: 127
-  key: 7B
+  key: 4A
   energy: 7
   status: downloaded
   tags: [melodic-house-techno, progressive]

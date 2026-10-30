@@ -1,13 +1,13 @@
 # tracks/axe.yml — Axé pool for the `axe` node (unordered).
 # Axé clássico / guitarra-baiana / carnaval (Chiclete, Ivete, Daniela, Timbalada...).
 # Lane open-format, de reconhecimento — o barato é o refrão de trio elétrico.
-# status: downloaded = já está na pasta local (axe/). bpm/key = null até analisar no Serato.
+# status: downloaded = já está na pasta local (axe/). bpm/key = análise do rekordbox (XML de 2026-10-29); null ou valor do Serato onde ele não tem a faixa.
 
 # --- Chiclete com Banana (Bell Marques) ---
 - title: "Voa Voa"
   artist: "Chiclete com Banana"
   genre: axe
-  bpm: 123
+  bpm: 122
   key: 10A
   energy: 8
   status: downloaded
@@ -17,7 +17,7 @@
   artist: "Chiclete com Banana"
   genre: axe
   bpm: 109
-  key: 11A
+  key: 11B
   energy: 8
   status: downloaded
   tags: [axe, axe-retro, carnaval, singalong]
@@ -25,8 +25,8 @@
 - title: "Quero Chiclete"
   artist: "Chiclete com Banana"
   genre: axe
-  bpm: 166
-  key: 11B
+  bpm: 167
+  key: 12B
   energy: 7
   status: downloaded
   tags: [axe, axe-retro]
@@ -34,7 +34,7 @@
 - title: "Cabelo Raspadinho"
   artist: "Chiclete com Banana"
   genre: axe
-  bpm: 172
+  bpm: 176
   key: 5A
   energy: 7
   status: downloaded
@@ -43,8 +43,8 @@
 - title: "Meu Cabelo Duro é Assim"
   artist: "Chiclete com Banana"
   genre: axe
-  bpm: 155
-  key: 12A
+  bpm: 158
+  key: 1A
   energy: 7
   status: downloaded
   tags: [axe, axe-retro]
@@ -52,7 +52,7 @@
 - title: "Amor Perfeito"
   artist: "Chiclete com Banana"
   genre: axe
-  bpm: 112
+  bpm: 113
   key: 1B
   energy: 6
   status: downloaded
@@ -63,7 +63,7 @@
   artist: "Ivete Sangalo"
   genre: axe
   bpm: 132
-  key: 9A
+  key: 8A
   energy: 8
   status: downloaded
   tags: [axe, singalong, carnaval]
@@ -82,7 +82,7 @@
   artist: "Ivete Sangalo"
   genre: axe
   bpm: 130
-  key: 8A
+  key: 7A
   energy: 8
   status: downloaded
   tags: [axe, party]
@@ -102,7 +102,7 @@
   artist: "Daniela Mercury"
   genre: axe
   bpm: 107
-  key: 9A
+  key: 10B
   energy: 8
   status: downloaded
   tags: [axe, axe-retro, singalong]
@@ -111,8 +111,8 @@
 - title: "Swing da Cor"
   artist: "Daniela Mercury"
   genre: axe
-  bpm: 126
-  key: 6A
+  bpm: 95
+  key: 5A
   energy: 8
   status: downloaded
   tags: [axe, axe-retro, singalong]
@@ -139,8 +139,8 @@
 - title: "Beija-Flor"
   artist: "Timbalada"
   genre: axe
-  bpm: 102
-  key: 9A
+  bpm: 103
+  key: 8A
   energy: 6
   status: downloaded
   tags: [axe, percussao, singalong]
@@ -149,8 +149,8 @@
 - title: "A Luz de Tieta"
   artist: "Timbalada"
   genre: axe
-  bpm: 112
-  key: 11A
+  bpm: 111
+  key: 8A
   energy: 7
   status: downloaded
   tags: [axe, percussao]
@@ -160,7 +160,7 @@
   artist: "Asa de Águia"
   genre: axe
   bpm: 135
-  key: null
+  key: 12B
   energy: 8
   status: downloaded
   tags: [axe, axe-retro, danca, novelty]
@@ -168,8 +168,8 @@
 - title: "Xô Satanás"
   artist: "Asa de Águia"
   genre: axe
-  bpm: 83
-  key: null
+  bpm: 167
+  key: 1B
   energy: 8
   status: downloaded
   tags: [axe, axe-retro, carnaval]
@@ -178,7 +178,7 @@
   artist: "Asa de Águia"
   genre: axe
   bpm: 112
-  key: null
+  key: 12B
   energy: 7
   status: downloaded
   tags: [axe, axe-retro]
@@ -187,7 +187,7 @@
   artist: "Asa de Águia"
   genre: axe
   bpm: 155
-  key: null
+  key: 3B
   energy: 7
   status: downloaded
   tags: [axe, axe-retro, medley]
@@ -197,7 +197,7 @@
   artist: "Banda Eva"
   genre: axe
   bpm: 120
-  key: null
+  key: 8A
   energy: 8
   status: downloaded
   tags: [axe, singalong, carnaval]
@@ -206,8 +206,8 @@
 - title: "Arerê (Ao Vivo)"
   artist: "Banda Eva"
   genre: axe
-  bpm: 165
-  key: null
+  bpm: 167
+  key: 12B
   energy: 8
   status: downloaded
   tags: [axe, singalong, carnaval]
@@ -216,7 +216,7 @@
   artist: "Banda Eva"
   genre: axe
   bpm: 99
-  key: null
+  key: 7B
   energy: 7
   status: downloaded
   tags: [axe, singalong]
@@ -234,7 +234,7 @@
   artist: "Banda Eva"
   genre: axe
   bpm: 153
-  key: 9A
+  key: 10A
   energy: 8
   status: downloaded
   tags: [axe, party]
@@ -243,7 +243,7 @@
   artist: "Banda Eva"
   genre: axe
   bpm: 98
-  key: null
+  key: 11A
   energy: 7
   status: downloaded
   tags: [axe, singalong]
@@ -252,7 +252,7 @@
   artist: "Banda Eva"
   genre: axe
   bpm: 120
-  key: 12B
+  key: 11B
   energy: 7
   status: downloaded
   tags: [axe, ao-vivo]
@@ -260,7 +260,7 @@
 - title: "Me Abraça"
   artist: "Banda Eva"
   genre: axe
-  bpm: 129
+  bpm: 98
   key: 11A
   energy: 6
   status: downloaded
@@ -269,8 +269,8 @@
 - title: "Não Precisa Mudar (Ao Vivo)"
   artist: "Banda Eva"
   genre: axe
-  bpm: 88
-  key: 12A
+  bpm: 176
+  key: 12B
   energy: 6
   status: downloaded
   tags: [axe, romantica, ao-vivo]
@@ -280,7 +280,7 @@
   artist: "Banda Beijo"
   genre: axe
   bpm: 105
-  key: null
+  key: 10A
   energy: 7
   status: downloaded
   tags: [axe, axe-retro, percussao]
