@@ -869,6 +869,8 @@ def check(script: TrackScript) -> list[str]:
         g_items = trk.shapes.items if trk.shapes else []
         if any(f.start < g.end and g.start < f.end for f in f_items for g in g_items):
             out.append(f"{who}: position blocks (F) and shape blocks (G) overlap")
+        if trk is script.main:
+            continue      # Main's flags apply all along: real scripts give Main no F blocks
         for fl in trk.positions.flags if trk.positions else []:
             if not any(f.start <= fl.t <= f.end for f in f_items):
                 out.append(f"{who}: position flag at {fl.t} is outside every position block")
