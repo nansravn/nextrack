@@ -42,3 +42,41 @@ buttons move.
 
 > This doc maps *your* buttons; keep the technique names in
 > [transitions.md](transitions.md) generic so the method survives a gear change.
+
+## Lights and room
+
+The party room is a rectangle. The lights are driven by SoundSwitch over DMX (a Control One
+interface, universe 1) and a Philips Hue chandelier. The room as the choreographies see it
+is [`lightshows/rig.yml`](../lightshows/rig.yml); how to write for it is in
+[`lightshows/README.md`](../lightshows/README.md).
+
+- **Two moving heads** in the north-east and south-east corners (assumed).
+- **Two Vorlane VL-1000 bars** in the north-west and south-west corners (assumed), aimed
+  at the centre of the room. Each is an 8 x 7 matrix of cells.
+- **A Hue chandelier** with seven lamps in the centre. It follows only SoundSwitch's Main
+  track, so it is controlled by the `hue` layer.
+- **A haze machine** (fan and fog on two channels).
+
+The corners are unconfirmed: the file says which fixture is which, not where it stands.
+Check with `render` against the real room (see
+[experiments](soundswitch/experiments.md#corners-rig)).
+
+| Fixture | Script node (id in the owner's venue) | DMX (universe 1) | Notable channels |
+|---|---|---|---|
+| Mover 1 | `Mover 1` (1167) | 37-51 | 15 channels: pan/tilt 37-40, **strobe 42**, RGBWA 43-47, **UV 48**. No dimmer channel. |
+| Mover 2 | `Mover 2` (1168) | 52-66 | the same layout, +15 |
+| Vorlane 1 | `VORLANE VL-1000 RGBW v2` (1818) | 101-254 | **master 101** (capped at 0-127 in the "154CH Soft" mode, so the bars never exceed 50 %), strobe 102, RGB 01-48 on 103-246 (3 channels each), white 1-8 on 247-254 |
+| Vorlane 2 | the second node of that name (1876) | 301-454 | the same, +200 |
+| Haze | ` Lig Light LL-HZ600K` (1934) | 504-505 | **504 fan**, **505 fog**, both typed Intensity with a fixed range (fan 100, fog 175) |
+
+Notes:
+
+- Each Vorlane is a group node with a **master** cell (`MASTER`), 48 **RGB** cells and 8
+  **W** cells, one script track each. The white strip is a row between two colour blocks of
+  three rows each; the zones are taken row-major from the top left, RGB 01-24 above the
+  strip, 25-48 below (unconfirmed, experiment E1).
+- Node ids change between rigs; `rig.yml` names nodes and the tool looks the ids up.
+- The haze nodes' names start with a space and have a double space inside (SoundSwitch
+  wrote them so); `rig.yml` copies them exactly.
+- The haze channels are intensity channels, so a fog burst is an intensity key on the fog
+  node; whether the machine reacts is experiment X10.
