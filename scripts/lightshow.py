@@ -567,45 +567,61 @@ def matrix_frames(
     return out
 
 
-def pulse_keys(times: list[int], decay_ms: float, level: int = FULL) -> list[Key]:
+def pulse_keys(
+    times: list[int], decay_ms: float, level: int = FULL, end: int | None = None
+) -> list[Key]:
     """The autoscript's pulse: `Key(t, level)` then `Key(t + decay - 1, 0)`. A decay that
-    would run into the next pulse ends one ms before it, so keys stay sorted and unique."""
+    would run into the next pulse ends one ms before it, so keys stay sorted and unique.
+    With `end`, pulses starting at or after it are dropped and no decay runs past it."""
     keys: list[Key] = []
     for i, t in enumerate(times):
+        if end is not None and t >= end:
+            break
         stop = t + int(decay_ms) - 1
         if i + 1 < len(times):
             stop = min(stop, times[i + 1] - 1)
+        if end is not None:
+            stop = min(stop, end)
         keys.append(Key(t, level))
         if stop > t:
             keys.append(Key(stop, 0))
     return keys
 
 
-def _steps(move: dict, start: int, end: int, beat_ms: float) -> list[tuple[int, int]]:
-    """`(begin, finish)` of each step of a mover move. `faster_from` is a bar number counted
-    from `start` (1 = first bar of the span); from there `faster_every` replaces `every`."""
+def _steps(
+    move: dict, start: int, end: int, beat_ms: float, first_bar: int = 1
+) -> list[tuple[int, int]]:
+    """`(begin, finish)` of each step of a mover move. `first_bar` is the absolute bar
+    number at `start`; `faster_from` is an absolute bar, from which `faster_every`
+    replaces `every` (at or before `first_bar`: fast from the start)."""
     slow = rate_ms(move.get("every", "1/4"), beat_ms)
     fast = rate_ms(move["faster_every"], beat_ms) if "faster_every" in move else slow
     faster_from = move.get("faster_from")
     steps = []
     t = float(start)
     while t < end:
-        bar = int((t - start) // (4 * beat_ms)) + 1
+        bar = first_bar + int((t - start) // (4 * beat_ms))
         length = fast if faster_from is not None and bar >= faster_from else slow
         steps.append((int(round(t)), min(int(round(t + length)), end)))
         t += length
     return steps
 
 
-def mover_keys(move: dict, start: int, end: int, beat_ms: float, mover_index: int) -> list[Key]:
-    """The brightness envelope of one mover over [start, end] for a `movers` mapping."""
+def mover_keys(
+    move: dict, start: int, end: int, beat_ms: float, mover_index: int, first_bar: int = 1
+) -> list[Key]:
+    """The brightness envelope of one mover over [start, end] for a `movers` mapping.
+    `first_bar` is the absolute bar number at `start`; `faster_from` in `move` is an
+    ABSOLUTE bar, so the step changes at `start + (faster_from - first_bar) * bar_ms`
+    (`faster_from` <= `first_bar` means fast from the start)."""
     kind = move["move"]
     if kind in ("hold", "sweep"):
         lvl = level_of(move.get("level", STEADY))
         return [Key(start, lvl), Key(end, lvl)]
-    steps = _steps(move, start, end, beat_ms)
+    steps = _steps(move, start, end, beat_ms, first_bar)
     if kind == "blink":
-        return pulse_keys([s for s, _ in steps], rate_ms(move.get("every", "1/4"), beat_ms))
+        every = rate_ms(move.get("every", "1/4"), beat_ms)
+        return pulse_keys([s for s, _ in steps], every, end=end)
     if kind == "pingpong":
         keys: list[Key] = []
         for i, (s, e) in enumerate(steps):
@@ -632,5 +648,5 @@ def hue_keys(state: str, start: int, end: int, beat_ms: float) -> list[Key]:
         while t < end:
             times.append(int(round(t)))
             t += beat_ms
-        return pulse_keys(times, beat_ms)
+        return pulse_keys(times, beat_ms, end=end)
     raise ValueError(f"unknown hue state {state!r}")
