@@ -1,0 +1,124 @@
+# Coreografia de luz — exemplo v1 (rascunho da noite de 2026-10-31, para o dono revisar).
+# Compassos contados a partir do downbeat (bar 1 = 0:00.158); 1 compasso = 2,4 s a 100 BPM.
+track: Marshmello x Bastille — Happier
+soundswitch: F41EB9E9-B82B-4F58-A40C-B039222EBB0E
+grid: {bpm: 100, downbeat: "0:00.158"}
+story: >-
+  Happier é uma despedida bonita: aceitar que a outra pessoa vai ser mais feliz seguindo em frente.
+  A luz começa íntima, só o lustre respirando e um foco quente na cabine; vai abrindo a sala
+  aos poucos, enchendo as Vorlanes de baixo pra cima a cada subida. Os drops são alegria de
+  pista com fundo melancólico (ciano e âmbar). No silêncio de 2:40 a sala inteira apaga por um
+  compasso. A ponte é contemplativa: haze, movings lentas e o centro aceso. O drop final solta
+  tudo, com o único acento da fita branca da música; a saída devolve a sala ao escuro.
+budget: >-
+  Gasta pouco de propósito: fita branca uma vez (3:12), nenhum strobe, nenhum UV, um haze.
+  Zigue-zague, seta e strobe ficam guardados para outras músicas do set.
+base: autoscript
+sections:
+  - bars: [1, 8]
+    name: intro-batida
+    intent: Só o lustre pulsa com a batida enquanto a sala espera; bordas apagadas.
+    movers: off
+    matrix: off
+    hue: pulse
+
+  - bars: [9, 16]
+    name: verso-1
+    intent: Voz e violão; um foco âmbar na cabine, como um show acústico.
+    movers: {move: hold, position: DJ Booth, colour: "#FFB347", level: 0.5}
+    matrix: off
+    hue: bright
+
+  - bars: [17, 20]
+    name: entra-o-grave
+    intent: O grave chega e as movings acordam, uma de cada vez, em ciano.
+    movers: {move: pingpong, every: 1bar, colour: "#00C8FF"}
+    matrix: {draw: columns, rate: 1/4, mirror: true}
+    hue: pulse
+
+  - bars: [21, 28]
+    name: subida-1
+    intent: A sala escurece no centro e as Vorlanes enchem de baixo pra cima, uma fila por compasso.
+    movers: {move: pingpong, every: 1bar, colour: "#00C8FF", faster_from: 27, faster_every: 1/2}
+    matrix: {draw: fill-up, rate: 1bar, mirror: true}
+    hue: dark
+
+  - bars: [29, 44]
+    name: refrao-e-drop-1
+    intent: Primeiro drop; a perseguição do autoscript continua, mas espelhada entre NW e SW.
+    movers: auto
+    matrix: {draw: rows-down, rate: 1/8, mirror: true}
+    white: off
+    hue: pulse
+
+  - bars: [45, 52]
+    name: verso-2
+    intent: Respiro; movings paradas no centro da pista, Vorlanes apagadas, lustre aceso.
+    movers: {move: hold, position: Dance Floor Centre, colour: "#FFB347", level: 0.6}
+    matrix: off
+    hue: bright
+
+  - bars: [53, 60]
+    name: refrao-2
+    intent: Volta a festa; desenho do centro pra fora e movings revezando.
+    movers: {move: pingpong, every: 1bar, colour: "#00C8FF"}
+    matrix: {draw: centre-out, rate: 1/4, mirror: true}
+    hue: pulse
+
+  - bars: [61, 64]
+    name: subida-2
+    intent: Tensão curta antes da pancada; tudo escuro e as Vorlanes enchendo rápido.
+    movers: off
+    matrix: {draw: fill-up, rate: 1/2, mirror: true}
+    hue: dark
+
+  - bars: [65, 67]
+    name: pancada
+    intent: Três compassos de pancada; tudo pisca junto na batida.
+    movers: {move: blink, every: 1/4, colour: "#00C8FF"}
+    matrix: {draw: solid, rate: 1/4}
+    hue: pulse
+
+  - bars: [68, 68]
+    name: silencio
+    intent: Um compasso de escuro total, até o lustre.
+    movers: off
+    matrix: off
+    hue: dark
+
+  - bars: [69, 76]
+    name: ponte
+    intent: Contemplativo; haze, movings lentas em azul profundo, centro aceso.
+    movers: {move: sweep, every: 2bar, positions: [Up, Crossed Over, Stage Left, Stage Right], colour: "#3A5BFF"}
+    matrix: off
+    hue: bright
+    haze: {burst: 6s}
+
+  - bars: [77, 80]
+    name: subida-final
+    intent: As Vorlanes enchem de novo e as movings aceleram o revezamento; centro escuro.
+    movers: {move: pingpong, every: 1/2, colour: "#00C8FF"}
+    matrix: {draw: fill-up, rate: 1bar, mirror: true}
+    hue: dark
+
+  - bars: [81, 92]
+    name: drop-final
+    intent: Solta tudo; o único acento branco da música na cabeça do drop, depois as filas sobem.
+    movers: auto
+    matrix: {draw: rows-up, rate: 1/8, mirror: true}
+    white: {accent: ["81.1"]}
+    hue: pulse
+
+  - bars: [93, 96]
+    name: descida
+    intent: A energia baixa; desenho lento e movings paradas.
+    movers: {move: hold, position: Stage Center, colour: "#FFB347", level: 0.5}
+    matrix: {draw: rows-up, rate: 1bar}
+    hue: bright
+
+  - bars: [97, 104]
+    name: saida-batida
+    intent: Espelho da intro; só o lustre pulsa, pronto para a próxima música.
+    movers: off
+    matrix: off
+    hue: pulse

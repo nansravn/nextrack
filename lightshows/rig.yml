@@ -1,0 +1,15 @@
+# A sala e os papéis, pelo NOME do nó no SoundSwitch (os ids são resolvidos a partir do venue).
+# A atribuição dos cantos (NE, SE, NW, SW) ainda precisa ser confirmada pelo dono.
+room: {shape: rectangle, front: N}
+fixtures:
+  mover-ne:  {node: "Mover 1", corner: NE, kind: mover}
+  mover-se:  {node: "Mover 2", corner: SE, kind: mover}
+  matrix-nw: {node: "VORLANE VL-1000 RGBW v2", index: 1, corner: NW, kind: matrix, aim: centre}
+  matrix-sw: {node: "VORLANE VL-1000 RGBW v2", index: 2, corner: SW, kind: matrix, aim: centre}
+  # O nome do nó da máquina de fumaça começa com um espaço; os canais têm espaço duplo.
+  haze:      {node: " Lig Light LL-HZ600K", kind: haze, fan: "Main -  Lig Light LL-HZ600K", fog: "Main -  Lig Light LL-HZ600K - 2"}
+  hue:       {kind: hue-chandelier, corner: centre, lamps: 7, follows: main-track}
+matrix:
+  rows: [colour, colour, colour, white, colour, colour, colour]   # 8 zonas por fila
+  zone_order: row-major-top-left
+  white_max: 0.6        # teto da fita branca em relação ao máximo
