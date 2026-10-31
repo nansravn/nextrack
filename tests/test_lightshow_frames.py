@@ -169,6 +169,39 @@ def test_mover_blink():
     assert keys == [Key(0, FULL), Key(999, 0), Key(1000, FULL), Key(1999, 0)]
 
 
+def test_mover_faster_from_is_an_absolute_bar():
+    move = {"move": "pingpong", "every": "1/2", "faster_from": 27, "faster_every": "1/4"}
+    bar = int(4 * BEAT)
+    keys = ls.mover_keys(move, 0, 8 * bar, BEAT, 0, first_bar=21)
+    lit_starts = [k.t for i, k in enumerate(keys) if k.level == FULL and keys[i + 1].t == k.t + (
+        999 if k.t % 1000 == 0 and k.t < 6 * bar else 499)]
+    assert 4000 in lit_starts  # bar 21 + 2 bars: still 1000 ms steps
+    assert Key(4999, FULL) in keys
+    assert Key(6 * bar, FULL) in keys and Key(6 * bar + 499, FULL) in keys  # 500 ms from bar 27
+    assert Key(6 * bar + 999, FULL) not in keys
+
+
+def test_mover_faster_from_at_or_before_first_bar_is_fast_from_start():
+    move = {"move": "pingpong", "every": "1/2", "faster_from": 21, "faster_every": "1/4"}
+    keys = ls.mover_keys(move, 0, 2000, BEAT, 0, first_bar=21)
+    assert keys[:3] == [Key(0, FULL), Key(499, FULL), Key(500, 0)]
+
+
+def test_pulse_keys_clipped_to_end():
+    keys = ls.pulse_keys([0, 400], 1000, end=700)
+    assert keys == [Key(0, FULL), Key(399, 0), Key(400, FULL), Key(700, 0)]
+    assert ls.pulse_keys([0, 800], 100, end=700) == [Key(0, FULL), Key(99, 0)]
+
+
+def test_blink_and_hue_pulse_stay_inside_span():
+    bar = int(4 * BEAT)
+    keys = ls.mover_keys({"move": "blink", "every": "2bar"}, 0, bar, BEAT, 0)
+    assert keys == [Key(0, FULL), Key(bar, 0)]
+    hue = ls.hue_keys("pulse", 0, 700, BEAT)
+    times = [k.t for k in hue]
+    assert max(times) <= 700 and times == sorted(set(times))
+
+
 def test_hue_keys():
     lvl = int(0.85 * 2**32)
     assert ls.hue_keys("dark", 0, 2000, BEAT) == [Key(0, 0), Key(2000, 0)]
