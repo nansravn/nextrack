@@ -800,8 +800,13 @@ def _materialise_position(script: TrackScript, trk: Track, start: int, end: int)
             main_pos = m.positions
             pos = (_positions_of(trk, main_pos.palette, main_pos.ver, main_pos.x)
                    if main_pos else _positions_of(trk, []))
+            src = [x for x in (main_pos.flags if main_pos else []) if f.start <= x.t <= f.end]
             flags = [PositionFlag(x.t, _preset(pos, main_pos.palette[x.preset]))
-                     for x in (main_pos.flags if main_pos else []) if lo <= x.t <= hi]
+                     for x in src if lo <= x.t <= hi]
+            active = [x for x in src if x.t < lo]
+            if lo > f.start and active and not any(x.t == lo for x in src):
+                # the gap starts inside Main's span: carry the preset active at the cut
+                flags.append(PositionFlag(lo, _preset(pos, main_pos.palette[active[-1].preset])))
             pos.flags = sorted(pos.flags + flags, key=lambda x: x.t)
             if trk.position_blocks is None:
                 trk.position_blocks = Section(m.position_blocks.ver, [])
