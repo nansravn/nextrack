@@ -77,7 +77,8 @@ unquoted `off` / `on` as a boolean; both spellings are accepted. A layer is `aut
 | `haze` | `{burst: "<n>s"}`, `on`, `off`, `auto` |
 
 Rates are `1/16`, `1/8`, `1/4`, `1/2` or `<n>bar`; colours are `#RRGGBB`. Under a
-`matrix` other than `auto`, `white` defaults to `off` (applied by the compiler).
+`matrix` other than `auto`, `white` defaults to `off` (applied by the compiler), except
+under a draw with `with_white: true`, which lights the white row itself.
 
 **`sets/<set-file-stem>.md`** — front matter `set:` (path to the set, relative to the
 repo root) and `budget:` mapping an effect (a layer, or `white-accent`) to a list of

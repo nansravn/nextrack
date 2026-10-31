@@ -6,17 +6,24 @@ two into dataclasses and holds the pure `problems_*` checks that `check_repo.py`
 into rules. The checks take parsed YAML (possibly with the loader's `__line__` keys) and
 return messages; they never raise on bad content. See lightshows/README.md.
 
+The generators (`matrix_frames`, `mover_keys`, `hue_keys`, …) turn the vocabulary into
+keyframes, and `compile_choreography` applies a choreography to a copy of a SoundSwitch
+track script, returning the edited copy and the manual cues it could not write.
+
 Python API: `load_rig`, `load_choreography`, `problems_rig`, `problems_choreography`,
-`problems_plan`.
+`problems_plan`, `section_layers`, `compile_choreography` (`ManualCue`, `CompileError`).
 """
 from __future__ import annotations
 
+import copy
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
 import yaml
-from soundswitch_format import FULL, Key
+from soundswitch_format import (FULL, Grid, Key, PositionFlag, Preset, Track, TrackScript,
+                                VenueInfo, VenueNode, check, grid, materialise_main, set_colour,
+                                set_intensity, set_main, set_positions)
 
 LAYERS = ("movers", "matrix", "white", "uv", "strobe", "hue", "haze")
 MOVER_MOVES = ("hold", "pingpong", "sweep", "blink", "uv")
@@ -488,18 +495,42 @@ def rate_ms(rate: str, beat_ms: float) -> float:
     return beat_ms * 4 * int(num) / int(den)
 
 
-def cell_node(rig_unit_nodes: dict, row: int, col: int) -> int:
-    """The node number of the cell at (`row`, `col`), row-major: rows 0-2 are RGB 01-24,
-    row 3 is W 1-8, rows 4-6 are RGB 25-48. `rig_unit_nodes` may map `"rgb"` / `"w"` to a
-    dict or list that renames these numbers; without it the number itself is returned."""
+def cell_zone(row: int, col: int) -> tuple[str, int]:
+    """The zone of the cell at (`row`, `col`), row-major from the top left: rows 0-2 are
+    `("rgb", 1..24)`, row 3 is `("w", 1..8)`, rows 4-6 are `("rgb", 25..48)`."""
     if row == WHITE_ROW:
-        kind, number = "w", col + 1
-    else:
-        kind, number = "rgb", (row if row < WHITE_ROW else row - 1) * MATRIX_COLS + col + 1
-    table = rig_unit_nodes.get(kind) if rig_unit_nodes else None
+        return "w", col + 1
+    return "rgb", (row if row < WHITE_ROW else row - 1) * MATRIX_COLS + col + 1
+
+
+def cell_node(unit_nodes: dict | None, row: int, col: int) -> int | None:
+    """The node of the cell at (`row`, `col`). `unit_nodes` is a Vorlane's table from
+    `unit_cells` (`"rgb"` / `"w"` → {zone number: node id}); `None` when the unit has no
+    node for that zone. Without a table the zone number itself is returned."""
+    kind, number = cell_zone(row, col)
+    table = unit_nodes.get(kind) if unit_nodes else None
     if table is None:
         return number
-    return table[number] if isinstance(table, dict) else table[number - 1]
+    return table.get(number)
+
+
+_ZONE_RE = re.compile(r"(RGB|W) ([0-9]+)\b")
+
+
+def unit_cells(nodes: list[VenueNode], unit: int) -> dict:
+    """The children of the Vorlane group node `unit`, by name: `"master"` → the id of
+    `MASTER - …` (or `None`), `"rgb"` → {n: id of `RGB nn - …`}, `"w"` → {n: id of
+    `W n - …`}. Other venues' units with the same names are told apart by `unit`."""
+    out: dict = {"master": None, "rgb": {}, "w": {}}
+    for n in nodes:
+        if n.parent != unit:
+            continue
+        if n.name.startswith("MASTER") and out["master"] is None:
+            out["master"] = n.id
+        m = _ZONE_RE.match(n.name)
+        if m:
+            out[m.group(1).lower()].setdefault(int(m.group(2)), n.id)
+    return out
 
 
 def matrix_frames(
@@ -650,3 +681,513 @@ def hue_keys(state: str, start: int, end: int, beat_ms: float) -> list[Key]:
             t += beat_ms
         return pulse_keys(times, beat_ms, end=end)
     raise ValueError(f"unknown hue state {state!r}")
+
+
+# ------------------------------------------------------------------ compiler --
+# A section's span is its bars through the script's tempo map: from bar `a` beat 1 to one
+# ms before bar `b + 1`. Each layer turns into `_Edit`s on fixture tracks; `hue` edits Main.
+
+MAX_ANCHORS = 8               # beyond this, bar numbers would not follow the music
+GRID_BPM_TOLERANCE = 0.01
+GRID_MS_TOLERANCE = 2
+DEFAULT_RATE = "1/4"
+STROBE_RATE = "1/16"
+DRAW_COLOURS = {
+    "columns": "#FFB347", "fill-up": "#FF2D95", "rows-down": "#00C8FF", "rows-up": "#00C8FF",
+    "centre-out": "#8A5CFF", "solid": "#00C8FF", "zigzag": "#FFB347", "arrow-up": "#FF2D95",
+}  # fmt: skip
+HAZE_WARNING = "experimental: confirm the machine reacts"
+UV_WARNING = "not compiled yet (X3); set the movers' UV in SoundSwitch"
+
+
+@dataclass
+class ManualCue:
+    """Something the compiler did not write; the owner adds it in SoundSwitch."""
+
+    bar: int
+    time_ms: int
+    fixture: str
+    what: str
+
+
+class CompileError(ValueError):
+    """The choreography cannot be compiled onto this script; the message says why."""
+
+
+def section_layers(section: Section) -> dict[str, object]:
+    """Every layer of a section with the defaults filled in: an unset layer is `auto`,
+    except `white`, which is `off` under a `matrix` other than `auto` (the white strip
+    never sits under a drawing by default). A draw with `with_white` writes the strip
+    itself, so there an unset `white` stays `auto`."""
+    out = {name: section.layers.get(name, "auto") for name in LAYERS}
+    matrix = out["matrix"]
+    if "white" not in section.layers and matrix != "auto":
+        if not (isinstance(matrix, dict) and matrix.get("with_white")):
+            out["white"] = "off"
+    return out
+
+
+def downbeat_ms(text: str) -> int:
+    """`M:SS.mmm` in milliseconds."""
+    minutes, seconds = text.split(":")
+    return round((int(minutes) * 60 + float(seconds)) * 1000)
+
+
+def _argb(colour: str) -> int:
+    """`#RRGGBB` as the opaque ARGB word the script stores."""
+    return 0xFF000000 | int(colour[1:], 16)
+
+
+def _ticks(start: int, end: int, step: float) -> list[int]:
+    """Times from `start`, every `step` ms, before `end`."""
+    out, k = [], 0
+    while start + k * step < end:
+        out.append(int(round(start + k * step)))
+        k += 1
+    return out
+
+
+def _shape(keys: list[Key], start: int, end: int) -> list[Key]:
+    """`keys` fitted to [start, end]: dark until the first key, held after the last, and
+    every rise from dark made sharp with a dark key 1 ms before it (levels are linear
+    between keys, so without it a fixture would fade up through its dark step)."""
+    out = [] if keys and keys[0].t <= start else [Key(start, 0)]
+    for k in keys:
+        prev = out[-1] if out else None
+        if prev is not None and prev.level == 0 and k.level > 0 and k.t - prev.t > 1:
+            out.append(Key(k.t - 1, 0))
+        out.append(Key(k.t, k.level))
+    if out[-1].t < end:
+        out.append(Key(end, out[-1].level))
+    return out
+
+
+def _dark(start: int, end: int) -> list[Key]:
+    return [Key(start, 0), Key(end, 0)]
+
+
+@dataclass
+class _Window:
+    """A section's bars (inclusive), its span in ms (inclusive) and the beat at its start."""
+
+    first: int
+    last: int
+    start: int
+    end: int
+    beat: float
+
+    @property
+    def bars(self) -> str:
+        return f"bar {self.first}" if self.first == self.last else f"bars {self.first}–{self.last}"
+
+
+@dataclass
+class _Fixture:
+    """A rig fixture resolved in the venue: its tracks by role (`"mover"`; `"master"` and
+    `(row, col)` for a Vorlane; `"fan"` and `"fog"` for the haze) and what is missing."""
+
+    key: str
+    kind: str
+    tracks: dict = field(default_factory=dict)
+    missing: list[str] = field(default_factory=list)
+
+    def cell_items(self) -> list[tuple[tuple[int, int], Track]]:
+        """The Vorlane's `((row, col), track)` pairs, top-left first."""
+        return sorted(((r, t) for r, t in self.tracks.items() if isinstance(r, tuple)),
+                      key=lambda item: item[0])
+
+    def cells(self, white: bool) -> list[Track]:
+        """The W row's cell tracks (`white=True`) or the colour rows' (`white=False`)."""
+        return [t for (row, _), t in self.cell_items() if (row == WHITE_ROW) == white]
+
+
+@dataclass
+class _Edit:
+    """One fixture track's share of a layer: intensity keys, a colour and position flags
+    (indices into `palette`), over the whole section (`span` None) or a part of it."""
+
+    trk: Track
+    keys: list[Key] | None = None
+    colour: int | None = None
+    flags: list[PositionFlag] | None = None
+    palette: list[tuple[str, int]] | None = None
+    span: tuple[int, int] | None = None
+
+    def lanes(self) -> set[str]:
+        """The lanes this edit writes across the whole section."""
+        if self.span is not None:
+            return set()
+        written = {"intensity": self.keys, "colour": self.colour, "position": self.flags}
+        return {lane for lane, value in written.items() if value is not None}
+
+    def apply(self, w: _Window) -> None:
+        start, end = self.span or (w.start, w.end)
+        if self.keys is not None:
+            set_intensity(self.trk, start, end, _shape(self.keys, start, end))
+        if self.colour is not None:
+            set_colour(self.trk, start, end, self.colour)
+        if self.flags is not None:
+            set_positions(self.trk, start, end, self.flags, self.palette)
+
+
+@dataclass
+class _Job:
+    script: TrackScript           # the copy being edited
+    grid: Grid
+    rig: Rig
+    venue: VenueInfo
+    tracks: list[Track]           # the script's tracks of the venue's nodes
+    fixtures: list[_Fixture]
+    presets: list[Preset]
+    cues: list[ManualCue] = field(default_factory=list)
+
+    def cue(self, bar: int, t: int, fixture: str, what: str) -> None:
+        self.cues.append(ManualCue(bar, t, fixture, what))
+
+    def kind(self, kind: str, w: _Window, layer: str) -> list[_Fixture]:
+        """The rig's fixtures of `kind`, with a cue for each part the venue lacks."""
+        found = [f for f in self.fixtures if f.kind == kind]
+        if not found:
+            self.cue(w.first, w.start, layer, f"{layer}, {w.bars}: the rig has no {kind}; not compiled")
+        for f in found:
+            if f.missing:
+                self.cue(w.first, w.start, f.key, f"{layer}, {w.bars}: skipped {'; '.join(f.missing)}")
+        return found
+
+    def beat_time(self, w: _Window, text: str, layer: str) -> int | None:
+        """The time of `<bar>.<beat>` when it falls inside the section, else a cue."""
+        bar, beat = (int(x) for x in text.split("."))
+        t = self.grid.ms(bar, beat)
+        if w.start <= t < w.end:
+            return t
+        self.cue(bar, t, layer, f"{layer} {text} is outside {w.bars} of its section; not compiled")
+        return None
+
+
+def compile_choreography(
+    choreo: Choreography,
+    script: TrackScript,
+    rig: Rig,
+    venues: list[VenueInfo],
+    presets: list[Preset],
+) -> tuple[TrackScript, list[ManualCue]]:
+    """Apply `choreo` to a copy of `script`; the input is never changed.
+
+    Refuses (`CompileError`) a script with more than 8 tempo anchors, a `grid` that is not
+    the script's first anchor (within 0.01 BPM and 2 ms), a script no venue holds, and a
+    result that breaks `soundswitch_format.check`. Fixtures are found by node name in the
+    venue that holds the script's node ids; what cannot be written becomes a `ManualCue`.
+
+    Per section: when `hue` changes a Main lane (intensity; colour too when `hue` has a
+    `colour`), Main's current content in that lane is first materialised into every node
+    of the venue whose own layer in this section does not write that lane, so only the
+    chandelier changes; then Main is edited; then movers, matrix, white, strobe and haze
+    write their nodes (white last over the W cells). `uv` is always a manual cue."""
+    _check_grid(choreo, script)
+    out = copy.deepcopy(script)
+    venue, trks = _venue_of(out, venues)
+    fixtures = _resolve(rig, venue, {t.node: t for t in trks})
+    job = _Job(out, grid(out), rig, venue, trks, fixtures, presets)
+    for section in choreo.sections:
+        _compile_section(job, section)
+    problems = check(out)
+    if problems:
+        raise CompileError("the compiled script breaks the format's rules:\n  " + "\n  ".join(problems))
+    return out, job.cues
+
+
+def _check_grid(choreo: Choreography, script: TrackScript) -> None:
+    if not script.tempo:
+        raise CompileError("the script has no tempo map")
+    if len(script.tempo) > MAX_ANCHORS:
+        raise CompileError(
+            f"the script's tempo map has {len(script.tempo)} anchors (at most {MAX_ANCHORS} "
+            "compile): bar numbers would not follow the music"
+        )
+    t0, bpm0 = script.tempo[0]
+    bpm, downbeat = float(choreo.grid["bpm"]), str(choreo.grid["downbeat"])
+    if abs(bpm - bpm0) > GRID_BPM_TOLERANCE + 1e-9 or abs(downbeat_ms(downbeat) - t0) > GRID_MS_TOLERANCE:
+        raise CompileError(
+            f"grid {bpm:g} BPM at {downbeat} does not match the script's first tempo anchor "
+            f"({bpm0:g} BPM at {t0} ms): the choreography was written for another version of the track"
+        )
+
+
+def _venue_of(script: TrackScript, venues: list[VenueInfo]) -> tuple[VenueInfo, list[Track]]:
+    """The venue holding most of the script's node ids, and the script's tracks of its
+    nodes (taken from the script venue with the same GUID when there is one)."""
+    best, best_tracks = None, []
+    for info in venues:
+        ids = {n.id for n in info.nodes}
+        same = [v for v in script.venues if v.guid.lower() == info.guid.lower()]
+        trks = [t for v in (same or script.venues) for t in v.tracks if t.node in ids]
+        if len(trks) > len(best_tracks):
+            best, best_tracks = info, trks
+    if best is None:
+        raise CompileError("no venue holds this script's nodes: compile it with its own project's venues")
+    return best, best_tracks
+
+
+def _find(nodes: list[VenueNode], name: str, index: int = 1, parent: int | None = None) -> VenueNode | None:
+    """The `index`-th node (1-based, venue order) named `name`, under `parent` if given."""
+    hits = [n for n in nodes if n.name == name and (parent is None or n.parent == parent)]
+    return hits[index - 1] if 1 <= index <= len(hits) else None
+
+
+def _want(res: _Fixture, role, node_id: int | None, label: str, by_node: dict[int, Track],
+          venue: VenueInfo) -> None:
+    if node_id is None:
+        res.missing.append(f"{label} is not in venue {venue.name!r}")
+    elif node_id not in by_node:
+        res.missing.append(f"{label} (node {node_id}) has no track in this script")
+    else:
+        res.tracks[role] = by_node[node_id]
+
+
+def _resolve(rig: Rig, venue: VenueInfo, by_node: dict[int, Track]) -> list[_Fixture]:
+    """Each rig fixture (but the chandelier, which is Main) with its tracks, by node name."""
+    out = []
+    for fx in rig.fixtures.values():
+        if fx.kind == "hue-chandelier":
+            continue
+        res = _Fixture(fx.key, fx.kind)
+        out.append(res)
+        index = fx.index or 1
+        node = _find(venue.nodes, fx.node, index)
+        if node is None:
+            res.missing.append(f"node {fx.node!r}" + (f" #{index}" if fx.index else "")
+                               + f" is not in venue {venue.name!r}")
+            continue
+        if fx.kind == "mover":
+            _want(res, "mover", node.id, repr(fx.node), by_node, venue)
+        elif fx.kind == "matrix":
+            table = unit_cells(venue.nodes, node.id)
+            _want(res, "master", table["master"], f"MASTER of {fx.node!r}", by_node, venue)
+            lost = []
+            for row in range(len(COLOUR_ROWS) + 1):
+                for col in range(MATRIX_COLS):
+                    nid = cell_node(table, row, col)
+                    if nid in by_node:
+                        res.tracks[(row, col)] = by_node[nid]
+                    else:
+                        kind, number = cell_zone(row, col)
+                        lost.append(f"{kind.upper()} {number}")
+            if lost:
+                res.missing.append(f"cells {', '.join(lost)} of {fx.node!r} have no node or track")
+        elif fx.kind == "haze":
+            for role in ("fan", "fog"):
+                name = fx.extra.get(role)
+                if name is None:
+                    res.missing.append(f"the rig names no {role} channel")
+                    continue
+                child = _find(venue.nodes, name, 1, parent=node.id)
+                _want(res, role, child.id if child else None, repr(name), by_node, venue)
+    return out
+
+
+def _compile_section(job: _Job, section: Section) -> None:
+    first, last = section.bars
+    start, end = job.grid.ms(first), job.grid.ms(last + 1) - 1
+    w = _Window(first, last, start, end, job.grid.beat_ms(start))
+    layers = section_layers(section)
+    edits = (_movers(job, w, layers["movers"]) + _matrix(job, w, layers["matrix"])
+             + _white(job, w, layers["white"]) + _strobe(job, w, layers["strobe"])
+             + _haze(job, w, layers["haze"]))  # fmt: skip
+    if layers["uv"] != "auto":
+        job.cue(first, start, "movers", f"UV {layers['uv']}, {w.bars}: {UV_WARNING}")
+    if layers["hue"] != "auto":
+        state, colour = _hue(layers["hue"])
+        changed = {"intensity"} | ({"colour"} if colour is not None else set())
+        owned: dict[int, set[str]] = {}
+        for e in edits:
+            owned.setdefault(e.trk.node, set()).update(e.lanes())
+        for trk in job.tracks:
+            lanes = changed - owned.get(trk.node, set())
+            if lanes:
+                materialise_main(job.script, trk, start, end, frozenset(lanes))
+        set_main(job.script, start, end, _shape(hue_keys(state, start, end, w.beat), start, end), colour)
+    for e in edits:
+        e.apply(w)
+
+
+def _hue(value) -> tuple[str, int | None]:
+    """`(state, colour or None)` of a hue layer; `off` is `dark`."""
+    if isinstance(value, dict):
+        return value["state"], (_argb(value["colour"]) if "colour" in value else None)
+    return ("dark" if value == "off" else value), None
+
+
+def _movers(job: _Job, w: _Window, value) -> list[_Edit]:
+    if value == "auto":
+        return []
+    if isinstance(value, dict) and value["move"] == "uv":
+        job.cue(w.first, w.start, "movers", f"UV wash, {w.bars}: {UV_WARNING}")
+        return []
+    fixtures = [f for f in job.kind("mover", w, "movers") if "mover" in f.tracks]
+    if value == "off":
+        return [_Edit(f.tracks["mover"], keys=_dark(w.start, w.end)) for f in fixtures]
+    colour = _argb(value["colour"]) if "colour" in value else None
+    named = _preset_guids(job, w, value)
+    edits = []
+    for i, f in enumerate(fixtures):
+        trk = f.tracks["mover"]
+        keys = mover_keys(value, w.start, w.end, w.beat, i, first_bar=w.first)
+        flags, palette = _position_flags(job, w, value, named, trk, f.key)
+        edits.append(_Edit(trk, keys=keys, colour=colour, flags=flags, palette=palette))
+    return edits
+
+
+def _preset_guids(job: _Job, w: _Window, move: dict) -> list[tuple[str, str]]:
+    """`(name, guid)` of the move's positions in order; an unknown name becomes a cue."""
+    names = move.get("positions") or ([move["position"]] if "position" in move else [])
+    by_name: dict[str, str] = {}
+    for p in job.presets:
+        by_name.setdefault(p.name, p.guid)
+    out, reported = [], set()
+    for name in names:
+        if name in by_name:
+            out.append((name, by_name[name]))
+        elif name not in reported:
+            reported.add(name)
+            job.cue(w.first, w.start, "movers",
+                    f"position preset {name!r}, {w.bars}: not a preset of the venue; aim the movers by hand")
+    return out
+
+
+def _position_flags(job: _Job, w: _Window, move: dict, named: list[tuple[str, str]], trk: Track,
+                    who: str) -> tuple[list[PositionFlag] | None, list[tuple[str, int]] | None]:
+    """Flags for a mover: one at the start for a single position, else one per step,
+    cycling through the positions. They index the track's own palette, else Main's."""
+    if not named:
+        return None, None
+    main = job.script.main.positions
+    palette = (trk.positions.palette if trk.positions and trk.positions.palette
+               else main.palette if main else [])
+    where: dict[str, int] = {}
+    for i, (guid, _) in enumerate(palette):
+        where.setdefault(guid.lower(), i)
+    usable = []
+    for name, guid in named:
+        if guid.lower() in where:
+            usable.append(where[guid.lower()])
+        else:
+            job.cue(w.first, w.start, who,
+                    f"position preset {name!r}, {w.bars}: not in this script's palette; set it in SoundSwitch")
+    if not usable:
+        return None, None
+    times = [w.start] if len(usable) == 1 else [s for s, _ in _steps(move, w.start, w.end, w.beat, w.first)]
+    return [PositionFlag(t, usable[i % len(usable)]) for i, t in enumerate(times)], palette
+
+
+def _matrix(job: _Job, w: _Window, value) -> list[_Edit]:
+    """A draw: per-cell pulses (decay = one step) from the frames, the draw's colour on
+    the colour cells and the unit's MASTER held at full. `off`: the colour cells dark."""
+    if value == "auto":
+        return []
+    units = job.kind("matrix", w, "matrix")
+    if value == "off":
+        return [_Edit(t, keys=_dark(w.start, w.end)) for u in units for t in u.cells(white=False)]
+    draw = value["draw"]
+    step = rate_ms(value.get("rate", DEFAULT_RATE), w.beat)
+    with_white = bool(value.get("with_white", False))
+    mirror = bool(value.get("mirror", False))
+    colour = _argb(value.get("colour", DRAW_COLOURS[draw]))
+    white_level = level_of(job.rig.white_max)
+    edits = []
+    for u, unit in enumerate(units):
+        frames = matrix_frames(draw, w.start, w.end, step, u, mirror, with_white=with_white)
+        if value.get("pingpong"):
+            frames = [f for k, f in enumerate(frames) if k % 2 == u % 2]
+        lit: dict[tuple[int, int], list[int]] = {}
+        for t, cells in frames:
+            for cell in cells:
+                lit.setdefault(cell, []).append(t)
+        if "master" in unit.tracks:
+            edits.append(_Edit(unit.tracks["master"], keys=[Key(w.start, FULL), Key(w.end, FULL)]))
+        for cell, trk in unit.cell_items():
+            is_white = cell[0] == WHITE_ROW
+            if is_white and not with_white:
+                continue
+            keys = pulse_keys(lit.get(cell, []), step, white_level if is_white else FULL, end=w.end)
+            edits.append(_Edit(trk, keys=keys, colour=None if is_white else colour))
+    return edits
+
+
+def _white(job: _Job, w: _Window, value) -> list[_Edit]:
+    """The W cells: dark (`off`), a one-beat flash per accent, or flashes at a rate; never
+    above `white_max`."""
+    if value == "auto":
+        return []
+    units = job.kind("matrix", w, "white")
+    level = level_of(job.rig.white_max)
+    if value == "off":
+        keys = _dark(w.start, w.end)
+    elif "accent" in value:
+        times = [job.beat_time(w, hit, "white") for hit in value["accent"]]
+        keys = pulse_keys(sorted({t for t in times if t is not None}), w.beat, level, end=w.end)
+    else:
+        step = rate_ms(value["flash"], w.beat)
+        keys = pulse_keys(_ticks(w.start, w.end, step), step, level, end=w.end)
+    return [_Edit(t, keys=keys) for u in units for t in u.cells(white=True)]
+
+
+def _strobe(job: _Job, w: _Window, value) -> list[_Edit]:
+    """v1 strobe: 1/16 pulses on the movers and the colour cells, one beat per `hit`, the
+    `roll` bars clipped to the section. `off` cannot remove SoundSwitch's own strobe
+    blocks yet, so it is a cue where the span has some."""
+    if value == "auto":
+        return []
+    if value == "off":
+        busy = [f.key for f in job.fixtures if any(
+            t.strobes and any(s.start <= w.end and s.end >= w.start for s in t.strobes.items)
+            for t in f.tracks.values())]
+        if busy:
+            job.cue(w.first, w.start, "strobe",
+                    f"strobe off, {w.bars}: remove the strobe blocks of {', '.join(busy)} in SoundSwitch")
+        return []
+    movers = [f.tracks["mover"] for f in job.kind("mover", w, "strobe") if "mover" in f.tracks]
+    targets = movers + [t for u in job.kind("matrix", w, "strobe") for t in u.cells(white=False)]
+    windows = []
+    for hit in value.get("hit", []):
+        t = job.beat_time(w, hit, "strobe")
+        if t is not None:
+            bar, beat = (int(x) for x in hit.split("."))
+            windows.append((t, min(job.grid.ms(bar, beat + 1) - 1, w.end)))
+    if "roll" in value:
+        a, b = value["roll"]
+        want = (job.grid.ms(a), job.grid.ms(b + 1) - 1)
+        lo, hi = max(want[0], w.start), min(want[1], w.end)
+        if (lo, hi) != want:
+            job.cue(a, want[0], "strobe", f"strobe roll {a}–{b} runs outside {w.bars} of its section; "
+                                          + ("clipped to it" if lo < hi else "not compiled"))
+        if lo < hi:
+            windows.append((lo, hi))
+    step = rate_ms(STROBE_RATE, w.beat)
+    edits = []
+    for lo, hi in windows:
+        keys = pulse_keys(_ticks(lo, hi, step), step, end=hi)
+        edits += [_Edit(t, keys=keys, span=(lo, hi)) for t in targets]
+    return edits
+
+
+def _haze(job: _Job, w: _Window, value) -> list[_Edit]:
+    """Fog and fan levels (both typed Intensity in the venue): `on` full, `off` dark,
+    `burst` fog full for N seconds with the fan on across the section. Experimental."""
+    if value == "auto":
+        return []
+    full = [Key(w.start, FULL), Key(w.end, FULL)]
+    if value == "off":
+        fog = fan = _dark(w.start, w.end)
+    elif value == "on":
+        fog = fan = full
+    else:
+        stop = min(w.start + int(value["burst"][:-1]) * 1000 - 1, w.end)
+        fog = [Key(w.start, FULL), Key(stop, FULL)] + ([Key(stop + 1, 0)] if stop < w.end else [])
+        fan = full
+    what = value if isinstance(value, str) else f"burst {value['burst']}"
+    edits = []
+    for f in job.kind("haze", w, "haze"):
+        job.cue(w.first, w.start, f.key, f"haze {what}, {w.bars}: {HAZE_WARNING}")
+        edits += [_Edit(f.tracks[role], keys=keys) for role, keys in (("fog", fog), ("fan", fan))
+                  if role in f.tracks]
+    return edits

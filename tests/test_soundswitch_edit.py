@@ -250,11 +250,22 @@ def test_check_reports_violations(make_script):
     t.lanes[0].keys = [Key(5, 0), Key(3, 0)]
     t.blocks.items = [Span(0, 100), Span(50, 200)]
     t.position_blocks = type(t.blocks)(1, [Span(1500, 1600)])      # overlaps the G block
-    s.main.positions.flags = [PositionFlag(5000, 0)]                # outside every F span
+    set_positions(track(s, 1820), 0, 100, [PositionFlag(50, 0)], s.main.positions.palette)
+    track(s, 1820).positions.flags.append(PositionFlag(5000, 0))   # outside every F span
+    s.main.colours = type(t.blocks)(1, [ColourBlock(0, 100, 1, 0, 1, 0),
+                                        ColourBlock(50, 200, 1, 0, 1, 0)])
     problems = check(s)
-    assert len(problems) == 4
+    assert len(problems) == 5
     joined = "\n".join(problems)
-    assert "1167" in joined and "node 2" in joined
+    assert "1167" in joined and "node 1820" in joined and "node 2" in joined
+
+
+def test_check_accepts_main_flags_without_position_blocks(make_script):
+    # Main's flags apply all along: in the real scripts Main has flags and no F section
+    s = make_script()
+    s.main.position_blocks = None
+    s.main.positions.flags.append(PositionFlag(5000, 0))
+    assert check(s) == []
 
 
 def test_materialise_positions_carries_active_flag_at_the_cut(make_script):
