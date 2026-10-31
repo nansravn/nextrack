@@ -16,6 +16,67 @@ def no_owner_library(monkeypatch):
     monkeypatch.delenv("NEXTRACK_AUDIO_ROOT", raising=False)
 
 
+@pytest.fixture(autouse=True)
+def no_owner_soundswitch(monkeypatch):
+    """Likewise hide the owner's SoundSwitch project folder from every test."""
+    monkeypatch.delenv("NEXTRACK_SOUNDSWITCH_PROJECT", raising=False)
+
+
+# ------------------------------------------------------ SoundSwitch scripts ----
+
+
+@pytest.fixture
+def make_script():
+    """Factory: a small valid TrackScript; `overrides` replace TrackScript fields."""
+    import soundswitch_format as ssf
+
+    def _make(**overrides):
+        def empty_track(node, link=1):
+            return ssf.Track(node=node, lanes=[ssf.Lane(4, 1, None, [])], blocks=None,
+                             link=link, colours=None, positions=None, strobes=None,
+                             position_blocks=None, shapes=None)
+
+        mover = empty_track(1167)
+        mover.lanes[0].keys = [ssf.Key(1000, 0), ssf.Key(1001, ssf.FULL), ssf.Key(1300, 0)]
+        mover.blocks = ssf.Section(1, [ssf.Span(1000, 2000)])
+        mover.colours = ssf.Section(1, [ssf.ColourBlock(1000, 2000, 0xFF00FF37, 0, 0xFF3700FF, 0)])
+        mover.shapes = ssf.Shapes(1, 1, [ssf.ShapeBlock(
+            1000, 2000, 0, 2, (0.5, 0.5, 0.5, 0.5), 0, 1, 2, 1)])
+
+        main = ssf.Track(
+            node=2,
+            lanes=[ssf.Lane(4, 1, 0, [ssf.Key(0, 0x7FFFFFFF), ssf.Key(10000, 0x7FFFFFFF)])]
+                  + [ssf.Lane(a, 1, None, []) for a in (2, 3, 5, 6, 7)],
+            blocks=None, link=0, colours=None,
+            positions=ssf.Positions(
+                2, 1,
+                [("11111111-2222-3333-4444-555555555555", 0),
+                 ("66666666-7777-8888-9999-aaaaaaaaaaaa", 1)],
+                [ssf.PositionFlag(1500, 1)]),
+            strobes=None, position_blocks=ssf.Section(1, [ssf.Span(1000, 2000)]), shapes=None)
+
+        fields = dict(
+            container_ver=3, fmt=13,
+            venues=[
+                ssf.Venue(4, "0122adb8-e4b9-46c9-96c8-98a7e8f6a5a9", 3,
+                          [mover, empty_track(1820)], (1, 0)),
+                ssf.Venue(4, "d34c412f-48c1-4f75-9399-b35c069c8fdb", 3, [], (1, 0)),
+            ],
+            global_ver=1, tempo=[(158, 100.0)],
+            post_tempo=bytes.fromhex("01" "01000000" "01000000" "00000000" "0000"),
+            main=main, pre_cue=[1, 0, 0, 1, 1, 0, 1, 1],
+            cue_palette=[("aaaaaaaa-0000-0000-0000-000000000001", 0)],
+            cue_flags=[(2500, 0)], post_cue=bytes(10),
+            node_lists_ver=1, node_lists=[1, 1],
+            tail_pre=bytes.fromhex(ssf.DEFAULT_TAIL_PRE),
+            tail_post=bytes.fromhex(ssf.DEFAULT_TAIL_POST),
+        )
+        fields.update(overrides)
+        return ssf.TrackScript(**fields)
+
+    return _make
+
+
 # --------------------------------------------------------- synthetic audio ----
 
 
