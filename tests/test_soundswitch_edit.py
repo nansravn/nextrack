@@ -255,3 +255,16 @@ def test_check_reports_violations(make_script):
     assert len(problems) == 4
     joined = "\n".join(problems)
     assert "1167" in joined and "node 2" in joined
+
+
+def test_materialise_positions_carries_active_flag_at_the_cut(make_script):
+    s = make_script()
+    s.main.position_blocks.items = [Span(0, 10_000)]
+    s.main.positions.flags = [PositionFlag(0, 0), PositionFlag(6000, 1)]
+    e = track(s, 1820)
+    set_positions(e, 0, 3000, [], s.main.positions.palette)
+    materialise_main(s, e, 0, 10_000, frozenset({"position"}))
+    assert e.position_blocks.items == [Span(0, 10_000)]    # copied 3001.. merges with own
+    assert [(f.t, f.preset) for f in e.positions.flags] == [(3001, 0), (6000, 1)]
+    assert check(s) == []
+    roundtrip(s)
