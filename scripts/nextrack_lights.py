@@ -556,6 +556,16 @@ def _base_path(project: ssf.Project, guid: str) -> Path:
     return project.folder.parent / "nextrack-backups" / "base" / project.script_path(guid).name
 
 
+def _check_out(project: ssf.Project, out: Path) -> None:
+    """Refuse an `-o` inside the project folder or its backups. Paths are compared lower-cased,
+    because the Windows drive under /mnt/c ignores case."""
+    parts = Path(str(out.resolve()).lower()).parts
+    for folder in (project.folder, project.folder.parent / "nextrack-backups"):
+        root = Path(str(folder.resolve()).lower()).parts
+        if parts[:len(root)] == root:
+            raise Refused(f"{out} is inside {folder}; pick another -o")
+
+
 def _load(project: ssf.Project, text: str, prefer_base: bool = False) -> tuple[ssf.TrackRef, ssf.TrackScript]:
     ref = project.resolve(text)
     path = project.script_path(ref.guid)
@@ -605,6 +615,7 @@ def _yaml_checked(path: Path, problems) -> dict | None:
 
 
 def cmd_render(project: ssf.Project, args) -> int:
+    _check_out(project, Path(args.out))
     rig_path = Path(args.rig) if args.rig else DEFAULT_RIG
     if _yaml_checked(rig_path, ls.problems_rig) is None:
         return 1
@@ -641,9 +652,9 @@ WSL_INTEROP = Path("/proc/sys/fs/binfmt_misc/WSLInterop")
 
 
 def soundswitch_running() -> bool:
-    """True when `tasklist.exe` lists SoundSwitch.exe. False when it is absent and this is
-    not WSL (nothing to check, e.g. CI). Any other failure raises `Refused`: a guard that
-    passes when its own check fails is no guard."""
+    """True when `tasklist.exe` lists a process whose name contains "soundswitch" (any
+    case). False when it is absent and this is not WSL (nothing to check, e.g. CI). Any
+    other failure raises `Refused`: a guard that passes when its own check fails is no guard."""
     cannot = "cannot verify that SoundSwitch is closed"
     try:
         done = subprocess.run(["tasklist.exe"], capture_output=True, text=True,
@@ -656,7 +667,7 @@ def soundswitch_running() -> bool:
         raise Refused(f"{cannot}: {e}") from e
     if done.returncode != 0:
         raise Refused(f"{cannot}: tasklist.exe exited with {done.returncode}")
-    return "SoundSwitch.exe" in (done.stdout or "")
+    return "soundswitch" in (done.stdout or "").lower()
 
 
 def _now() -> datetime.datetime:
@@ -720,7 +731,7 @@ def _compile_checked(choreo, base: ssf.TrackScript, venues, presets, rig) -> tup
         raise Refused("the compiled script changed Main although no section sets a hue; "
                       "untouched parts differ from the base")
     for name, c, b in pairs:
-        problem = _outside_problem(c, b, windows)
+        problem = _outside_problem(c, b, windows, main=c is again.main)
         if problem:
             raise Refused(f"the compiled script changed {name} {problem} outside the sections; "
                           "untouched parts differ from the base")
@@ -773,10 +784,60 @@ def _block_pieces(items, windows) -> list[tuple[int, int, str]]:
     return [tuple(m) for m in merged]
 
 
-def _outside_problem(out: ssf.Track, base: ssf.Track, windows) -> str | None:
+def _colour_pieces(items, windows) -> list[tuple[int, int, tuple[int, int], tuple[int, int]]]:
+    """Colour blocks clipped to the complement of the windows, each piece with the colour it
+    shows at its two ends: a gradient cut at a window is judged by what it shows there, not
+    by the colours it stores (which move with the cut)."""
+    return sorted((a, b, ssf.colour_at(it, a), ssf.colour_at(it, b))
+                  for it in items for a, b in _clip_outside(it, windows))
+
+
+def _same_colour(x: tuple[int, int], y: tuple[int, int]) -> bool:
+    """Within one step per byte: the colour at a cut is rounded to whole bytes."""
+    return all(abs(((p >> s) & 255) - ((q >> s) & 255)) <= 1 for p, q in zip(x, y) for s in (0, 8, 16, 24))
+
+
+def _preset(trk: ssf.Track, flag: ssf.PositionFlag | None):
+    """The preset GUID a flag points at (lower case), its raw index when the palette lacks it."""
+    if flag is None:
+        return None
+    pal = trk.positions.palette
+    return pal[flag.preset][0].lower() if flag.preset < len(pal) else flag.preset
+
+
+def _position_problem(out: ssf.Track, base: ssf.Track, windows, main: bool) -> str | None:
+    """Position flags outside the windows must be the base's (a flag next to a window passes
+    when it repeats the preset in force there in the base), and the preset in force must be
+    the base's at every moment outside the windows where it can change: each flag, each
+    position block's ends, and the first moment after each window."""
+    def flags(trk):
+        return sorted((f.t, _preset(trk, f)) for f in (trk.positions.flags if trk.positions else [])
+                      if not _inside(f.t, windows))
+
+    def in_force(trk, t):
+        return _preset(trk, ssf.active_flag(trk, t, spans=not main))
+
+    old, new = flags(base), flags(out)
+    new = [f for f in new if f in old or not (_next_to(f[0], windows) and f[1] == in_force(base, f[0]))]
+    if old != new:
+        return "the position flags"
+    moments = {0} | {e + 1 for _, e in windows}
+    for trk in (out, base):
+        moments |= {f.t for f in (trk.positions.flags if trk.positions else [])}
+        for s in trk.position_blocks.items if trk.position_blocks else []:
+            moments |= {s.start, s.end + 1}
+    for t in sorted(moments):
+        if not _inside(t, windows) and in_force(out, t) != in_force(base, t):
+            return f"the position in force at {t} ms"
+    return None
+
+
+def _outside_problem(out: ssf.Track, base: ssf.Track, windows, main: bool = False) -> str | None:
     """What differs between the tracks outside the windows (None if nothing): intensity and
     every other lane's keys (a boundary key next to a window passes when it carries the base's
-    level there), blocks B C E F G clipped to the complement, position flags."""
+    level there), blocks B E F G clipped to the complement, the colours the C blocks show
+    there, and the position flags and the preset in force (`main`: Main's flags hold all
+    along, it has no position blocks)."""
     if (out.node, out.link, len(out.lanes)) != (base.node, base.link, len(base.lanes)):
         return "its identity or lanes"
     for i, (lo, lb) in enumerate(zip(out.lanes, base.lanes)):
@@ -789,19 +850,16 @@ def _outside_problem(out: ssf.Track, base: ssf.Track, windows) -> str | None:
                 new.discard((t, level))
         if old != new:
             return f"keys of lane {i}"
-    for name in ("blocks", "colours", "strobes", "position_blocks", "shapes"):
+    for name in ("blocks", "strobes", "position_blocks", "shapes"):
         so, sb = getattr(out, name), getattr(base, name)
         if _block_pieces(so.items if so else [], windows) != _block_pieces(sb.items if sb else [], windows):
             return f"the {name} blocks"
-
-    def flags(trk):
-        pos = trk.positions
-        return sorted((f.t, pos.palette[f.preset][0] if f.preset < len(pos.palette) else f.preset)
-                      for f in (pos.flags if pos else []) if not _inside(f.t, windows))
-
-    if flags(out) != flags(base):
-        return "the position flags"
-    return None
+    co = _colour_pieces(out.colours.items if out.colours else [], windows)
+    cb = _colour_pieces(base.colours.items if base.colours else [], windows)
+    if len(co) != len(cb) or any(x[:2] != y[:2] or not (_same_colour(x[2], y[2]) and _same_colour(x[3], y[3]))
+                                 for x, y in zip(co, cb)):
+        return "the colours blocks"
+    return _position_problem(out, base, windows, main)
 
 
 def _items(trk: ssf.Track) -> set[str]:
@@ -850,16 +908,19 @@ def _plan_base(project: ssf.Project, ref: ssf.TrackRef, current: bytes, adopt: b
         base = base_path.read_bytes()
         if entry.get("base") and _sha(base) != entry["base"]:
             raise Refused(f"the base copy {base_path} changed since it was made (state.json disagrees)")
+        if not entry and _sha(current) != _sha(base):
+            raise Refused(f"the project file differs from the base copy {base_path} and state.json has no "
+                          "record of this track, so edits made in SoundSwitch cannot be ruled out; copy the "
+                          "base back over the project file, or --adopt-current keeps the project file as the new base")
         return base, False
     return current, True
 
 
 def cmd_compile(project: ssf.Project, args) -> int:
+    out = Path(args.out)
+    _check_out(project, out)
     choreo, rig = _load_inputs(args)
     ref, base = _load(project, choreo.soundswitch, prefer_base=True)
-    out = Path(args.out)
-    if out.resolve() in (project.script_path(ref.guid).resolve(), _base_path(project, ref.guid).resolve()):
-        raise Refused(f"{out} is the project's own file or its base; pick another -o")
     venues, presets = project.venues()
     data, cues = _compile_checked(choreo, base, venues, presets, rig)
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -920,21 +981,32 @@ def cmd_apply(project: ssf.Project, args) -> int:
 
 
 def _commit(project, ref, target, staged, root, base_path, base_bytes, new_base, current, data) -> None:
+    """Base (when new), timestamped backup, replace, state.json. If anything fails before the
+    project file is replaced, the base is put back as it was: removed when this run wrote
+    the first one, restored when it replaced an older one (`--adopt-current`)."""
     base_path.parent.mkdir(parents=True, exist_ok=True)
-    if new_base:
-        _write_atomic(base_path, base_bytes)
-    stamp = _now().strftime("%Y%m%d-%H%M%S")
-    folder, n = root / stamp, 1
-    while True:
-        try:
-            folder.mkdir()
-            break
-        except FileExistsError:
-            n += 1
-            folder = root / f"{stamp}-{n}"
-    backup = folder / target.name
-    backup.write_bytes(current)
-    os.replace(staged, target)
+    old_base = base_path.read_bytes() if new_base and base_path.is_file() else None
+    try:
+        if new_base:
+            _write_atomic(base_path, base_bytes)
+        stamp = _now().strftime("%Y%m%d-%H%M%S")
+        folder, n = root / stamp, 1
+        while True:
+            try:
+                folder.mkdir()
+                break
+            except FileExistsError:
+                n += 1
+                folder = root / f"{stamp}-{n}"
+        backup = folder / target.name
+        backup.write_bytes(current)
+        os.replace(staged, target)
+    except BaseException:
+        if new_base and old_base is None:
+            base_path.unlink(missing_ok=True)
+        elif new_base:
+            _write_atomic(base_path, old_base)
+        raise
     state_path = root / "state.json"
     state = json.loads(state_path.read_text(encoding="utf-8")) if state_path.is_file() else {}
     state[ref.guid] = {"base": _sha(base_bytes), "applied": _sha(data)}
