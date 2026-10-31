@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulador de luz</title>
+<style>
+:root{color-scheme:dark;--muted:#8b90a0}
+html,body{margin:0;background:#0b0b10;color:#e6e6ea;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main.page{max-width:1500px;margin:0 auto;padding:20px 16px 32px}
+h2{font-size:20px;margin:0 0 6px;font-weight:650}
+.subtitle{color:var(--muted);margin:0 0 14px;font-size:14px;line-height:1.45}
+.sim{background:#050508;border-radius:12px;padding:12px;color:#ddd}
+.rooms{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rooms.one{grid-template-columns:1fr;max-width:900px;margin:0 auto}
+@media(max-width:1000px){.rooms{grid-template-columns:1fr}}
+.rooms h4{margin:0 0 4px;font-size:13px;color:#bbb;font-weight:600}
+.rooms svg{width:100%;height:auto;background:#0a0a10;border-radius:8px;display:block}
+.badges{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;min-height:20px}
+.badges span{font-size:11px;color:#ffd27a;border:1px solid #5a4a22;background:#1b1608;border-radius:10px;padding:1px 8px}
+.bar{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.bar button{background:#2a2a35;color:#eee;border:1px solid #444;border-radius:6px;padding:5px 12px;cursor:pointer}
+.bar label{font-size:12px;color:#aaa;cursor:pointer;border:1px dashed #555;border-radius:6px;padding:4px 8px}
+.bar input[type=file]{display:none}
+#clock{font:13px monospace;color:#ddd;min-width:130px}
+#tl{width:100%;height:auto;margin-top:8px;cursor:pointer;display:block}
+.now{margin-top:8px;font-size:13px;min-height:20px}
+.now b{color:#ffd27a}
+.st{margin-top:4px;font-size:12px;color:#9aa0ad;min-height:18px;font-family:ui-monospace,monospace}
+.note{font-size:12px;color:var(--muted);line-height:1.45}
+</style>
+</head>
+<body>
+<main class="page">
+<h2 id="heading"></h2>
+<p class="subtitle" id="subtitle"></p>
+
+<div class="sim">
+ <div class="rooms" id="rooms">
+  <div><h4 id="hA">Antes: autoscript</h4><svg id="roomA" viewBox="0 0 800 500"></svg><div class="badges" id="bdgA"></div></div>
+  <div id="boxB"><h4>Depois: roteiro</h4><svg id="roomB" viewBox="0 0 800 500"></svg><div class="badges" id="bdgB"></div></div>
+ </div>
+ <div class="bar">
+  <button id="play">▶ tocar</button>
+  <label>🎵 carregar o áudio<input type="file" id="audiofile" accept="audio/*"></label>
+  <span id="clock">0:00 · compasso 1</span>
+ </div>
+ <svg id="tl" viewBox="0 0 1000 112"></svg>
+ <div class="now" id="now"></div>
+ <div class="st" id="st"></div>
+</div>
+<p class="note">Simulação aproximada, lida do script real do SoundSwitch. Os dois lados vêm de scripts de verdade: o "antes" é o script-base (o autoscript) e o "depois" é o script compilado a partir do roteiro, exatamente o que seria gravado. Regra: cada aparelho segue a trilha Main fora dos próprios blocos (intensidade fora dos blocos de intensidade, cor fora dos blocos de cor, posição fora dos blocos de posição ou forma); o lustre Hue mostra a Main (intensidade × cor). Níveis são interpolados em linha reta entre os pontos. Palpites ainda abertos: o byte extra de cor é mostrado como branco; o MASTER das Vorlanes só escurece onde tem bloco próprio; a fita branca acende pela intensidade, sem olhar a cor; a fumaça vem só do canal de fumaça da máquina. A posição dos presets na sala é um palpite. "forma N" = efeito de movimento do SoundSwitch (tipo N), desenhado como um balanço do feixe. Selos amarelos são cues manuais: coisas que o roteiro pede e o compilador não escreveu.</p>
+</main>
+
+<script>
+const S = /*__DATA__*/null;
+const END = Math.max(S.end || 0, 1000), RIG = S.rig || {}, CUES = S.cues || [];
+const mkSide = nodes => ({ M: nodes.Main || {}, N: nodes });
+const SIDE_A = mkSide(S.before), SIDE_B = S.after ? mkSide(S.after) : null;
+const FIX = Object.values(RIG);
+const MOVERS = FIX.filter(f => f.kind === 'mover'), MATS = FIX.filter(f => f.kind === 'matrix');
+const HUE = FIX.find(f => f.kind === 'hue-chandelier'), HAZE = FIX.find(f => f.kind === 'haze');
+// ---------- time (tempo map: [[t_ms, bpm], ...]; bar 1 starts at the first anchor) ----------
+const ANCH = (() => { const a = []; (S.grid.length ? S.grid : [[0, 120]]).forEach(([t, bpm], i) => { let b = 0; if (i) { const p = a[i - 1]; b = p[2] + (t - p[0]) * p[1] / 60000; } a.push([t, bpm, b]); }); return a; })();
+function ancT(t) { let a = ANCH[0]; for (const x of ANCH) { if (x[0] <= t) a = x; else break; } return a; }
+function ancB(b) { let a = ANCH[0]; for (const x of ANCH) { if (x[2] <= b + 1e-9) a = x; else break; } return a; }
+const beatsAt = t => { const a = ancT(t); return a[2] + (t - a[0]) * a[1] / 60000; };
+const msAt = b => { const a = ancB(b); return a[0] + (b - a[2]) * 60000 / a[1]; };
+const barAt = t => Math.floor(beatsAt(t) / 4 + 1e-9) + 1;
+const barStart = n => msAt((n - 1) * 4);
+// ---------- generic lookups ----------
+function span(arr, t) {               // item with item[0] <= t <= item[1] (ends inclusive), arr sorted
+  if (!arr || !arr.length || t < arr[0][0]) return null;
+  let lo = 0, hi = arr.length - 1;
+  while (lo < hi) { const m = (lo + hi + 1) >> 1; if (arr[m][0] <= t) lo = m; else hi = m - 1; }
+  return t <= arr[lo][1] ? arr[lo] : null;
+}
+function interp(keys, t) {            // linear between breakpoints; equal times = a step; 0 before the first
+  if (!keys || !keys.length || t < keys[0][0]) return 0;
+  let lo = 0, hi = keys.length - 1;
+  while (lo < hi) { const m = (lo + hi + 1) >> 1; if (keys[m][0] <= t) lo = m; else hi = m - 1; }
+  const a = keys[lo], b = keys[lo + 1];
+  if (!b || b[0] === a[0]) return a[1];
+  return a[1] + (b[1] - a[1]) * (t - a[0]) / (b[0] - a[0]);
+}
+const clamp01 = x => Math.max(0, Math.min(1, x));
+const lerpC = (a, b, f) => a.map((x, i) => x + (b[i] - x) * f);
+function colAt(blocks, t) { const s = span(blocks, t); if (!s) return null; return lerpC(s[2], s[3], s[1] > s[0] ? clamp01((t - s[0]) / (s[1] - s[0])) : 0); }
+function hexOf(c) { const w = 0.75 * (c[3] || 0) / 255; return '#' + [0, 1, 2].map(i => Math.round(c[i] + (255 - c[i]) * w).toString(16).padStart(2, '0')).join(''); }
+function rgba(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; }
+// ---------- one side of the room: a script's nodes (the "before" base or the compiled "after") ----------
+function strobe(E, t) { const s = span(E, t); if (!s) return null; const r = s[2] + (s[3] - s[2]) * clamp01((t - s[0]) / Math.max(1, s[1] - s[0])); const hz = Math.max(1, r / 10); return ((t / 1000) * hz) % 1 < 0.5 ? 1 : 0.1; }
+function nodeOf(X, label) { return label != null ? X.N[label] : undefined; }
+function level(X, n, t) {             // [level, own]: the node's own lane inside its B spans, else Main's
+  const own = !!(n && span(n.B, t)), src = own ? n : X.M;
+  let v = interp(src.k, t); const e = strobe(src.E, t); if (e != null) v *= e;
+  return [v, own];
+}
+function mainColour(X, t) {
+  const L = X.M.C || [], c = colAt(L, t); if (c) return c;
+  if (!L.length) return [255, 255, 255, 0];
+  if (t < L[0][0]) return L[0][2];
+  let last = L[0]; for (const x of L) { if (x[0] <= t) last = x; else break; } return last[3];
+}
+function mainPos(X, t) { const D = X.M.D || []; if (!D.length) return 'Dance Floor Centre'; let n = D[0][1]; for (const d of D) { if (d[0] <= t) n = d[1]; else break; } return n; }
+function colour(X, n, t) { const c = n && colAt(n.C, t); return c ? [c, true] : [mainColour(X, t), false]; }
+function pos(X, n, t) {
+  const f = n && span(n.F, t);
+  if (f) {
+    let name = null; for (const d of n.D || []) { if (d[0] > t) break; if (d[0] >= f[0]) name = d[1]; }
+    if (!name) { const d = (n.D || []).find(d => d[0] >= f[0] && d[0] <= f[1]); name = d ? d[1] : mainPos(X, t); }
+    return { name, shape: null, own: 'F' };
+  }
+  const g = n && span(n.G, t);
+  if (g) return { name: mainPos(X, t), shape: g, own: 'G' };
+  return { name: mainPos(X, t), shape: span(X.M.G, t), own: null };
+}
+function moverState(X, fx, t) {
+  const n = nodeOf(X, fx.node), [lv, oi] = level(X, n, t), [c, oc] = colour(X, n, t), p = pos(X, n, t);
+  return { level: lv, colour: hexOf(c), pos: p.name, shape: p.shape ? p.shape[2] : null, size: p.shape ? p.shape[3] : 0, own: { i: oi, c: oc, p: p.own } };
+}
+function matrixState(X, fx, t) {      // 56 cells row-major: rows 0-2 and 4-6 colour, row 3 the white strip
+  const m = nodeOf(X, fx.master), mb = m && span(m.B, t), mul = mb ? interp(m.k, t) : 1;
+  return fx.cells.map((label, k) => {
+    const n = nodeOf(X, label), [lv, oi] = level(X, n, t);
+    if (Math.floor(k / 8) === 3) return { level: lv * mul, colour: '#fff3c4', white: true, own: oi };
+    const [c, oc] = colour(X, n, t);
+    return { level: lv * mul, colour: hexOf(c), own: oi, ownC: oc };
+  });
+}
+function hazeState(X, t) {
+  const n = HAZE && nodeOf(X, HAZE.fog); if (!n) return 0;
+  if (n.B && n.B.length) return span(n.B, t) ? interp(n.k, t) : 0;
+  return interp(n.k, t);
+}
+function state(X, t) {
+  const badges = [];
+  if (span(X.M.E, t) || MOVERS.some(f => { const n = nodeOf(X, f.node); return n && span(n.E, t); })) badges.push('strobe (bloco E)');
+  return { movers: MOVERS.map(f => moverState(X, f, t)), grids: MATS.map(f => matrixState(X, f, t)),
+           hue: { level: interp(X.M.k, t) * (strobe(X.M.E, t) ?? 1), colour: hexOf(mainColour(X, t)) }, haze: hazeState(X, t), badges };
+}
+// ---------- drawing ----------
+const NS = 'http:' + '//www.w3.org/2000/svg';
+const P = { NE: [740, 70], SE: [740, 430], NW: [70, 70], SW: [70, 430], centre: [400, 250] };
+const TARGET = { 'Dance Floor Centre': [400, 250], 'Disco Ball': [410, 220], 'Stage Center': [250, 250], 'Stage Left': [250, 140], 'Stage Right': [250, 360], 'DJ Booth': [130, 250], 'Cake': [520, 250] };
+function target(name, corner) {
+  const [x, y] = P[corner] || P.centre, north = corner[0] === 'N';
+  if (name === 'Up') return [x - 60, y + (north ? 40 : -40)];
+  if (name === 'Down') return [x - 30, y + (north ? 15 : -15)];
+  if (name === 'Crossed Over') return [480, north ? 430 : 70];
+  return TARGET[name] || P.centre;
+}
+function el(tag, attrs, parent) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent && parent.appendChild(e); return e; }
+function buildRoom(svg) {
+  el('rect', { x: 20, y: 20, width: 760, height: 460, rx: 10, fill: 'none', stroke: '#2a2a35', 'stroke-dasharray': '6 5' }, svg);
+  for (const [txt, x, y] of [['N', 400, 16], ['S', 400, 496], ['W', 8, 254], ['E', 786, 254]]) el('text', { x, y, fill: '#555', 'font-size': 12, 'text-anchor': 'middle' }, svg).textContent = txt;
+  const haze = el('rect', { x: 20, y: 20, width: 760, height: 460, rx: 10, fill: '#9aa3b5', opacity: 0 }, svg);
+  const R = { haze, beams: [], movers: [], labels: [], grids: [], hue: [] };
+  MOVERS.forEach(() => R.beams.push(el('polygon', { fill: '#fff', opacity: 0 }, svg)));
+  MOVERS.forEach((f, i) => {
+    const [x, y] = P[f.corner] || P.centre, north = f.corner[0] === 'N';
+    R.movers.push(el('circle', { cx: x, cy: y, r: 16, fill: '#15151c', stroke: '#333' }, svg));
+    R.labels.push(el('text', { x, y: north ? y + 34 : y - 26, fill: '#999', 'font-size': 12, 'text-anchor': 'end' }, svg));
+    el('text', { x: x + 22, y: y + 4, fill: '#666', 'font-size': 11 }, svg).textContent = 'Mover ' + (i + 1);
+  });
+  MATS.forEach((f, i) => {
+    const [x0, y0] = P[f.corner] || P.centre, east = f.corner[1] === 'E', north = f.corner[0] === 'N';
+    const gx = east ? x0 - 92 : x0 - 20, gy = north ? y0 - 30 : y0 - 60, cells = [];
+    for (let r = 0; r < 7; r++) for (let c = 0; c < 8; c++) cells.push(el('rect', { x: gx + c * 14, y: gy + r * 12 + (r === 3 ? 2 : 0), width: 12, height: r === 3 ? 6 : 10, rx: 1.5, fill: '#15151c' }, svg));
+    el('text', { x: gx, y: north ? gy + 98 : gy - 6, fill: '#666', 'font-size': 11 }, svg).textContent = 'Vorlane ' + (i + 1) + ' · ' + f.corner;
+    R.grids.push(cells);
+  });
+  if (HUE) {
+    const [hx, hy] = P[HUE.corner] || P.centre, n = HUE.lamps || 7;
+    for (let k = 0; k < n; k++) { const a = k / n * 2 * Math.PI; R.hue.push(el('circle', { cx: hx + 22 * Math.cos(a), cy: hy + 22 * Math.sin(a), r: 6, fill: '#15151c', stroke: '#333' }, svg)); }
+    el('text', { x: hx, y: hy + 42, fill: '#666', 'font-size': 11, 'text-anchor': 'middle' }, svg).textContent = 'lustre Hue';
+  }
+  return R;
+}
+function paint(R, st, t, cues, box) {
+  R.haze.setAttribute('opacity', 0.18 * st.haze);
+  const bar = beatsAt(t) / 4 * 2 * Math.PI;
+  st.movers.forEach((m, i) => {
+    const corner = MOVERS[i].corner, [x, y] = P[corner] || P.centre;
+    let [tx, ty] = target(m.pos, corner);
+    if (m.shape != null) { const a = 10 + 50 * (m.size || 0.5); tx += a * Math.cos(bar + i * Math.PI); ty += a * 0.6 * Math.sin(2 * (bar + i * Math.PI)); }
+    const dx = tx - x, dy = ty - y, len = Math.hypot(dx, dy) || 1, nx = -dy / len, ny = dx / len, w = 6 + len * 0.12;
+    R.beams[i].setAttribute('points', `${x},${y} ${tx + nx * w},${ty + ny * w} ${tx - nx * w},${ty - ny * w}`);
+    R.beams[i].setAttribute('fill', m.colour);
+    R.beams[i].setAttribute('opacity', m.level * (0.12 + 0.5 * st.haze));
+    R.movers[i].setAttribute('fill', m.level > 0.01 ? rgba(m.colour, 0.3 + 0.7 * m.level) : '#15151c');
+    R.labels[i].textContent = m.pos + (m.shape != null ? ' · forma ' + m.shape : '');
+  });
+  st.grids.forEach((g, j) => g.forEach((c, k) => {
+    const e = R.grids[j][k];
+    e.setAttribute('fill', c.level > 0.02 ? rgba(c.colour, c.white ? Math.min(1, 0.4 + c.level) : 0.25 + 0.75 * c.level) : '#15151c');
+    e.style.filter = c.white && c.level > 0.2 ? `drop-shadow(0 0 ${6 + 10 * c.level}px #fff6d8)` : (c.level > 0.5 ? `drop-shadow(0 0 3px ${c.colour})` : 'none');
+  }));
+  R.hue.forEach(e => e.setAttribute('fill', st.hue.level > 0.02 ? rgba(st.hue.colour, 0.2 + 0.8 * st.hue.level) : '#15151c'));
+  const text = [...st.badges, ...cues].join('\u0001');
+  if (box.dataset.k !== text) {       // rebuild the badges only when they change
+    box.dataset.k = text; box.textContent = '';
+    for (const b of [...st.badges, ...cues]) { const s = document.createElement('span'); s.textContent = '⚑ ' + b; box.appendChild(s); }
+  }
+}
+// ---------- sections and manual cues ----------
+const SECS = (S.sections || []).map(s => ({ ...s, t0: s.start, t1: s.end }));
+function sectionAt(t) { return SECS.find(s => t >= s.t0 && t < s.t1); }
+function cuesAt(t) {                  // a cue shows from its time to the end of its section (or one bar)
+  return CUES.filter(c => { const s = sectionAt(c.t), end = s ? s.t1 : msAt(beatsAt(c.t) + 4); return t >= c.t && t < end; })
+             .map(c => c.fixture + ': ' + c.what);
+}
+if (!SIDE_B) { document.getElementById('boxB').style.display = 'none'; document.getElementById('rooms').className = 'rooms one'; document.getElementById('hA').textContent = 'Autoscript do SoundSwitch'; }
+document.getElementById('heading').textContent = S.after ? `${S.title}: autoscript × roteiro` : `${S.title}: o autoscript`;
+document.getElementById('subtitle').textContent = S.after
+  ? 'Esquerda: o script-base (o que o SoundSwitch faz hoje). Direita: o script compilado do roteiro. Carregue o áudio para ver com a música.'
+  : 'O que o SoundSwitch faz hoje nessa música, simulado na sala. Carregue o áudio para ver com a música.';
+document.title = S.title + ' · luz';
+const RA = buildRoom(document.getElementById('roomA')), RB = SIDE_B ? buildRoom(document.getElementById('roomB')) : null;
+// ---------- timeline ----------
+const tl = document.getElementById('tl'), X0 = 52, XW = 940, X = t => X0 + (t / END) * XW;
+const lab = (txt, y) => { el('text', { x: X0 - 6, y, fill: '#777', 'font-size': 9, 'text-anchor': 'end' }, tl).textContent = txt; };
+function unionSpans(side, labels) {
+  const all = []; for (const l of labels) { const n = nodeOf(side, l); if (n && n.B) for (const b of n.B) all.push([b[0], b[1]]); }
+  all.sort((a, b) => a[0] - b[0]); const out = [];
+  for (const [a, b] of all) { if (out.length && a <= out[out.length - 1][1] + 1) out[out.length - 1][1] = Math.max(out[out.length - 1][1], b); else out.push([a, b]); }
+  return out;
+}
+const MOVER_LABELS = MOVERS.map(f => f.node), MAT_LABELS = MATS.flatMap(f => [f.master, ...f.cells]);
+let row = 4;
+if (SECS.length) {
+  lab('roteiro', 17);
+  for (const s of SECS) {
+    el('rect', { x: X(s.t0), y: 4, width: Math.max(1, X(s.t1) - X(s.t0) - 1), height: 22, rx: 3, fill: '#1e2a3a' }, tl);
+    el('text', { x: X(s.t0) + 3, y: 19, fill: '#9ab', 'font-size': 9 }, tl).textContent = s.name.length * 5 < X(s.t1) - X(s.t0) ? s.name : '';
+  }
+  row = 30;
+}
+lab('Main', row + 6);
+for (let k = 0; k < 470; k++) { const t = (k + 0.5) / 470 * END; el('rect', { x: X0 + k * 2, y: row, width: 2, height: 9, fill: hexOf(mainColour(SIDE_A, t)), opacity: 0.12 + 0.88 * interp(SIDE_A.M.k, t) }, tl); }
+row += 13;
+for (const [tag, side] of [['antes', SIDE_A], ['depois', SIDE_B]]) {
+  if (!side) continue;
+  lab('movings ' + tag, row + 7); lab('Vorlanes ' + tag, row + 20);
+  for (const [a, b] of unionSpans(side, MOVER_LABELS)) el('rect', { x: X(a), y: row, width: Math.max(1, X(b) - X(a)), height: 9, fill: '#3b4d70' }, tl);
+  for (const [a, b] of unionSpans(side, MAT_LABELS)) el('rect', { x: X(a), y: row + 13, width: Math.max(1, X(b) - X(a)), height: 9, fill: '#5a3b70' }, tl);
+  row += 26;
+}
+{ const nb = barAt(END), step = nb > 160 ? 16 : 8;     // the phrase grid: a line every 8 bars
+  for (let b = 1; b <= nb; b += step) { const x = X(barStart(b)); if (x < X0) continue;
+    el('line', { x1: x, x2: x, y1: 2, y2: row + 2, stroke: '#2a2a35' }, tl);
+    el('text', { x, y: row + 12, fill: '#666', 'font-size': 8, 'text-anchor': 'middle' }, tl).textContent = b; } }
+const cursor = el('line', { x1: X0, x2: X0, y1: 0, y2: row + 3, stroke: '#ffd27a', 'stroke-width': 2 }, tl);
+// ---------- status ----------
+const fmt = ms => { const s = Math.max(0, Math.floor(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+function statusLine(st) {
+  if (!st.movers.length) return '';
+  const m = st.movers[0], o = m.own, g = st.grids[0] || [], own = g.filter(c => c.own).length, ownC = g.filter(c => c.ownC).length;
+  const p = o.p === 'F' ? 'própria' : o.p === 'G' ? 'forma própria' : 'da Main';
+  return `antes · Mover 1: intensidade ${o.i ? 'própria' : 'da Main'}, cor ${o.c ? 'própria' : 'da Main'}, posição ${p} · Vorlane 1: ${own}/56 zonas com intensidade própria, ${ownC}/48 com cor própria · Main ${Math.round(st.hue.level * 100)}% ${st.hue.colour}`;
+}
+// ---------- transport ----------
+const audio = new Audio(); let hasAudio = false, playing = false, t0 = 0, start = 0, cur = 0;
+document.getElementById('audiofile').onchange = e => { const f = e.target.files[0]; if (!f) return; audio.src = URL.createObjectURL(f); hasAudio = true; audio.currentTime = cur / 1000; };
+function now() { return hasAudio ? audio.currentTime * 1000 : (playing ? start + (performance.now() - t0) : cur); }
+function frame(t) {
+  cur = t;
+  const A = state(SIDE_A, t); paint(RA, A, t, [], document.getElementById('bdgA'));
+  if (RB) paint(RB, state(SIDE_B, t), t, cuesAt(t), document.getElementById('bdgB'));
+  cursor.setAttribute('x1', X(t)); cursor.setAttribute('x2', X(t));
+  const s = sectionAt(t);
+  document.getElementById('clock').textContent = `${fmt(t)} · compasso ${Math.max(1, barAt(t))}`;
+  const nowEl = document.getElementById('now'); nowEl.textContent = '';
+  if (s) { const b = document.createElement('b'); b.textContent = s.name; nowEl.appendChild(b); nowEl.appendChild(document.createTextNode(` (compassos ${s.bars[0]}–${s.bars[1]}): ${s.intent || ''}`)); }
+  document.getElementById('st').textContent = statusLine(A);
+}
+function loop() { if (!playing) return; const t = now(); frame(t); if (t < END) requestAnimationFrame(loop); else playing = false; }
+document.getElementById('play').onclick = () => {
+  playing = !playing; document.getElementById('play').textContent = playing ? '❚❚ pausar' : '▶ tocar';
+  if (playing) { if (hasAudio) { audio.currentTime = cur / 1000; audio.play(); } else { t0 = performance.now(); start = cur; } requestAnimationFrame(loop); }
+  else if (hasAudio) audio.pause();
+};
+tl.onclick = e => { const r = tl.getBoundingClientRect(); const t = Math.max(0, Math.min(END, ((e.clientX - r.left) / r.width * 1000 - X0) / XW * END)); if (hasAudio) audio.currentTime = t / 1000; start = t; t0 = performance.now(); frame(t); };
+{ const first = MOVER_LABELS.length ? unionSpans(SIDE_A, MOVER_LABELS)[0] : null;
+  frame(SECS.length > 2 ? SECS[2].t0 + 1 : (first ? first[0] + 1 : 0)); }
+</script>
+</body>
+</html>

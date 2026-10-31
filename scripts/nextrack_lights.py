@@ -10,6 +10,8 @@ Subcommands:
   tracks   list the tracks of the project (GUID8, BPM, length, artist — title)
   dump     per 8-bar phrase and fixture: lit share, pulses, colours, positions, shapes
   analyze  the dump reduced to metrics: who overrides Main, white over colour, ...
+  render   one HTML file: the room simulated before (the base script) and after (the
+           choreography compiled onto it), with a timeline and an optional audio file
 
 An "effective" value is what the fixture really shows: its own when one of its spans
 covers the moment, else the Main track's. See scripts/README.md.
@@ -25,15 +27,19 @@ from __future__ import annotations
 
 import argparse
 import bisect
+import json
 import os
 import sys
 from pathlib import Path
 
 import yaml
 
+import lightshow as ls
 import soundswitch_format as ssf
 
 PROJECT_ENV = "NEXTRACK_SOUNDSWITCH_PROJECT"  # machine-specific, so it lives outside the repo
+SIM_TEMPLATE = Path(__file__).with_name("lightshow_sim.html")
+DEFAULT_RIG = Path(__file__).resolve().parent.parent / "lightshows" / "rig.yml"
 MAIN_NODE = 2
 PHRASE_BARS = 8
 LIT = 0.01      # "lit" = effective level above 1 %
@@ -411,12 +417,145 @@ def analyze_markdown(ref: ssf.TrackRef, a: dict) -> str:
     return "\n".join(lines)
 
 
+# ------------------------------------------------------------------ render ----
+
+
+def _frac(level: int) -> float:
+    return round(level / 2**32, 4)
+
+
+def _rgbw(colour: int, ext: int) -> list[int]:
+    """`[r, g, b, w]`; the extra word's second byte is read as a White level (unverified)."""
+    return [(colour >> 16) & 255, (colour >> 8) & 255, colour & 255, (ext >> 8) & 255]
+
+
+def _node_data(trk: ssf.Track, preset_name: dict[str, str]) -> dict:
+    """One track as the page reads it: `k` intensity keys `[t, fraction]`, `B` intensity
+    spans, `C` colour blocks `[start, end, rgbw, rgbw]`, `D` position flags `[t, preset name]`,
+    `F` position spans, `G` shape blocks `[start, end, kind, size]`, `E` strobes
+    `[start, end, rate, rate_end]`. Empty parts are left out."""
+    lane = ssf.intensity(trk)
+    flags = []
+    if trk.positions:
+        for f in trk.positions.flags:
+            if f.preset < len(trk.positions.palette):
+                guid = trk.positions.palette[f.preset][0]
+                flags.append([f.t, preset_name.get(guid.lower(), guid[:8])])
+    parts = {
+        "k": [[k.t, _frac(k.level)] for k in lane.keys] if lane else [],
+        "B": [[s.start, s.end] for s in trk.blocks.items] if trk.blocks else [],
+        "C": [[b.start, b.end, _rgbw(b.colour, b.ext), _rgbw(b.colour_end, b.ext_end)]
+              for b in trk.colours.items] if trk.colours else [],
+        "D": flags,
+        "F": [[s.start, s.end] for s in trk.position_blocks.items] if trk.position_blocks else [],
+        "G": [[b.start, b.end, b.kind, round(b.params[0], 3)]
+              for b in trk.shapes.items] if trk.shapes else [],
+        "E": [[b.start, b.end, b.rate, b.rate_end] for b in trk.strobes.items] if trk.strobes else [],
+    }
+    return {key: value for key, value in parts.items() if value}
+
+
+def _rig_data(fixtures: list[ls._Fixture], rig: ls.Rig, label_of) -> dict:
+    """Rig fixture key -> corner, kind and the node labels the page looks its tracks up by.
+    `label_of(track)` claims a track and returns its label; a fixture without a track gets
+    `None` there (it follows Main)."""
+    by_key = {f.key: f for f in fixtures}
+    out = {}
+    for key, fx in rig.fixtures.items():
+        entry = {"corner": fx.corner, "kind": fx.kind}
+        res = by_key.get(key)
+        if fx.kind == "mover":
+            entry["node"] = label_of(res.tracks.get("mover")) if res else None
+        elif fx.kind == "matrix":
+            entry["master"] = label_of(res.tracks.get("master")) if res else None
+            entry["cells"] = [label_of(res.tracks.get((row, col)) if res else None)
+                              for row in range(len(ls.COLOUR_ROWS) + 1) for col in range(ls.MATRIX_COLS)]
+        elif fx.kind == "haze":
+            entry["fan"] = label_of(res.tracks.get("fan")) if res else None
+            entry["fog"] = label_of(res.tracks.get("fog")) if res else None
+        else:
+            entry["lamps"] = fx.extra.get("lamps", 7)
+        out[key] = entry
+    return out
+
+
+def sim_data(script: ssf.TrackScript, venues: list[ssf.VenueInfo], presets: list[ssf.Preset],
+             rig: ls.Rig, choreo: ls.Choreography | None = None, *,
+             duration_ms: int = 0, title: str = "") -> dict:
+    """What the simulator page draws. `before` is `script`; with `choreo`, `after` is the
+    script compiled from it (the very bytes `apply` would write), else None. Both map a node
+    label (its venue name; `name [id]` where the name repeats) to `_node_data`, and `Main` to
+    the Main track. Only the nodes the rig names are exported; the rest of the venue follows Main.
+
+    Keys: title, end (ms), grid ([[ms, bpm]]), sections ({name, bars, intent, start, end}),
+    rig (see `_rig_data`), before, after, cues ({bar, t, fixture, what} the compiler left to
+    the owner). Raises `lightshow.CompileError` when the choreography does not fit the script."""
+    after, cues = None, []
+    if choreo is not None:
+        after, cues = ls.compile_choreography(choreo, script, rig, venues, presets)
+    venue, trks = ls._venue_of(script, venues)
+    fixtures = ls._resolve(rig, venue, {t.node: t for t in trks})
+    names = [n.name for n in venue.nodes]
+    labels: dict[int, str] = {}
+    by_id = {n.id: n for n in venue.nodes}
+
+    def label_of(trk: ssf.Track | None) -> str | None:
+        if trk is None:
+            return None
+        node = by_id[trk.node]
+        labels[trk.node] = node.name if names.count(node.name) == 1 and node.name != "Main" \
+            else f"{node.name} [{node.id}]"
+        return labels[trk.node]
+
+    rig_out = _rig_data(fixtures, rig, label_of)
+    preset_name = {p.guid.lower(): p.name for p in presets}
+
+    def export(s: ssf.TrackScript) -> dict:
+        out = {"Main": _node_data(s.main, preset_name)}
+        for node_id, label in labels.items():
+            trk = ssf.track(s, node_id)
+            if trk is not None:
+                out[label] = _node_data(trk, preset_name)
+        return out
+
+    g = ssf.grid(script)
+    return {
+        "title": title,
+        "end": max(script_end(script, duration_ms), script_end(after) if after else 0),
+        "grid": [[t, bpm] for t, bpm in script.tempo],
+        "sections": [{"name": s.name, "bars": list(s.bars), "intent": s.intent,
+                      "start": g.ms(s.bars[0]), "end": g.ms(s.bars[1] + 1)}
+                     for s in (choreo.sections if choreo else [])],
+        "rig": rig_out,
+        "before": export(script),
+        "after": export(after) if after else None,
+        "cues": [{"bar": c.bar, "t": c.time_ms, "fixture": c.fixture, "what": c.what} for c in cues],
+    }
+
+
+def page_html(data: dict) -> str:
+    """The simulator page with `data` inlined. Every `<` in the JSON is escaped, so nothing in
+    a title or a cue can close the script tag."""
+    blob = json.dumps(data, separators=(",", ":"), ensure_ascii=False).replace("<", "\\u003c")
+    template = SIM_TEMPLATE.read_text(encoding="utf-8")
+    placeholder = "/*__DATA__*/null"
+    assert template.count(placeholder) == 1, f"{SIM_TEMPLATE.name} needs exactly one {placeholder}"
+    return template.replace(placeholder, blob)
+
+
 # --------------------------------------------------------------------- CLI ----
 
 
-def _load(project: ssf.Project, text: str) -> tuple[ssf.TrackRef, ssf.TrackScript]:
+def _base_path(project: ssf.Project, guid: str) -> Path:
+    """Where `apply` keeps the track's base script: next to the project folder."""
+    return project.folder.parent / "nextrack-backups" / "base" / project.script_path(guid).name
+
+
+def _load(project: ssf.Project, text: str, prefer_base: bool = False) -> tuple[ssf.TrackRef, ssf.TrackScript]:
     ref = project.resolve(text)
     path = project.script_path(ref.guid)
+    if prefer_base and _base_path(project, ref.guid).is_file():
+        path = _base_path(project, ref.guid)
     if not path.is_file():
         raise LookupError(f"{ref.artist} — {ref.title}: no script file {path.name}")
     return ref, ssf.parse_script(path.read_bytes())
@@ -451,6 +590,41 @@ def cmd_analyze(project: ssf.Project, args) -> int:
     return 0
 
 
+def _yaml_checked(path: Path, problems) -> dict | None:
+    """A YAML file that `problems` finds nothing wrong with, else None (problems on stderr)."""
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    found = problems(data)
+    for p in found:
+        print(f"{path}: {p}", file=sys.stderr)
+    return None if found else data
+
+
+def cmd_render(project: ssf.Project, args) -> int:
+    rig_path = Path(args.rig) if args.rig else DEFAULT_RIG
+    if _yaml_checked(rig_path, ls.problems_rig) is None:
+        return 1
+    rig = ls.load_rig(rig_path)
+    choreo = None
+    if args.choreo:
+        if _yaml_checked(Path(args.choreo), ls.problems_choreography) is None:
+            return 1
+        choreo = ls.load_choreography(Path(args.choreo))
+    ref, script = _load(project, args.track, prefer_base=True)
+    venues, presets = project.venues()
+    data = sim_data(script, venues, presets, rig, choreo, duration_ms=ref.duration_ms or 0,
+                    title=f"{ref.artist} — {ref.title}")
+    page = page_html(data)
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(page, encoding="utf-8")
+    source = "base copy" if _base_path(project, ref.guid).is_file() else "project file"
+    print(f"wrote {out} ({len(page):,} bytes); before = {source}"
+          + (f", after = {args.choreo} compiled" if choreo else ""))
+    for c in data["cues"]:
+        print(f"manual cue, bar {c['bar']}: {c['fixture']}: {c['what']}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--project", default=argparse.SUPPRESS,
@@ -471,6 +645,14 @@ def main(argv: list[str] | None = None) -> int:
     d.add_argument("--yaml", action="store_true", help="print YAML instead of the text table")
     a = sub.add_parser("analyze", parents=[common], help="the dump reduced to metrics (Markdown)")
     a.add_argument("tracks", nargs="+", metavar="track")
+    r = sub.add_parser("render", parents=[common], help=(
+        "write the room simulator as one HTML file: before = the track's base script "
+        "(<project parent>/nextrack-backups/base/) when it exists, else the project file; "
+        "with --choreo, after = the choreography compiled onto it"))
+    r.add_argument("track", help="GUID, GUID prefix or 'Artist — Title'")
+    r.add_argument("--choreo", help="a lightshows/tracks/*.yml choreography")
+    r.add_argument("--rig", help="the rig file (default: lightshows/rig.yml of this repo)")
+    r.add_argument("-o", "--out", required=True, help="the HTML file to write")
 
     args = ap.parse_args(argv)
     if not args.project:
@@ -482,7 +664,8 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     project = ssf.Project(folder)
     try:
-        code = {"tracks": cmd_tracks, "dump": cmd_dump, "analyze": cmd_analyze}[args.cmd](project, args)
+        code = {"tracks": cmd_tracks, "dump": cmd_dump, "analyze": cmd_analyze,
+                "render": cmd_render}[args.cmd](project, args)
     except (LookupError, OSError, ValueError) as e:
         print(e, file=sys.stderr)
         return 1
