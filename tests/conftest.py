@@ -77,6 +77,78 @@ def make_script():
     return _make
 
 
+# --------------------------------------- SoundSwitch TrackMap and Venues ----
+
+
+def _ss_str(s):
+    return struct.pack("<I", len(s) + 1) + (s + "\0").encode("utf-16le")
+
+
+@pytest.fixture
+def trackmap_bytes():
+    """Factory: a SoundSwitchTrackMap.bin from `(kind, guid, title, artist, path, bpm, ms)`."""
+    import uuid
+
+    import soundswitch_format as ssf
+
+    def _build(entries):
+        out = bytearray(ssf.MAGIC + struct.pack("<5I", 3, 0, 0, 1, 1))
+        for kind, guid, title, artist, path, bpm, ms in entries:
+            out += struct.pack("<IB", kind, 1) + uuid.UUID(guid).bytes_le
+            for s in (title, artist, path):
+                out += struct.pack("<I", 1) + _ss_str(s)
+            out += struct.pack("<II", bpm, ms)
+            out += bytes.fromhex("01" "ffffffff" "00000000" "00" "01000000")
+            if kind == 4:  # SoundSwitch's demo track carries extra bytes after the trailer
+                out += bytes.fromhex("0400000000010000000100000000")
+        return bytes(out)
+
+    return _build
+
+
+@pytest.fixture
+def venues_bytes():
+    """Factory: a SoundSwitchVenues.bin with venue "DJ Renan" (device `tree`), an empty
+    venue "Casa" and position `presets` (names). A node is `{"id", "name", "look", "colour"}`
+    (leaf) or `{"id", "name", "model", "colour", "children": [...]}` (group)."""
+    import uuid
+
+    import soundswitch_format as ssf
+
+    def node(n, kind):
+        out = struct.pack("<IIIII", kind, 3, 2, n["id"], 1) + _ss_str(n["name"])
+        if "children" in n:
+            out += struct.pack("<I", 1) + _ss_str(n["model"]) + struct.pack("<I", len(n["children"]))
+            for c in n["children"]:
+                out += node(c, 1 if "children" not in c else 0)
+            return out + struct.pack("<I", n["colour"])
+        return out + struct.pack("<II", n["look"], n["colour"])
+
+    def venue(name, guid, body):
+        return (struct.pack("<I", 4) + uuid.UUID(guid).bytes_le + struct.pack("<I", 1)
+                + _ss_str(name) + struct.pack("<I", 15) + body)
+
+    def _build(tree, presets):
+        tree_body = struct.pack("<2I", 1937, len(tree)) + b"".join(
+            node(n, 0 if "children" in n else 1) for n in tree)
+        out = bytearray(ssf.MAGIC + struct.pack("<5I", 3, 0, 0, 11, 2))
+        out += venue("DJ Renan", "0122adb8-e4b9-46c9-96c8-98a7e8f6a5a9",
+                     struct.pack("<3I", 2, 1, 0) + tree_body)
+        # An empty venue's body can hold the positions anchor itself; readers must not trust it.
+        out += venue("Casa", "d34c412f-48c1-4f75-9399-b35c069c8fdb",
+                     struct.pack("<3I", 2, 1, 0) + bytes.fromhex("02000000" "00000000" "02000000"))
+        out += b"\x02\x00\x00\x00\x00\x00\x00\x00"
+        for i, p in enumerate(presets):
+            out += struct.pack("<II", 2, 1) + uuid.UUID("0122adb8-e4b9-46c9-96c8-98a7e8f6a5a9").bytes_le
+            out += struct.pack("<II", 2, 1) + struct.pack("<4I", 1167, 1, 100, 200)
+            out += struct.pack("<I", 1) + _ss_str(p) + struct.pack("<I", 0xFF112233)
+            out += uuid.UUID(int=i + 1).bytes_le + struct.pack("<i", i + 1 if i + 1 < len(presets) else -1)
+        out += struct.pack("<I", len(presets)) + b"".join(struct.pack("<I", i) for i in range(len(presets)))
+        return bytes(out)
+
+    return _build
+
+
 # --------------------------------------------------------- synthetic audio ----
 
 

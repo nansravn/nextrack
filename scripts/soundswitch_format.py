@@ -14,9 +14,12 @@ fraction (`level / 2**32`).
 from __future__ import annotations
 
 import math
+import re
 import struct
+import unicodedata
 import uuid
 from dataclasses import dataclass, field, replace
+from pathlib import Path
 
 MAGIC = b"\xaa\xaa\x09\x55"
 MARK = 0x80808080         # in front of every present node section C..G
@@ -870,3 +873,286 @@ def check(script: TrackScript) -> list[str]:
             if not any(f.start <= fl.t <= f.end for f in f_items):
                 out.append(f"{who}: position flag at {fl.t} is outside every position block")
     return out
+
+
+# ----------------------------------------------- project files: TrackMap, Venues ----
+# Read-only. `SoundSwitchTrackMap.bin` says which script GUID is which song;
+# `SoundSwitchVenues.bin` holds the rig (device tree, position presets). Same container
+# conventions as the scripts: u32 little-endian, string = u32 char count (incl. NUL) + UTF-16LE.
+
+
+@dataclass
+class TrackRef:
+    guid: str
+    title: str
+    artist: str
+    path: str
+    bpm: int | None
+    duration_ms: int | None
+
+
+@dataclass
+class VenueNode:
+    id: int
+    name: str
+    parent: int | None
+    look: int | None       # static-look number of a leaf; None for a group
+    colour: int            # 0xAARRGGBB
+
+
+@dataclass
+class Preset:
+    name: str
+    guid: str
+
+
+@dataclass
+class VenueInfo:
+    name: str
+    guid: str
+    nodes: list[VenueNode]     # depth first, a parent before its children
+
+
+_TM_HEADER = 24
+_TM_TRAILER = 14
+_NODE_HEAD = struct.pack("<II", 3, 2)
+_POSITIONS_ANCHOR = struct.pack("<III", 2, 0, 2)
+
+
+def _is_string_at(b: bytes, o: int, limit: int = 4096) -> bool:
+    """A plausible string (count, UTF-16LE, closing NUL, printable) starts at `o`."""
+    if o < 0 or o + 4 > len(b):
+        return False
+    (n,) = struct.unpack_from("<I", b, o)
+    end = o + 4 + 2 * n
+    if not 1 <= n <= limit or end > len(b) or b[end - 2:end] != b"\0\0":
+        return False
+    try:
+        return b[o + 4:end - 2].decode("utf-16le").isprintable()
+    except UnicodeDecodeError:
+        return False
+
+
+def _string(r: _Reader) -> str:
+    at = r.o
+    if not _is_string_at(r.b, at):
+        r.fail("not a string", at)
+    n = r.u32()
+    return r.raw(2 * n)[:-2].decode("utf-16le")
+
+
+def _tm_entry_at(b: bytes, o: int) -> bool:
+    """The start of a TrackMap entry: kind 4 or 5, `u8 1`, a GUID, then `u32 1` and a string."""
+    return (o + 29 <= len(b) and b[o] in (4, 5) and b[o + 1:o + 4] == b"\0\0\0" and b[o + 4] == 1
+            and b[o + 21:o + 25] == b"\1\0\0\0" and _is_string_at(b, o + 25))
+
+
+def _tm_entry(b: bytes, o: int) -> tuple[TrackRef, int]:
+    r = _Reader(b, o)
+    kind = r.u32()
+    if kind not in (4, 5) or r.raw(1) != b"\1":
+        r.fail("not a track map entry", o)
+    guid = r.guid()
+    fields = []
+    for _ in range(3):
+        r.expect("string tag", 1)
+        fields.append(_string(r))
+    bpm, ms = r.u32(), r.u32()
+    r.raw(_TM_TRAILER)
+    return TrackRef(guid, fields[0], fields[1], fields[2], bpm or None, ms or None), r.o
+
+
+def read_trackmap_with_warnings(data: bytes) -> tuple[list[TrackRef], list[str]]:
+    """Every entry of a SoundSwitchTrackMap.bin, and a warning for each stretch skipped.
+
+    Kind 5 is a library track. Kind 4 is SoundSwitch's own demo track; it carries extra
+    bytes after the trailer, which are skipped without a warning. So is the list of
+    external-id strings that follows the last entry (no entry start left before EOF)."""
+    if data[:4] != MAGIC or len(data) < _TM_HEADER:
+        raise ParseError("not a SoundSwitch track map: bad header at 0x0")
+    refs: list[TrackRef] = []
+    warnings: list[str] = []
+    o = _TM_HEADER
+    while o < len(data):
+        ref, end, known_gap = None, o, False
+        if _tm_entry_at(data, o):
+            try:
+                ref, end = _tm_entry(data, o)
+                known_gap = data[o] == 4
+            except (ParseError, UnicodeDecodeError, struct.error):
+                ref, end = None, o
+        if ref:
+            refs.append(ref)
+        if ref and (end >= len(data) or _tm_entry_at(data, end)):
+            o = end
+            continue
+        nxt = next((i for i in range(max(end, o + 1), len(data)) if _tm_entry_at(data, i)), len(data))
+        tail = ref is not None and nxt == len(data)   # the id list after the last entry
+        if not known_gap and not tail:
+            warnings.append(f"track map: skipped {nxt - o} bytes at {o:#x}")
+        o = nxt
+    return refs, warnings
+
+
+def read_trackmap(data: bytes) -> list[TrackRef]:
+    return read_trackmap_with_warnings(data)[0]
+
+
+def _venue_nodes(r: _Reader, parent: int | None, out: list[VenueNode], depth: int = 0):
+    """One tree node: `03 02 id 01 name`, then a group (`01 model n (kind node)* colour`)
+    or a leaf (`look colour`)."""
+    if depth > 64:
+        r.fail("device tree nested too deep")
+    if r.raw(8) != _NODE_HEAD:
+        r.fail("device tree node head", r.o - 8)
+    nid = r.u32()
+    r.expect("node name tag", 1)
+    node = VenueNode(nid, _string(r), parent, None, 0)
+    out.append(node)
+    nxt = struct.unpack_from("<I", r.b, r.o)[0] if r.o + 4 <= len(r.b) else 0
+    if nxt == 1 and _is_string_at(r.b, r.o + 4):
+        r.u32()
+        _string(r)                      # the fixture model
+        for _ in range(r.u32()):
+            r.u32()                     # kind: 1 leaf, 0 group
+            _venue_nodes(r, nid, out, depth + 1)
+        node.colour = r.u32()
+    else:
+        node.look = r.u32()
+        node.colour = r.u32()
+
+
+def _venue_tree(b: bytes, lo: int, hi: int) -> list[VenueNode]:
+    """The device tree in b[lo:hi]: `next id, n roots, (kind node)*`. Found as the first
+    node head that parses all the way through."""
+    first = b.find(_NODE_HEAD, lo + 12, hi)
+    while first >= 0:
+        if _is_string_at(b, first + 16, 200):
+            nroots = struct.unpack_from("<I", b, first - 8)[0]
+            r = _Reader(b, first - 4)
+            nodes: list[VenueNode] = []
+            try:
+                if not 1 <= nroots <= 10000:
+                    raise ParseError("bad root count")
+                for _ in range(nroots):
+                    r.u32()
+                    _venue_nodes(r, None, nodes)
+                return nodes
+            except (ParseError, UnicodeDecodeError, struct.error):
+                pass
+        first = b.find(_NODE_HEAD, first + 1, hi)
+    return []
+
+
+def _presets_at(b: bytes, o: int) -> list[Preset]:
+    """Position presets from `o`: `2 nvenues (guid 2 n (node 1 pan tilt)*n)* 1 name colour guid next`,
+    one object after the other."""
+    r = _Reader(b, o)
+    out: list[Preset] = []
+    while True:
+        start = r.o
+        try:
+            r.expect("preset tag", 2)
+            for _ in range(r.u32()):
+                r.raw(16)
+                r.expect("preset venue tag", 2)
+                n = r.u32()
+                for row in r.rows(struct.Struct("<IIII"), n):
+                    if row[1] != 1:
+                        r.fail("preset entry", r.o)
+            r.expect("preset name tag", 1)
+            name = _string(r)
+            r.u32()
+            guid = r.guid()
+            r.raw(4)
+        except (ParseError, UnicodeDecodeError, struct.error):
+            r.o = start
+            break
+        out.append(Preset(name, guid))
+    return out
+
+
+def read_venues(data: bytes) -> tuple[list[VenueInfo], list[Preset]]:
+    if data[:4] != MAGIC or len(data) < _TM_HEADER:
+        raise ParseError("not a SoundSwitch venues file: bad header at 0x0")
+    found = []                          # (offset, body offset, name, guid)
+    for m in re.finditer(rb"\x04\x00\x00\x00(.{16})\x01\x00\x00\x00(.{4})", data, re.S):
+        n = struct.unpack("<I", m.group(2))[0]
+        end = m.end() + 2 * n
+        if not 2 <= n <= 60 or data[end - 2:end + 4] != b"\0\0\x0f\0\0\0":
+            continue
+        try:
+            name = data[m.end():end - 2].decode("utf-16le")
+        except UnicodeDecodeError:
+            continue
+        found.append((m.start(), end + 4, name, str(uuid.UUID(bytes_le=m.group(1)))))
+    presets: list[Preset] = []
+    anchor = len(data)
+    if found:
+        # An empty venue's body can contain the anchor, so take the first one that yields presets.
+        o = data.find(_POSITIONS_ANCHOR, found[-1][0] + 1)
+        while o >= 0:
+            presets = _presets_at(data, o + 8)
+            if presets:
+                anchor = o
+                break
+            o = data.find(_POSITIONS_ANCHOR, o + 1)
+    venues = []
+    for i, (_, body, name, guid) in enumerate(found):
+        hi = found[i + 1][0] if i + 1 < len(found) else anchor
+        venues.append(VenueInfo(name, guid, _venue_tree(data, body, hi)))
+    return venues, presets
+
+
+def _fold(s: str | None) -> str:
+    """Same folding as check_repo.norm: `Dançarina (Ao Vivo)` -> `dancarina ao vivo`."""
+    if not isinstance(s, str):
+        return ""
+    plain = "".join(c for c in unicodedata.normalize("NFKD", s) if not unicodedata.combining(c))
+    return re.sub(r"[^a-z0-9]+", " ", plain.lower()).strip()
+
+
+class Project:
+    """A SoundSwitch project folder: the track map, the venues and the per-track scripts."""
+
+    def __init__(self, folder: Path):
+        self.folder = Path(folder)
+        self._tracks: list[TrackRef] | None = None
+        self._venues: tuple[list[VenueInfo], list[Preset]] | None = None
+
+    def trackmap(self) -> list[TrackRef]:
+        if self._tracks is None:
+            self._tracks = read_trackmap((self.folder / "SoundSwitchTrackMap.bin").read_bytes())
+        return self._tracks
+
+    def venues(self) -> tuple[list[VenueInfo], list[Preset]]:
+        if self._venues is None:
+            self._venues = read_venues((self.folder / "SoundSwitchVenues.bin").read_bytes())
+        return self._venues
+
+    def script_path(self, guid: str) -> Path:
+        return self.folder / ("{" + guid.upper() + "}.ssfile")
+
+    def resolve(self, text: str) -> TrackRef:
+        """A track by GUID, GUID prefix (6+ characters) or "Artist — Title" (folded)."""
+        refs = self.trackmap()
+        hexish = text.strip().strip("{}").lower()
+        if re.fullmatch(r"[0-9a-f-]{6,36}", hexish):
+            hits = [r for r in refs if r.guid.startswith(hexish)]
+            if hits:
+                return self._one(text, hits)
+        want = _fold(text)
+        hits = [r for r in refs if want in (_fold(f"{r.artist} {r.title}"), _fold(r.title))]
+        if not hits and want:
+            hits = [r for r in refs if want in _fold(f"{r.artist} {r.title}")]
+        return self._one(text, hits)
+
+    @staticmethod
+    def _one(text: str, hits: list[TrackRef]) -> TrackRef:
+        if len(hits) == 1:
+            return hits[0]
+        if not hits:
+            raise LookupError(f"no track matches {text!r}")
+        shown = "\n".join(f"  {r.guid}  {r.artist} — {r.title}" for r in hits[:10])
+        more = f"\n  ... and {len(hits) - 10} more" if len(hits) > 10 else ""
+        raise LookupError(f"{text!r} is ambiguous, {len(hits)} tracks match:\n{shown}{more}")
