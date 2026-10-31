@@ -89,3 +89,28 @@ def test_analyze_two_tracks_and_main_range(make_project, capsys):
     assert out.count("## ") == 2
     assert "| 1 | 1-8 | 50 % | 50 % |" in out
     assert "Overriding Main (1): Mover 1" in out
+
+
+def _vorlane_pulses(make_script, offsets):
+    """Pulses reported for a Vorlane RGB group whose cells pulse 8 times, shifted by `offsets`."""
+    def cell(node, shift):
+        keys = [k for i in range(8) for k in (
+            (i * 2000 + shift, 0), (i * 2000 + shift + 1, ssf.FULL), (i * 2000 + shift + 500, 0))]
+        return ssf.Track(node=node, lanes=[ssf.Lane(4, 1, None, [ssf.Key(t, v) for t, v in keys])],
+                         blocks=ssf.Section(1, [ssf.Span(0, 16000)]), link=1, colours=None,
+                         positions=None, strobes=None, position_blocks=None, shapes=None)
+
+    script = make_script(tempo=[(0, 120.0)])
+    script.venues[0].tracks = [cell(1820 + i, s) for i, s in enumerate(offsets)]
+    nodes = [ssf.VenueNode(1818, "VORLANE", None, None, 0)] + [
+        ssf.VenueNode(1820 + i, f"RGB {i + 1:02d} - VORLANE", 1818, 1, 0) for i in range(len(offsets))]
+    data = nl.dump_data(script, [ssf.VenueInfo("V", "g", nodes)], [], 16000)
+    return {r["fixture"]: r for r in data["phrases"][0]["rows"]}["VORLANE RGB"]["pulses"]
+
+
+def test_group_pulses_count_once_for_cells_in_unison(make_script):
+    assert _vorlane_pulses(make_script, [0, 0]) == 8
+
+
+def test_group_pulses_alternating_cells_count_both_steps(make_script):
+    assert _vorlane_pulses(make_script, [0, 1000]) == 16

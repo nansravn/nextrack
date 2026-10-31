@@ -13,10 +13,18 @@ Subcommands:
 
 An "effective" value is what the fixture really shows: its own when one of its spans
 covers the moment, else the Main track's. See scripts/README.md.
+
+Grouped rows: the cells of a Vorlane fold into two rows, "<Vorlane> RGB" (cells named
+`RGB nn …`) and "<Vorlane> W" (cells named `W n …`). For such a row `lit` is the share
+of the phrase in which ANY cell is lit (union of the cells' lit time); `pulses` counts
+rises on the pointwise maximum of the cells' effective curves, so cells pulsing in
+unison count once and alternating cells count each step; colours, positions and shapes
+are the union across the cells. Other fixtures are one row each.
 """
 from __future__ import annotations
 
 import argparse
+import bisect
 import os
 import sys
 from pathlib import Path
@@ -107,6 +115,33 @@ def _pulses(pts: list[tuple[int, float]]) -> int:
         elif level > HIGH and armed:
             count, armed = count + 1, False
     return count
+
+
+def _interp(pts: list[tuple[int, float]], t: int) -> float:
+    i = bisect.bisect_right([p[0] for p in pts], t)
+    if i == 0:
+        return pts[0][1]
+    if i == len(pts):
+        return pts[-1][1]
+    (t0, a), (t1, b) = pts[i - 1], pts[i]
+    return a if t1 == t0 else a + (b - a) * (t - t0) / (t1 - t0)
+
+
+def _max_curve(curves: list[list[tuple[int, float]]]) -> list[tuple[int, float]]:
+    """The pointwise maximum of several curves, at the union of their breakpoints."""
+    curves = [c for c in curves if c]
+    if len(curves) <= 1:
+        return curves[0] if curves else []
+    times = sorted({t for c in curves for t, _ in c})
+    xs = [[p[0] for p in c] for c in curves]
+    out = []
+    for t in times:
+        level = 0.0
+        for c, x in zip(curves, xs):
+            i = bisect.bisect_left(x, t)
+            level = max(level, c[i][1] if i < len(c) and x[i] == t else _interp(c, t))
+        out.append((t, level))
+    return out
 
 
 def _between(pts: list[tuple[int, float]], start: int, end: int) -> list[tuple[int, float]]:
@@ -251,16 +286,18 @@ def dump_data(script: ssf.TrackScript, venues: list[ssf.VenueInfo], presets: lis
     for first, start, stop in phrases:
         rows = []
         for name, trks, kind in groups:
-            lit_sets, pulses, colours, shapes, flags, own = [], 0, [], [], [], False
+            lit_sets, colours, shapes, flags, own = [], [], [], [], False
+            cell_pts = []
             for trk in trks:
                 pts = _between(curves[id(trk)], start, stop)
+                cell_pts.append(pts)
                 lit_sets.append(_lit_intervals(pts))
-                pulses += _pulses(pts)
                 colours += _colours(trk, script.main, start, stop)
                 shapes += _shapes(trk, script.main, start, stop)
                 flags += position_changes(script, trk, start, stop)
                 own = own or trk is script.main or any(
                     _overlaps(s, start, stop) for s in (trk.blocks.items if trk.blocks else []))
+            pulses = _pulses(_max_curve(cell_pts))
             flags = sorted(set(flags))   # cells of a group share their position changes
             lit = _union([iv for ivs in lit_sets for iv in ivs])
             rows.append({
@@ -426,7 +463,10 @@ def main(argv: list[str] | None = None) -> int:
 
     t = sub.add_parser("tracks", parents=[common], help="list the project's tracks")
     t.add_argument("--match", help="only tracks whose artist or title contains this text")
-    d = sub.add_parser("dump", parents=[common], help="per phrase and fixture")
+    d = sub.add_parser("dump", parents=[common], help=(
+        "per phrase and fixture: lit, pulses, colours, positions, shapes. Vorlane cells are "
+        "grouped into '<Vorlane> RGB' and '<Vorlane> W' rows: lit = union of the cells' lit "
+        "time, pulses = rises on the max of the cells' curves, the rest = union across cells"))
     d.add_argument("track", help="GUID, GUID prefix or 'Artist — Title'")
     d.add_argument("--yaml", action="store_true", help="print YAML instead of the text table")
     a = sub.add_parser("analyze", parents=[common], help="the dump reduced to metrics (Markdown)")
