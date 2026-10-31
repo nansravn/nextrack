@@ -635,6 +635,41 @@ def covered(trk: Track, t: int) -> bool:
     return trk.blocks is not None and any(s.start <= t <= s.end for s in trk.blocks.items)
 
 
+def _mix(a: int, b: int, f: float) -> int:
+    """Each byte of the u32 words `a` and `b` mixed linearly: `a` at f = 0, `b` at f = 1."""
+    out = 0
+    for shift in (0, 8, 16, 24):
+        x, y = (a >> shift) & 255, (b >> shift) & 255
+        out |= round(x + (y - x) * f) << shift
+    return out
+
+
+def colour_at(block: ColourBlock, t: int) -> tuple[int, int]:
+    """`(ARGB, extra word)` the block shows at `t`: a gradient from its start colour at
+    `start` to its end colour at `end`, each byte linear (clamped to the block)."""
+    if block.end <= block.start:
+        return block.colour, block.ext
+    f = min(max((t - block.start) / (block.end - block.start), 0.0), 1.0)
+    return _mix(block.colour, block.colour_end, f), _mix(block.ext, block.ext_end, f)
+
+
+def active_flag(trk: Track, t: int, spans: bool = True) -> PositionFlag | None:
+    """The position flag in force at `t`: the last one at or before `t`. With `spans` (every
+    track but Main) only inside a position block (F), counting from the start of the
+    earliest block that holds `t`; None outside every block or before its first flag.
+    Main's flags apply all along (`spans=False`)."""
+    lo = None
+    if spans:
+        holding = [f.start for f in (trk.position_blocks.items if trk.position_blocks else [])
+                   if f.start <= t <= f.end]
+        if not holding:
+            return None
+        lo = min(holding)
+    hits = [f for f in (trk.positions.flags if trk.positions else [])
+            if f.t <= t and (lo is None or f.t >= lo)]
+    return sorted(hits, key=lambda f: f.t)[-1] if hits else None
+
+
 def _add_span(section: Section, start: int, end: int) -> None:
     """Add [start, end] to a span section, merging overlapping or adjacent spans."""
     keep = []
@@ -677,6 +712,15 @@ def set_intensity(trk: Track, start: int, end: int, keys: list[Key]) -> None:
     _add_span(trk.blocks, start, end)
 
 
+def _trim(block, start: int, end: int):
+    """The block narrowed to [start, end]. A colour block gets the colours it shows at its
+    new ends, so a cut gradient shows what it showed before on the part that is left."""
+    if isinstance(block, ColourBlock):
+        (c0, e0), (c1, e1) = colour_at(block, start), colour_at(block, end)
+        return replace(block, start=start, end=end, colour=c0, ext=e0, colour_end=c1, ext_end=e1)
+    return replace(block, start=start, end=end)
+
+
 def _cut(items: list, start: int, end: int) -> list:
     """The blocks with the part inside (start, end) removed; touching ends are kept."""
     out = []
@@ -685,9 +729,9 @@ def _cut(items: list, start: int, end: int) -> list:
             out.append(b)
             continue
         if b.start < start:
-            out.append(replace(b, end=start))
+            out.append(_trim(b, b.start, start))
         if b.end > end:
-            out.append(replace(b, start=end))
+            out.append(_trim(b, end, b.end))
     return out
 
 
@@ -722,12 +766,17 @@ def set_positions(trk: Track, start: int, end: int, flags: list[PositionFlag],
     """Position-block span [start, end] with its flags; shape blocks it overlaps go.
 
     `flags` index into `palette`. A track that already has a palette keeps it, and the
-    flags are re-pointed (the entry is appended when the track lacks it).
+    flags are re-pointed (the entry is appended when the track lacks it). When `end + 1`
+    lies in one of the track's position blocks, the preset in force there is kept: a flag
+    at `end + 1` carries it, unless a flag is there already.
     """
+    after = active_flag(trk, end + 1)
     pos = _positions_of(trk, palette)
     new = [PositionFlag(f.t, _preset(pos, palette[f.preset])) for f in flags]
-    pos.flags = sorted([f for f in pos.flags if not start <= f.t <= end] + new,
-                       key=lambda f: f.t)
+    kept = [f for f in pos.flags if not start <= f.t <= end]
+    if after is not None and not any(f.t == end + 1 for f in kept):
+        kept.append(PositionFlag(end + 1, after.preset))
+    pos.flags = sorted(kept + new, key=lambda f: f.t)
     if trk.position_blocks is None:
         trk.position_blocks = Section(1, [])
     _add_span(trk.position_blocks, start, end)
@@ -786,7 +835,7 @@ def _materialise_colour(script: TrackScript, trk: Track, start: int, end: int) -
             if lo < hi:
                 if trk.colours is None:
                     trk.colours = Section(1, [])
-                trk.colours.items.append(replace(c, start=lo, end=hi))
+                trk.colours.items.append(_trim(c, lo, hi))
     if trk.colours is not None:
         trk.colours.items.sort(key=lambda c: c.start)
 
@@ -1153,8 +1202,13 @@ class Project:
         self._venues: tuple[list[VenueInfo], list[Preset], list[str]] | None = None
 
     def trackmap(self) -> list[TrackRef]:
+        """The track map's entries, one per GUID: a GUID listed twice (the real map has one)
+        keeps its first entry, so it still resolves."""
         if self._tracks is None:
-            self._tracks = read_trackmap((self.folder / "SoundSwitchTrackMap.bin").read_bytes())
+            first: dict[str, TrackRef] = {}
+            for r in read_trackmap((self.folder / "SoundSwitchTrackMap.bin").read_bytes()):
+                first.setdefault(r.guid.lower(), r)
+            self._tracks = list(first.values())
         return self._tracks
 
     def _read_venues(self) -> tuple[list[VenueInfo], list[Preset], list[str]]:

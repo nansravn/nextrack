@@ -183,15 +183,17 @@ def test_movers_off_zeroes_both_movers_across_the_span_only(room):
 # ------------------------------------------------------------------------ hue ----
 
 
-def test_hue_dark_materialises_main_into_every_venue_node(room):
+GROUPS = (1166, *UNITS, 1934)        # group nodes: they never carry content in real scripts
+
+
+def test_hue_dark_materialises_main_into_every_leaf_node(room):
     script = room()
     out, _ = compile_(script, section(2, 3, hue="dark"))
     start, end = span(2, 3)
     mid = (start + end) // 2
     assert lvl(out, 2, mid) == 0 and lvl(out, 2, start) == 0 and lvl(out, 2, end) == 0
     assert lvl(out, 2, start - 1) == MAIN_LEVEL and lvl(out, 2, end + 1) == MAIN_LEVEL
-    for node in (rgb(1818, 1), rgb(1876, 48), white(1818, 1), master(1818), 1166, 1818, 1934,
-                 1935, 1936, 1168):
+    for node in (rgb(1818, 1), rgb(1876, 48), white(1818, 1), master(1818), 1935, 1936, 1168):
         trk = ssf.track(out, node)
         assert covered(trk, start) and covered(trk, end) and lvl(out, node, mid) == MAIN_LEVEL
         assert trk.colours is None                     # no hue colour: colour lane untouched
@@ -199,6 +201,14 @@ def test_hue_dark_materialises_main_into_every_venue_node(room):
     assert lvl(out, 1167, 3001) == FULL and lvl(out, 1167, 3500) == 0
     assert lvl(out, 1167, 5000) == MAIN_LEVEL and covered(ssf.track(out, 1167), 5000)
     assert ssf.track(out, STALE) == ssf.track(script, STALE)
+
+
+def test_hue_leaves_group_nodes_untouched(room):
+    script = room()
+    out, _ = compile_(script, section(2, 3, hue={"state": "bright", "colour": "#FF0000"},
+                                      movers="off", matrix={"draw": "solid"}, haze="on"))
+    for node in GROUPS:
+        assert ssf.track(out, node) == ssf.track(script, node), node
 
 
 def test_hue_with_colour_also_materialises_colour(room):
@@ -275,6 +285,26 @@ def test_mover_sweep_steps_through_its_positions(room):
     names = {p.guid: p.name for p in PRESETS}
     got = [(f.t, names[trk.positions.palette[f.preset][0]]) for f in trk.positions.flags]
     assert got == [(ms(1), "Up"), (ms(2), "Cake"), (ms(3), "Up"), (ms(4), "Cake")]
+
+
+def test_a_position_section_keeps_the_preset_in_force_after_it(room):
+    script = room()
+    palette = script.main.positions.palette
+    index = {p.name: next(i for i, (g, _) in enumerate(palette) if g == p.guid) for p in PRESETS}
+    mover = ssf.track(script, 1167)                  # autoscript: Up from bar 1, Cake from bar 3
+    mover.positions = ssf.Positions(2, 1, list(palette), [ssf.PositionFlag(ms(1), index["Up"]),
+                                                          ssf.PositionFlag(ms(3), index["Cake"])])
+    mover.position_blocks = ssf.Section(1, [ssf.Span(ms(1), ms(9) - 1)])
+    out, _ = compile_(script, section(2, 3, movers={"move": "hold", "position": "DJ Booth"}))
+    trk = ssf.track(out, 1167)
+    names = {p.guid: p.name for p in PRESETS}
+
+    def at(t):
+        return names[trk.positions.palette[ssf.active_flag(trk, t).preset][0]]
+
+    assert [at(t) for t in (ms(2) - 1, ms(2), ms(4) - 1, ms(4), ms(9) - 1)] == [
+        "Up", "DJ Booth", "DJ Booth", "Cake", "Cake"]
+    assert check(out) == []
 
 
 def test_unknown_preset_name_is_a_manual_cue(room):
