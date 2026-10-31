@@ -2,7 +2,12 @@
 
 The room is the owner's real venue shape (public node names and ids from the spec):
 Mover 1/2, two Vorlanes with MASTER, RGB 01-48 and W 1-8 children, and the haze with its
-two channels. The script is synthetic: every node follows Main unless a test says so."""
+two channels. The script is synthetic: every node follows Main unless a test says so.
+The last test reads the owner's real project from $NEXTRACK_SOUNDSWITCH_REAL and is
+skipped without it."""
+import os
+from pathlib import Path
+
 import pytest
 from conftest import REPO_ROOT
 
@@ -12,6 +17,7 @@ from soundswitch_format import FULL, Key, check, covered, intensity, level_at
 
 RIG = ls.load_rig(REPO_ROOT / "lightshows/rig.yml")
 HAPPIER = REPO_ROOT / "lightshows/tracks/marshmello-x-bastille-happier.yml"
+REAL = os.environ.get("NEXTRACK_SOUNDSWITCH_REAL")   # a read-only copy of the project folder
 
 VENUE_GUID = "0122adb8-e4b9-46c9-96c8-98a7e8f6a5a9"
 CASA_GUID = "d34c412f-48c1-4f75-9399-b35c069c8fdb"
@@ -450,3 +456,37 @@ def test_happier_compiles_on_a_synthetic_script(room):
     assert lvl(out, 1167, ms(4)) == 0                          # intro: movers off
     assert lvl(out, 2, ms(68) + 1200) == 0                     # silence: even the chandelier
     assert lvl(out, rgb(1818, 1), ms(68) + 1200) == 0
+
+
+def effective(script, trk, t):
+    """What `trk` shows at `t`: its own level inside its spans, else Main's."""
+    own = trk is script.main or covered(trk, t)
+    return level_at(intensity(trk if own else script.main), t)
+
+
+def moments(script, trk, start, end):
+    """Every 10 ms of [start, end] plus every breakpoint of `trk` and Main inside it."""
+    ts = set(range(start, end + 1, 10)) | {end}
+    for lane in (intensity(trk), intensity(script.main)):
+        ts |= {k.t for k in (lane.keys if lane else []) if start <= k.t <= end}
+    return sorted(ts)
+
+
+@pytest.mark.skipif(not REAL, reason="NEXTRACK_SOUNDSWITCH_REAL not set")
+def test_happier_compiles_on_the_real_script():
+    project = ssf.Project(Path(REAL))
+    venues, presets = project.venues()
+    choreo = ls.load_choreography(HAPPIER)
+    script = ssf.parse_script(project.script_path(choreo.soundswitch).read_bytes())
+    out, cues = ls.compile_choreography(choreo, script, RIG, venues, presets)
+    assert check(out) == []
+    assert ssf.parse_script(ssf.serialize_script(out)) == out
+    g = ssf.grid(out)
+    dj = next(v for v in venues if v.name == "DJ Renan")
+    mover1 = ssf.track(out, next(n.id for n in dj.nodes if n.name == "Mover 1"))
+    intro = (g.ms(1), g.ms(9) - 1)                             # bars 1–8: movers off
+    assert all(effective(out, mover1, t) == 0 for t in moments(out, mover1, *intro))
+    silence = (g.ms(68), g.ms(69) - 1)                         # bar 68: even the chandelier
+    assert all(effective(out, out.main, t) == 0 for t in moments(out, out.main, *silence))
+    kinds = {"haze" if c.fixture == "haze" else "uv" if "UV" in c.what else c.what for c in cues}
+    assert kinds <= {"uv", "haze"}, cues
