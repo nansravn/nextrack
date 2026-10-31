@@ -127,7 +127,7 @@ tail   = at offA: 30 constant bytes
 | key type, flag, second time | always 2, 0, equal to the first | confirmed constant | 34 M keys |
 | B | **intensity blocks**: where a fixture's own curve overrides Main | strong | 99.94 % of fixture keys lie in a B block; the exceptions sit in 7 files |
 | link | owner of a cell: cells, MASTER and W of a Vorlane point at the Vorlane node, haze channels at the haze group, fixtures and groups at 1 | strong | |
-| C | **colour blocks** (start, end, start colour, end colour) | confirmed structure; fade meaning strong | 1 % of blocks have different colours |
+| C | **colour blocks** (start, end, start colour, end colour) | confirmed structure; fade meaning strong | 59 % of Main's colour blocks are gradients (8,605 of 14,543), against 0.15 % of the fixtures' |
 | D | **position flags**: palette maps index to a position-preset GUID | confirmed | GUIDs resolve in the venue file |
 | F | **position blocks**: the D flags live inside these | strong | every flag is inside an F block |
 | G | **movement shape blocks**: kind (0-9), four doubles, a flag | strong guess | never overlaps F, so a movement lane holds either positions or shapes |
@@ -148,6 +148,11 @@ Not in the script: phrase or section analysis and the audio beat analysis.
   own 100 % value is unverified (X2); the tools write the autoscript's `0xffffffa0`.
 - **Colour ext word.** Only the Main track uses it, always `0x0000XX00`, often on black
   or on an icy blue. Byte 1 behaves as a **White** component, not UV (X3 confirms).
+- **Colour gradient.** A C block fades from its start colour at `start` to its end colour
+  at `end`; the tools read every byte of the ARGB word and of the ext word as linear in
+  between (`colour_at`). Most of Main's blocks are gradients, so an edit that cuts a block
+  gives each remaining piece the colours shown at its new ends (rounded to whole bytes),
+  and the room outside the edit shows what it showed.
 - **AutoLoops.** Format 12, factory venues beside the owner's, a single anchor at 100 BPM,
   content within 16 bars.
 - **Shape parameters.** Movers always carry four 0.5 values; Main uses other tuples.
@@ -169,8 +174,9 @@ What a change of size must update, and nothing else:
 Keep keys sorted by time (true of every lane seen) and blocks sorted and non-overlapping.
 An edit that keeps the size needs no relocation. The tools always go
 `parse -> edit the model -> serialize`, and `apply` re-parses the result and refuses
-unless it equals the model and everything outside the venue's tracks and Main equals the
-base.
+unless it equals the model, everything outside the venue's tracks and Main equals the
+base, and outside the sections those tracks show what the base shows (the safety model in
+[scripts/README.md](../../scripts/README.md#safety-model-of-apply---apply)).
 
 ## TrackMap
 
@@ -188,7 +194,9 @@ string = u32 char count (incl. NUL), UTF-16LE
 Kind 4 entries carry extra bytes after the trailer, skipped silently, as is the list of
 external-id strings after the last entry. Any other unreadable stretch becomes a
 warning (`track map: skipped N bytes at 0x...`), never a failure. Titles and artists are
-what `Artist — Title` in a choreography is matched against, along with the GUID.
+what `Artist — Title` in a choreography is matched against, along with the GUID. A GUID
+can be listed twice (the owner's map has one, with identical rows); the project reader
+keeps the first entry.
 
 ## Venues
 

@@ -140,9 +140,10 @@ centre-out q=0 centre-out q=1  zigzag k=2      zigzag k=9      arrow-up k=3
 ...##...       ..#..#..        ........        ........        #......#
 ```
 
-- `solid`: every colour cell, every step.
+- `solid`: every colour cell, every step (a pulse per step, not steady light).
 - `rows-down` / `rows-up`: one row per step, top to bottom or the reverse, wrapping.
-- `fill-up`: from the bottom, one more row per step, holding full once it is.
+- `fill-up`: from the bottom, one more row per step; once full, every row keeps pulsing
+  each step.
 - `columns`: one column of every colour row per step, left to right, wrapping.
 - `centre-out`: two columns from the middle (3 and 4), then 2 and 5, and so on, wrapping every four steps.
 - `zigzag`: one cell per step, snake order: row 0 left to right, row 1 right to left, ...
@@ -164,15 +165,29 @@ room), `pingpong` (the first Vorlane gets the even steps and the second the odd 
 - **The Main track is the Hue centre.** `hue` rewrites Main for the section. Fixtures
   that follow Main there would change too, so the compiler first copies the old Main onto
   every fixture track that is not edited by this section for the lanes `hue` changes;
-  a `hue` layer therefore does not alter movers or Vorlanes by side effect.
-- **Pulses.** Each cell lights as one pulse per lit step with a decay of one step, like
-  the autoscript. A Vorlane's master is held at full under a draw.
+  a `hue` layer therefore does not alter movers or Vorlanes by side effect. Only leaf
+  nodes get the copy: group nodes (a Vorlane, the haze, "Group 4") carry no content.
+  A `hue` colour cuts Main's colour blocks, most of them gradients; what is left of a cut
+  gradient keeps showing the colours it showed.
+- **Pulses.** Every draw is a per-step sawtooth: each lit cell jumps to full at the step
+  and decays to dark over that one step, like the autoscript. That holds for `solid` and
+  for the full rows of `fill-up` too: they pulse every step, they are not steady light.
+  A Vorlane's master is held at full under a draw.
+- **Positions.** A mover section replaces the autoscript's position flags inside it; when
+  the autoscript's position block goes on past the section, the preset it had in force
+  there comes back at the first moment after the section.
 - **Manual cues.** What the compiler cannot write is printed as `manual cue, bar N: ...`
   by `render`, `compile` and `apply`: `uv`, `move: uv`, haze (to confirm), a position
   preset the venue or script does not have, a shape block cut by a position change, a
   strobe `off` over SoundSwitch's own strobe blocks. Add these in SoundSwitch by hand.
 - **Nothing outside the sections changes.** `apply` refuses unless everything outside the
-  rig's tracks and Main equals the base.
+  rig's tracks and Main equals the base, and outside the sections every venue track and
+  Main shows the base's intensity, colour and position.
+- **Undo.** To return a track to the autoscript, close SoundSwitch and copy
+  `nextrack-backups/base/{GUID}.ssfile` (next to the project folder) over the file of the
+  same name in the project folder. To undo only the last `apply`, use the `restore:` line
+  it printed. [scripts/README.md](../scripts/README.md#safety-model-of-apply---apply) has
+  what the next `apply` then asks for.
 
 ## Show plan: `sets/<set-file-stem>.md`
 

@@ -141,7 +141,9 @@ uv run scripts/nextrack_lights.py apply lightshows/tracks/marshmello-x-bastille-
 `render`, `compile` and `apply` take `--rig PATH` (default `lightshows/rig.yml`). They
 refuse an invalid rig or choreography with the same messages `check_repo.py` gives, and
 print the **manual cues** (things SoundSwitch must be told by hand) after the result.
-`compile -o` refuses to overwrite the project's own file or its base copy.
+`compile -o` and `render -o` refuse any path inside the project folder or inside
+`<project parent>/nextrack-backups/`, compared lower-cased (the Windows drive under
+`/mnt/c` ignores case).
 
 ### Reading `dump`
 
@@ -163,10 +165,11 @@ the manual cues) and writes nothing until you add `--apply`. Read the dry run fi
 
 ### Safety model of `apply --apply`
 
-- **SoundSwitch must be closed.** The tool runs `tasklist.exe` and refuses while
-  `SoundSwitch.exe` is listed. Under WSL, if `tasklist.exe` cannot be run, it refuses
-  too, because a check that passes when it fails is no check. On a machine that is not
-  WSL and has no `tasklist.exe` (CI), there is nothing to check.
+- **SoundSwitch must be closed.** The tool runs `tasklist.exe` and refuses while any
+  process whose name contains `soundswitch` (any case) is listed. Under WSL, if
+  `tasklist.exe` cannot be run, it refuses too, because a check that passes when it
+  fails is no check. On a machine that is not WSL and has no `tasklist.exe` (CI), there
+  is nothing to check.
 - **Base copy.** The first `apply` of a track saves the project's current script as
   `<project parent>/nextrack-backups/base/<GUID>.ssfile`. Every later `apply`,
   `compile` and `render` starts from that base, so a choreography is always applied to
@@ -175,24 +178,34 @@ the manual cues) and writes nothing until you add `--apply`. Read the dry run fi
 - **`state.json`** next to it (`<project parent>/nextrack-backups/state.json`) holds, per
   track, the hash of the base and of the file last written. `apply` refuses if the base
   copy changed or is missing, or if the project file differs from what the last
-  `apply` wrote (you edited it in SoundSwitch).
+  `apply` wrote (you edited it in SoundSwitch). With a base copy but no `state.json`
+  record of the track (the file was lost), the project file must equal the base, since
+  hand edits could not be told apart otherwise.
 - **`--adopt-current`** answers that refusal: the project file as it is now becomes the
   new base, keeping your edits. Use it after editing a track by hand in SoundSwitch.
 - **A timestamped backup** of the project file is written to
   `nextrack-backups/<YYYYmmdd-HHMMSS>/` before the replace, and the command prints the
-  restore line: `restore: cp "<backup>" "<project file>"`.
+  restore line: `restore: cp "<backup>" "<project file>"`. If the write fails before the
+  project file is replaced, the base copy is put back as it was.
 - **`--accept-resize`** is required when the compiled file differs in size from the
   project file (it nearly always does). SoundSwitch is not yet known to load a script of
   a different size (experiment X1 in
   [docs/soundswitch/experiments.md](../docs/soundswitch/experiments.md)); until that is
   answered, test on one track you can lose and keep the backup.
-- Before writing, the tool re-parses its own output and refuses unless it round-trips and
-  everything outside the venue's tracks and Main equals the base; the base itself must
+- Before writing, the tool re-parses its own output and refuses unless it round-trips,
+  everything outside the venue's tracks and Main equals the base, and outside the
+  sections every venue track and Main shows what the base shows: the same keys (a key
+  next to a section must carry the base's level there), the same blocks, the colour each
+  colour block shows at the ends of what is left of it (within one step per byte, as a
+  cut gradient is rounded), and the same position preset in force. The base itself must
   parse and serialize back to the same bytes. Writes are temp-file-then-rename.
 
-To undo, copy the backup over the project file (the `restore:` line). The next `apply`
-then refuses (the file no longer matches `state.json`); say `--adopt-current` to start
-again from the restored file.
+To undo the last `apply`, copy the backup over the project file (the `restore:` line).
+To return the track to the autoscript, close SoundSwitch and copy
+`nextrack-backups/base/{GUID}.ssfile` over the file of the same name in the project
+folder. Either way the next `apply` refuses (the file no longer matches `state.json`);
+say `--adopt-current` to start again from the file as it now is (after copying the base
+back, that is the base itself).
 
 ### Tests against the real project
 
