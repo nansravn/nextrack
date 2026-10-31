@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 import yaml
+from soundswitch_format import FULL, Key
 
 LAYERS = ("movers", "matrix", "white", "uv", "strobe", "hue", "haze")
 MOVER_MOVES = ("hold", "pingpong", "sweep", "blink", "uv")
@@ -464,3 +465,172 @@ def problems_plan(front: dict, root: Path) -> list[str]:
                 if not (isinstance(where, list) and all(_is_str(w) for w in where)):
                     out.append(f"budget {effect}: {_show(where)} is not a list of names")
     return out
+
+
+# ---------------------------------------------------------------- generators --
+
+STEADY = 0.85  # steady level of a held mover or a bright hue
+COLOUR_ROWS = [0, 1, 2, 4, 5, 6]
+WHITE_ROW = 3
+MATRIX_COLS = 8
+
+
+def level_of(fraction: float) -> int:
+    """A 0..1 brightness as the u32 level the script format stores."""
+    return FULL if fraction >= 1 else int(fraction * 2**32)
+
+
+def rate_ms(rate: str, beat_ms: float) -> float:
+    """Length in ms of a rate: `1/4` is one beat, `1/16` a quarter beat, `<n>bar` n bars of 4."""
+    if rate.endswith("bar"):
+        return int(rate[:-3]) * 4 * beat_ms
+    num, den = rate.split("/")
+    return beat_ms * 4 * int(num) / int(den)
+
+
+def cell_node(rig_unit_nodes: dict, row: int, col: int) -> int:
+    """The node number of the cell at (`row`, `col`), row-major: rows 0-2 are RGB 01-24,
+    row 3 is W 1-8, rows 4-6 are RGB 25-48. `rig_unit_nodes` may map `"rgb"` / `"w"` to a
+    dict or list that renames these numbers; without it the number itself is returned."""
+    if row == WHITE_ROW:
+        kind, number = "w", col + 1
+    else:
+        kind, number = "rgb", (row if row < WHITE_ROW else row - 1) * MATRIX_COLS + col + 1
+    table = rig_unit_nodes.get(kind) if rig_unit_nodes else None
+    if table is None:
+        return number
+    return table[number] if isinstance(table, dict) else table[number - 1]
+
+
+def matrix_frames(
+    draw: str,
+    start: int,
+    end: int,
+    step_ms: float,
+    unit: int,
+    mirror: bool,
+    *,
+    with_white: bool = False,
+) -> list[tuple[int, set[tuple[int, int]]]]:
+    """One `(time, lit cells)` frame per step in [start, end). Cells are `(row, col)`, rows
+    0-6 from the top (row 3 is the white strip, lit only when `with_white`), cols 0-7.
+    Draws, over the lit rows R (the six colour rows, or all seven with `with_white`):
+
+    - `solid`: every cell. `columns`: col k mod 8 of every row.
+    - `rows-down` / `rows-up`: row R[k mod n] / R reversed. `fill-up`: the last k+1 rows
+      of R, holding at all of R once full.
+    - `centre-out`: cols 3-q and 4+q (q = k mod 4) of every row.
+    - `zigzag`: one cell per step in snake order: R[0] left to right, R[1] right to left,
+      and so on; wraps.
+    - `arrow-up`: an upward chevron "^". With the apex on R[a]: cols 3,4 on R[a], cols
+      2,5 on R[a+1], cols 1,6 on R[a+2], cols 0,7 on R[a+3]; cells past the bottom row
+      are dropped. The apex starts at the bottom row and rises one row per step, wrapping.
+
+    On unit 1 with `mirror`, columns are flipped (`7 - col`) so the two bars draw
+    symmetrically across the room."""
+    rows = COLOUR_ROWS if not with_white else sorted(COLOUR_ROWS + [WHITE_ROW])
+    n = len(rows)
+    flip = mirror and unit == 1
+    out = []
+    k = 0
+    while start + k * step_ms < end:
+        t = int(round(start + k * step_ms))
+        if draw == "solid":
+            cells = {(r, c) for r in rows for c in range(MATRIX_COLS)}
+        elif draw == "columns":
+            cells = {(r, k % MATRIX_COLS) for r in rows}
+        elif draw == "rows-down":
+            cells = {(rows[k % n], c) for c in range(MATRIX_COLS)}
+        elif draw == "rows-up":
+            cells = {(rows[n - 1 - k % n], c) for c in range(MATRIX_COLS)}
+        elif draw == "fill-up":
+            cells = {(r, c) for r in rows[n - min(k + 1, n):] for c in range(MATRIX_COLS)}
+        elif draw == "centre-out":
+            q = k % 4
+            cells = {(r, c) for r in rows for c in (3 - q, 4 + q)}
+        elif draw == "zigzag":
+            i = k % (n * MATRIX_COLS)
+            row, pos = divmod(i, MATRIX_COLS)
+            cells = {(rows[row], pos if row % 2 == 0 else MATRIX_COLS - 1 - pos)}
+        elif draw == "arrow-up":
+            apex = n - 1 - k % n
+            cells = set()
+            for d in range(4):
+                if apex + d < n:
+                    cells |= {(rows[apex + d], 3 - d), (rows[apex + d], 4 + d)}
+        else:
+            raise ValueError(f"unknown matrix draw {draw!r}")
+        if flip:
+            cells = {(r, MATRIX_COLS - 1 - c) for r, c in cells}
+        out.append((t, cells))
+        k += 1
+    return out
+
+
+def pulse_keys(times: list[int], decay_ms: float, level: int = FULL) -> list[Key]:
+    """The autoscript's pulse: `Key(t, level)` then `Key(t + decay - 1, 0)`. A decay that
+    would run into the next pulse ends one ms before it, so keys stay sorted and unique."""
+    keys: list[Key] = []
+    for i, t in enumerate(times):
+        stop = t + int(decay_ms) - 1
+        if i + 1 < len(times):
+            stop = min(stop, times[i + 1] - 1)
+        keys.append(Key(t, level))
+        if stop > t:
+            keys.append(Key(stop, 0))
+    return keys
+
+
+def _steps(move: dict, start: int, end: int, beat_ms: float) -> list[tuple[int, int]]:
+    """`(begin, finish)` of each step of a mover move. `faster_from` is a bar number counted
+    from `start` (1 = first bar of the span); from there `faster_every` replaces `every`."""
+    slow = rate_ms(move.get("every", "1/4"), beat_ms)
+    fast = rate_ms(move["faster_every"], beat_ms) if "faster_every" in move else slow
+    faster_from = move.get("faster_from")
+    steps = []
+    t = float(start)
+    while t < end:
+        bar = int((t - start) // (4 * beat_ms)) + 1
+        length = fast if faster_from is not None and bar >= faster_from else slow
+        steps.append((int(round(t)), min(int(round(t + length)), end)))
+        t += length
+    return steps
+
+
+def mover_keys(move: dict, start: int, end: int, beat_ms: float, mover_index: int) -> list[Key]:
+    """The brightness envelope of one mover over [start, end] for a `movers` mapping."""
+    kind = move["move"]
+    if kind in ("hold", "sweep"):
+        lvl = level_of(move.get("level", STEADY))
+        return [Key(start, lvl), Key(end, lvl)]
+    steps = _steps(move, start, end, beat_ms)
+    if kind == "blink":
+        return pulse_keys([s for s, _ in steps], rate_ms(move.get("every", "1/4"), beat_ms))
+    if kind == "pingpong":
+        keys: list[Key] = []
+        for i, (s, e) in enumerate(steps):
+            if i % 2 == mover_index % 2:
+                keys += [Key(s, FULL), Key(e - 1, FULL), Key(e, 0)]
+        if not keys or keys[0].t > start:
+            keys.insert(0, Key(start, 0))
+        if keys[-1].t < end:
+            keys.append(Key(end, 0))
+        return keys
+    raise ValueError(f"no mover keys for move {kind!r}")
+
+
+def hue_keys(state: str, start: int, end: int, beat_ms: float) -> list[Key]:
+    """The envelope of a hue state: `dark` 0, `bright` steady 0.85, `pulse` a pulse per beat."""
+    if state == "dark":
+        return [Key(start, 0), Key(end, 0)]
+    if state == "bright":
+        lvl = level_of(STEADY)
+        return [Key(start, lvl), Key(end, lvl)]
+    if state == "pulse":
+        times = []
+        t = float(start)
+        while t < end:
+            times.append(int(round(t)))
+            t += beat_ms
+        return pulse_keys(times, beat_ms)
+    raise ValueError(f"unknown hue state {state!r}")
