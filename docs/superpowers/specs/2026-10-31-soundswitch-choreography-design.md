@@ -116,7 +116,7 @@ Decoded overnight on 2026-10-31 from a read-only copy of the owner's project. Al
 and 128 AutoLoops parse with 100% of their bytes accounted for, and parse → serialize is
 byte-identical for all 629. The byte-level reference becomes `docs/soundswitch/file-format.md`.
 
-- **Project folder** `DJ Renan.ssproj/`: `.ssproj` (JSON settings), `SoundSwitchVenues.bin`
+- **Project folder** `<project>.ssproj/`: `.ssproj` (JSON settings), `SoundSwitchVenues.bin`
   (venues, fixtures, device tree, position presets, looks, attribute cues),
   `SoundSwitchTrackMap.bin` (script GUID → title, artist, audio path) and per track a
   `{GUID}.ssfile` (the editable script) plus `{GUID}.ssa` (encrypted; untouched by script edits;
@@ -279,11 +279,14 @@ The rig and choreography models, the vocabulary, the frame generators and the co
 
 **The Main-track rule.** Each lane falls back to Main on its own: a node without its own intensity
 block follows Main's intensity, without its own colour block follows Main's colour, and so on. When
-a section changes a Main lane (`hue` changes intensity; `hue.colour` also colour), every node of
-the venue — fixtures, cells, the Vorlane `MASTER` nodes and the haze channels — that has no own
+a section changes a Main lane (`hue` changes intensity; `hue.colour` also colour), every leaf node
+of the venue — fixtures, cells, the Vorlane `MASTER` nodes and the haze channels — that has no own
 content in that lane for the span, and whose layer in this section does not write that lane, first
-gets Main's previous content for that lane **materialised** into it. Only then is Main edited. The
-room keeps the look the autoscript (or the other layers) gave it; only the chandelier changes.
+gets Main's previous content for that lane **materialised** into it. Group nodes (a Vorlane, the
+haze, "Group 4") never carry content in real scripts and are left as they are. Only then is Main
+edited. The room keeps the look the autoscript (or the other layers) gave it; only the chandelier
+changes. Main's colour blocks are mostly gradients: a block cut by the edit keeps, on the part left,
+the colours it showed there.
 
 Anything the compiler cannot express is printed as a manual cue (bar, time, fixture, what to do),
 so the owner can add it in SoundSwitch; it is never silently dropped.
@@ -334,7 +337,8 @@ So `auto` always means "the autoscript", and a section deleted from the YAML rev
 apply. `<project parent>/nextrack-backups/state.json` records, per GUID, the SHA-256 of the base and
 of the last applied output. If the project file no longer matches the last applied output (the
 owner edited it in SoundSwitch), `apply --apply` refuses; `--adopt-current` makes the current file
-the new base, keeping the hand edits (and `auto` then means "the current file"). `render`'s
+the new base, keeping the hand edits (and `auto` then means "the current file"). A base copy with
+no `state.json` record (the file was lost) is used only when the project file equals it. `render`'s
 "before" is the base when one exists, else the current file. Compile also refuses a script whose
 tempo map has more than 8 anchors (5 of the owner's 501; bar numbers would not match the music),
 and a choreography whose `grid` disagrees with the script's first anchor (written for another
@@ -344,8 +348,9 @@ version of the track).
 
 1. Parse the target file; serialize; require byte identity, else refuse.
 2. Apply edits to the model; serialize; re-parse the result and check every untouched lane is
-   identical to the original.
-3. `apply --apply` only: refuse if `SoundSwitch.exe` is in `tasklist.exe`; copy the original to
+   identical to the original, and that outside the sections every venue track and Main shows the
+   original's intensity, colour and position preset.
+3. `apply --apply` only: refuse if a SoundSwitch process (any case) is in `tasklist.exe`; copy the original to
    `<project parent>/nextrack-backups/<timestamp>/<GUID>.ssfile`; write to a temp file in the same
    folder and rename over the original.
 4. Until the owner confirms experiment X1 (SoundSwitch loads a resized file), `apply --apply`
@@ -412,6 +417,6 @@ materialisation, `MASTER` at full). Still the owner's to confirm, none blocking 
 | 15 | Bars come from the script's tempo map, counted from the first anchor straight through later ones | 93% of the autoscript's Main colour blocks start on such a bar line across the 501 scripts (builder check) | 5 scripts with 67–170 anchors are refused for compile |
 | 16 | Compile from a stored base (first-apply copy); refuse when the project file has hand edits since the last apply, `--adopt-current` to keep them | `auto` must mean the autoscript and deleted sections must revert; hand edits must never be lost silently | an extra flag when the owner mixes SoundSwitch edits and YAML |
 | 17 | `white` is `off` under any non-`auto` `matrix` unless set | anti-goal: white under the colours by default; the white strip follows Main otherwise | a section wanting white with a drawing must say so |
-| 18 | Main-lane edits materialise per lane into every node without own content there, incl. Vorlane `MASTER` and haze | lanes fall back to Main independently; `MASTER` may be the DMX master dimmer | bigger scripts; nodes lose their link to later Main edits in that span |
+| 18 | Main-lane edits materialise per lane into every leaf node without own content there, incl. Vorlane `MASTER` and haze channels; group nodes are left as they are | lanes fall back to Main independently; `MASTER` may be the DMX master dimmer; groups never carry content in real scripts | bigger scripts; nodes lose their link to later Main edits in that span |
 | 19 | Matrix draws hold the Vorlane `MASTER` at full in their span | otherwise a dark Main could dim a drawing through the master | none if `MASTER` is not a dimmer |
 | 20 | Nothing here targets tonight's party | the owner wants no SoundSwitch writes before it; build bottom-up in the spec's order | none |

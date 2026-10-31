@@ -126,7 +126,8 @@ copy those values into `grid`, unless the owner plays another version of the tra
 ## 6. Apply: only on the owner's explicit go
 
 Approving the choreography is not a go. Apply only when the owner says, in this session,
-to write it into SoundSwitch.
+to write it into SoundSwitch. A go covers one track's choreography as it stands: ask again
+for the next track, and again after any change to the YAML.
 
 1. Ask the owner to close SoundSwitch.
 2. Dry run: `uv run scripts/nextrack_lights.py apply lightshows/tracks/<slug>.yml`; show
@@ -147,13 +148,17 @@ Two flags need the owner's explicit yes after you explain them:
 
 The first apply stores the current project file as the track's base; if the owner edited
 that track in SoundSwitch, ask whether that is the base they want. Any other refusal
-(SoundSwitch running, base changed, round trip): report it and wait for the owner.
+(SoundSwitch running, base changed, round trip, a change outside the sections): report it
+and wait for the owner. Never add a flag on your own to get past a refusal: report the
+refusal and wait.
 
 ## Red flags
 
 | Thought | Reality |
 |---|---|
 | "They approved the choreography, so I apply it" | Approval is for the YAML. Writing SoundSwitch needs its own go. |
+| "They said go for the last track, and I only tweaked one section" | A go covers one track's YAML as it was. Ask again. |
+| "`--adopt-current` / `--accept-resize` gets past this refusal" | Report the refusal and wait. A flag goes in only on the owner's explicit yes. |
 | "It is only `--accept-resize`" | It writes a file SoundSwitch may not load. Explain, ask, wait. |
 | "This drop deserves white or strobe too" | Not in the budget for this block or peak: out. Ask the owner. |
 | "I'll write the YAML and they can amend it" | They amend the Portuguese proposal. YAML comes after approval. |

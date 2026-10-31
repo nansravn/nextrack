@@ -4,7 +4,7 @@
 The SoundSwitch project folder holds one `{GUID}.ssfile` per analysed track, plus
 `SoundSwitchTrackMap.bin` (which GUID is which song) and `SoundSwitchVenues.bin` (the
 rig). The folder comes from --project, or from $NEXTRACK_SOUNDSWITCH_PROJECT if unset.
-These commands only read; nothing here writes to the project.
+Every command only reads the project, except `apply --apply`.
 
 Subcommands:
   tracks   list the tracks of the project (GUID8, BPM, length, artist — title)
@@ -12,6 +12,8 @@ Subcommands:
   analyze  the dump reduced to metrics: who overrides Main, white over colour, ...
   render   one HTML file: the room simulated before (the base script) and after (the
            choreography compiled onto it), with a timeline and an optional audio file
+  compile  a choreography compiled onto the track's base script, written to -o
+  apply    dry run of compile into the project; --apply writes it (backup first)
 
 An "effective" value is what the fixture really shows: its own when one of its spans
 covers the moment, else the Main track's. See scripts/README.md.
