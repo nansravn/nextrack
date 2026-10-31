@@ -13,9 +13,10 @@ fraction (`level / 2**32`).
 """
 from __future__ import annotations
 
+import math
 import struct
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 MAGIC = b"\xaa\xaa\x09\x55"
 MARK = 0x80808080         # in front of every present node section C..G
@@ -556,3 +557,311 @@ def serialize_script(script: TrackScript) -> bytes:
     out = bytearray(b"".join(w.parts))
     struct.pack_into("<II", out, 8, off_a, off_b)
     return bytes(out)
+
+
+# ---------------------------------------------------------------- tempo grid ----
+
+
+class Grid:
+    """Bars and beats from the tempo anchors.
+
+    Bar 1 beat 1 is the first anchor. A bar is 4 beats; beats are counted straight
+    through later anchors, each segment at its own BPM, so a bar can straddle an anchor.
+    """
+
+    def __init__(self, tempo: list[tuple[int, float]]):
+        if not tempo:
+            raise ValueError("a grid needs at least one tempo anchor")
+        self.anchors = list(tempo)
+        self.beats = [0.0]                # beats elapsed at each anchor
+        for (t0, bpm), (t1, _) in zip(self.anchors, self.anchors[1:]):
+            self.beats.append(self.beats[-1] + (t1 - t0) * bpm / 60000)
+
+    def _segment_at(self, t: float) -> int:
+        i = 0
+        for j, (at, _) in enumerate(self.anchors):
+            if at <= t:
+                i = j
+        return i
+
+    def beat_ms(self, t: int) -> float:
+        """Length of one beat at time `t`."""
+        return 60000 / self.anchors[self._segment_at(t)][1]
+
+    def _beats_at(self, t: float) -> float:
+        i = self._segment_at(t)
+        at, bpm = self.anchors[i]
+        return self.beats[i] + (t - at) * bpm / 60000
+
+    def ms(self, bar: int, beat: float = 1.0) -> int:
+        """Time of `beat` (1-based, fractions allowed) in `bar` (1-based)."""
+        b = (bar - 1) * 4 + (beat - 1)
+        i = 0
+        for j, start in enumerate(self.beats):
+            if start <= b + 1e-9:
+                i = j
+        at, bpm = self.anchors[i]
+        return round(at + (b - self.beats[i]) * 60000 / bpm)
+
+    def bar_at(self, t: int) -> int:
+        """The bar `t` falls in; bar 1 starts at the first anchor."""
+        return math.floor(self._beats_at(t) / 4 + 1e-9) + 1
+
+
+def grid(script: TrackScript) -> Grid:
+    return Grid(script.tempo)
+
+
+# --------------------------------------------------------------- edit helpers ----
+
+
+def level_at(lane: Lane | None, t: int) -> int:
+    """Linear envelope: 0 before the first key, the last level after the last."""
+    if lane is None or not lane.keys or t < lane.keys[0].t:
+        return 0
+    prev = lane.keys[0]
+    for k in lane.keys[1:]:
+        if t < k.t:
+            return round(prev.level + (k.level - prev.level) * (t - prev.t) / (k.t - prev.t))
+        prev = k
+    return prev.level
+
+
+def covered(trk: Track, t: int) -> bool:
+    """True when `t` is inside one of the track's B spans (ends inclusive)."""
+    return trk.blocks is not None and any(s.start <= t <= s.end for s in trk.blocks.items)
+
+
+def _add_span(section: Section, start: int, end: int) -> None:
+    """Add [start, end] to a span section, merging overlapping or adjacent spans."""
+    keep = []
+    for s in section.items:
+        if s.end + 1 >= start and s.start - 1 <= end:
+            start, end = min(start, s.start), max(end, s.end)
+        else:
+            keep.append(s)
+    keep.append(Span(start, end))
+    section.items = sorted(keep, key=lambda s: s.start)
+
+
+def _intensity_lane(trk: Track) -> Lane:
+    lane = intensity(trk)
+    if lane is None:
+        lane = Lane(4, 1, None, [])
+        trk.lanes.insert(0, lane)
+    return lane
+
+
+def _replace_keys(lane: Lane, start: int, end: int, keys: list[Key]) -> None:
+    """Swap the keys in [start, end] for `keys`; levels outside the span stay as they were."""
+    if any(not start <= k.t <= end for k in keys):
+        raise ValueError(f"keys must lie inside [{start}, {end}]")
+    left, right = level_at(lane, start - 1), level_at(lane, end + 1)
+    kept = [k for k in lane.keys if not start <= k.t <= end]
+    new = [Key(k.t, k.level) for k in keys]
+    if start >= 1 and not any(k.t == start - 1 for k in kept):
+        new.append(Key(start - 1, left))
+    if not any(k.t == end + 1 for k in kept):
+        new.append(Key(end + 1, right))
+    lane.keys = sorted(kept + new, key=lambda k: k.t)
+
+
+def set_intensity(trk: Track, start: int, end: int, keys: list[Key]) -> None:
+    """Replace the track's intensity keys in [start, end] and make its B spans cover it."""
+    _replace_keys(_intensity_lane(trk), start, end, keys)
+    if trk.blocks is None:
+        trk.blocks = Section(1, [])
+    _add_span(trk.blocks, start, end)
+
+
+def _cut(items: list, start: int, end: int) -> list:
+    """The blocks with the part inside (start, end) removed; touching ends are kept."""
+    out = []
+    for b in items:
+        if b.end <= start or b.start >= end:
+            out.append(b)
+            continue
+        if b.start < start:
+            out.append(replace(b, end=start))
+        if b.end > end:
+            out.append(replace(b, start=end))
+    return out
+
+
+def set_colour(trk: Track, start: int, end: int, colour: int,
+               colour_end: int | None = None) -> None:
+    """Put one colour block over [start, end], trimming the blocks it overlaps."""
+    if trk.colours is None:
+        trk.colours = Section(1, [])
+    block = ColourBlock(start, end, colour, 0, colour if colour_end is None else colour_end, 0)
+    trk.colours.items = sorted(_cut(trk.colours.items, start, end) + [block],
+                               key=lambda c: c.start)
+
+
+def _preset(pos: Positions, entry: tuple[str, int]) -> int:
+    """Index of a palette entry in `pos`, appended when missing."""
+    if entry not in pos.palette:
+        pos.palette.append(entry)
+    return pos.palette.index(entry)
+
+
+def _positions_of(trk: Track, palette: list[tuple[str, int]], ver: int = 2,
+                  x: int = 1) -> Positions:
+    if trk.positions is None:
+        trk.positions = Positions(ver, x, [], [])
+    if not trk.positions.palette:
+        trk.positions.palette = list(palette)
+    return trk.positions
+
+
+def set_positions(trk: Track, start: int, end: int, flags: list[PositionFlag],
+                  palette: list[tuple[str, int]]) -> None:
+    """Position-block span [start, end] with its flags; shape blocks it overlaps go.
+
+    `flags` index into `palette`. A track that already has a palette keeps it, and the
+    flags are re-pointed (the entry is appended when the track lacks it).
+    """
+    pos = _positions_of(trk, palette)
+    new = [PositionFlag(f.t, _preset(pos, palette[f.preset])) for f in flags]
+    pos.flags = sorted([f for f in pos.flags if not start <= f.t <= end] + new,
+                       key=lambda f: f.t)
+    if trk.position_blocks is None:
+        trk.position_blocks = Section(1, [])
+    _add_span(trk.position_blocks, start, end)
+    if trk.shapes is not None:
+        trk.shapes.items = _cut_whole(trk.shapes.items, start, end)
+
+
+def _cut_whole(items: list, start: int, end: int) -> list:
+    return [b for b in items if b.end <= start or b.start >= end]
+
+
+def set_main(script: TrackScript, start: int, end: int, keys: list[Key],
+             colour: int | None = None) -> None:
+    """Edit the Main track: intensity keys in [start, end] and, if given, its colour."""
+    _replace_keys(_intensity_lane(script.main), start, end, keys)
+    if colour is not None:
+        set_colour(script.main, start, end, colour)
+
+
+def _gaps(occupied: list[tuple[int, int]], start: int, end: int, step: int) -> list[tuple[int, int]]:
+    """Sub-spans of [start, end] outside `occupied`.
+
+    step 1: occupied ends are inclusive, so a gap stops one ms short of them.
+    step 0: blocks that only touch the gap leave it whole (colour blocks).
+    """
+    out = []
+    cursor = start
+    for s, e in sorted(occupied):
+        hi = min(s - step, end)
+        if hi > cursor or (step and hi == cursor):
+            out.append((cursor, hi))
+        cursor = max(cursor, e + step)
+    if end > cursor or (step and end == cursor):
+        out.append((cursor, end))
+    return out
+
+
+def _materialise_intensity(script: TrackScript, trk: Track, start: int, end: int) -> None:
+    main = intensity(script.main)
+    own = [(s.start, s.end) for s in trk.blocks.items] if trk.blocks else []
+    for a, b in _gaps(own, start, end, 1):
+        keys = [Key(a, level_at(main, a))]
+        keys += [Key(k.t, k.level) for k in main.keys if a < k.t < b] if main else []
+        if b > a:
+            keys.append(Key(b, level_at(main, b)))
+        set_intensity(trk, a, b, keys)
+
+
+def _materialise_colour(script: TrackScript, trk: Track, start: int, end: int) -> None:
+    if script.main.colours is None:
+        return
+    own = [(c.start, c.end) for c in trk.colours.items] if trk.colours else []
+    for a, b in _gaps(own, start, end, 0):
+        for c in script.main.colours.items:
+            lo, hi = max(c.start, a), min(c.end, b)
+            if lo < hi:
+                if trk.colours is None:
+                    trk.colours = Section(1, [])
+                trk.colours.items.append(replace(c, start=lo, end=hi))
+    if trk.colours is not None:
+        trk.colours.items.sort(key=lambda c: c.start)
+
+
+def _materialise_position(script: TrackScript, trk: Track, start: int, end: int) -> None:
+    m = script.main
+    own = [(s.start, s.end) for s in trk.position_blocks.items] if trk.position_blocks else []
+    own += [(s.start, s.end) for s in trk.shapes.items] if trk.shapes else []
+    for a, b in _gaps(own, start, end, 1):
+        for f in m.position_blocks.items if m.position_blocks else []:
+            lo, hi = max(f.start, a), min(f.end, b)
+            if lo > hi:
+                continue
+            main_pos = m.positions
+            pos = (_positions_of(trk, main_pos.palette, main_pos.ver, main_pos.x)
+                   if main_pos else _positions_of(trk, []))
+            flags = [PositionFlag(x.t, _preset(pos, main_pos.palette[x.preset]))
+                     for x in (main_pos.flags if main_pos else []) if lo <= x.t <= hi]
+            pos.flags = sorted(pos.flags + flags, key=lambda x: x.t)
+            if trk.position_blocks is None:
+                trk.position_blocks = Section(m.position_blocks.ver, [])
+            _add_span(trk.position_blocks, lo, hi)
+        for g in m.shapes.items if m.shapes else []:
+            lo, hi = max(g.start, a), min(g.end, b)
+            if lo < hi:
+                if trk.shapes is None:
+                    trk.shapes = Shapes(m.shapes.ver, m.shapes.x, [])
+                trk.shapes.items.append(replace(g, start=lo, end=hi))
+    if trk.shapes is not None:
+        trk.shapes.items.sort(key=lambda g: g.start)
+
+
+_MATERIALISE = {"intensity": _materialise_intensity, "colour": _materialise_colour,
+                "position": _materialise_position}
+
+
+def materialise_main(script: TrackScript, trk: Track, start: int, end: int,
+                     lanes: frozenset[str] = frozenset({"intensity", "colour", "position"})) -> None:
+    """Copy Main's content into `trk` over [start, end] where the track has none of its own.
+
+    Per lane, so that a later edit of one lane does not lose what the track was showing
+    through Main in the others. The track's own content is never touched.
+    """
+    unknown = set(lanes) - set(_MATERIALISE)
+    if unknown:
+        raise ValueError(f"unknown lanes {sorted(unknown)}")
+    for name in ("intensity", "colour", "position"):
+        if name in lanes:
+            _MATERIALISE[name](script, trk, start, end)
+
+
+def _overlap(items: list) -> bool:
+    return any(b.start < a.end for a, b in zip(items, items[1:]))
+
+
+def check(script: TrackScript) -> list[str]:
+    """Invariants of an edited script; an empty list means it is valid."""
+    out = []
+    for trk in [*tracks(script), script.main]:
+        who = f"node {trk.node}"
+        for ln in trk.lanes:
+            if any(b.t < a.t for a, b in zip(ln.keys, ln.keys[1:])):
+                out.append(f"{who}: lane {ln.attr} keys are not sorted by time")
+        sections = {"B": trk.blocks, "C": trk.colours, "E": trk.strobes,
+                    "F": trk.position_blocks, "G": trk.shapes}
+        for letter, sec in sections.items():
+            items = sec.items if sec else []
+            if any(b.start > b.end for b in items):
+                out.append(f"{who}: section {letter} has a block that ends before it starts")
+            if any(b.start < a.start for a, b in zip(items, items[1:])):
+                out.append(f"{who}: section {letter} is not sorted")
+            elif _overlap(items):
+                out.append(f"{who}: section {letter} has overlapping blocks")
+        f_items = trk.position_blocks.items if trk.position_blocks else []
+        g_items = trk.shapes.items if trk.shapes else []
+        if any(f.start < g.end and g.start < f.end for f in f_items for g in g_items):
+            out.append(f"{who}: position blocks (F) and shape blocks (G) overlap")
+        for fl in trk.positions.flags if trk.positions else []:
+            if not any(f.start <= fl.t <= f.end for f in f_items):
+                out.append(f"{who}: position flag at {fl.t} is outside every position block")
+    return out
