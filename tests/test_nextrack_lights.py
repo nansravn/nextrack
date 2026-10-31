@@ -307,21 +307,114 @@ def test_apply_refuses_while_soundswitch_runs(make_project, make_script, tmp_pat
     assert _target(project).read_bytes() == before and not _backups(project).exists()
 
 
-def test_soundswitch_running_reads_tasklist(monkeypatch):
-    class Done:
-        def __init__(self, out):
-            self.stdout = out
+class _Done:
+    def __init__(self, out, code=0):
+        self.stdout, self.returncode = out, code
 
-    monkeypatch.setattr(nl.subprocess, "run", lambda *a, **k: Done("x\nSoundSwitch.exe  12 Console\n"))
+
+def test_soundswitch_running_reads_tasklist(monkeypatch, tmp_path):
+    monkeypatch.setattr(nl.subprocess, "run", lambda *a, **k: _Done("x\nSoundSwitch.exe  12 Console\n"))
     assert nl.soundswitch_running() is True
-    monkeypatch.setattr(nl.subprocess, "run", lambda *a, **k: Done("x\nnotepad.exe\n"))
+    monkeypatch.setattr(nl.subprocess, "run", lambda *a, **k: _Done("x\nnotepad.exe\n"))
     assert nl.soundswitch_running() is False
 
+
+def test_missing_tasklist_outside_wsl_means_nothing_to_check(monkeypatch, tmp_path):
     def missing(*a, **k):
         raise FileNotFoundError("tasklist.exe")
 
     monkeypatch.setattr(nl.subprocess, "run", missing)
+    monkeypatch.setattr(nl, "WSL_INTEROP", tmp_path / "no-such-interop")
     assert nl.soundswitch_running() is False
+
+
+@pytest.mark.parametrize("how", ["oserror", "exit", "timeout", "missing-under-wsl"])
+def test_apply_refuses_when_it_cannot_verify_soundswitch_is_closed(
+        how, make_project, make_script, tmp_path, capsys, monkeypatch):
+    def fail(*a, **k):
+        if how == "oserror":
+            raise OSError("boom")
+        if how == "timeout":
+            raise nl.subprocess.TimeoutExpired("tasklist.exe", 30)
+        if how == "missing-under-wsl":
+            raise FileNotFoundError("tasklist.exe")
+        return _Done("", 1)
+
+    interop = tmp_path / "interop"
+    interop.write_text("")
+    monkeypatch.setattr(nl, "WSL_INTEROP", interop)
+    monkeypatch.setattr(nl.subprocess, "run", fail)
+    project = _happier_project(make_project, make_script)
+    before = _target(project).read_bytes()
+    code, _, err = _apply(capsys, project, _choreo_for_project(tmp_path), "--apply", "--accept-resize")
+    assert code == 1 and "cannot verify that SoundSwitch is closed" in err
+    assert _target(project).read_bytes() == before and not _backups(project).exists()
+
+
+def test_a_missing_base_with_a_state_entry_is_refused(make_project, make_script, tmp_path, capsys, idle):
+    project = _happier_project(make_project, make_script)
+    choreo = _choreo_for_project(tmp_path)
+    assert _apply(capsys, project, choreo, "--apply", "--accept-resize")[0] == 0
+    (_backups(project) / "base" / _target(project).name).unlink()
+    applied = _target(project).read_bytes()
+    code, _, err = _apply(capsys, project, choreo, "--apply", "--accept-resize")
+    assert code == 1 and "base copy" in err and "earliest backup" in err
+    assert _target(project).read_bytes() == applied
+    code, _, err = _apply(capsys, project, choreo, "--apply", "--accept-resize", "--adopt-current")
+    assert code == 0, err
+
+
+def _meddle(monkeypatch, edit):
+    real = nl.ls.compile_choreography
+
+    def meddling(*a, **k):
+        out, cues = real(*a, **k)
+        edit(out)
+        return out, cues
+
+    monkeypatch.setattr(nl.ls, "compile_choreography", meddling)
+
+
+def test_a_change_outside_every_section_is_refused(make_project, make_script, tmp_path, capsys, idle, monkeypatch):
+    project = _happier_project(make_project, make_script)
+    before = _target(project).read_bytes()
+
+    def edit(out):  # a key at 1 ms, before bar 1, on a venue track
+        trk = ssf.track(out, 1167)
+        trk.lanes[0].keys.insert(0, ssf.Key(1, ssf.FULL))
+
+    _meddle(monkeypatch, edit)
+    code, _, err = _apply(capsys, project, _choreo_for_project(tmp_path), "--apply", "--accept-resize")
+    assert code == 1 and "outside the sections" in err
+    assert _target(project).read_bytes() == before and not (_backups(project) / "state.json").exists()
+
+
+def test_a_block_change_outside_every_section_is_refused(make_project, make_script, tmp_path, capsys, idle, monkeypatch):
+    project = _happier_project(make_project, make_script)
+    before = _target(project).read_bytes()
+
+    def edit(out):
+        ssf.track(out, 1167).blocks.items.append(ssf.Span(1, 10))
+
+    _meddle(monkeypatch, edit)
+    code, _, err = _apply(capsys, project, _choreo_for_project(tmp_path), "--apply", "--accept-resize")
+    assert code == 1 and "outside the sections" in err
+    assert _target(project).read_bytes() == before
+
+
+def test_main_must_equal_the_base_when_no_section_sets_a_hue(make_project, make_script, tmp_path, capsys, idle, monkeypatch):
+    project = _happier_project(make_project, make_script)
+    before = _target(project).read_bytes()
+    data = yaml.safe_load(HAPPIER.read_text(encoding="utf-8"))
+    data["soundswitch"] = GUID0.upper()
+    for sec in data["sections"]:
+        sec.pop("hue", None)
+    choreo = tmp_path / "nohue.yml"
+    choreo.write_text(yaml.safe_dump(data, allow_unicode=True), encoding="utf-8")
+    _meddle(monkeypatch, lambda out: out.main.lanes[0].keys.append(ssf.Key(99999, 0)))
+    code, _, err = _apply(capsys, project, choreo, "--apply", "--accept-resize")
+    assert code == 1 and "Main" in err
+    assert _target(project).read_bytes() == before
 
 
 def test_first_apply_backs_up_writes_and_records(make_project, make_script, tmp_path, capsys, idle):
