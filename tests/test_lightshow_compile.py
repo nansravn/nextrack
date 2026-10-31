@@ -246,6 +246,22 @@ def test_mover_hold_sets_level_colour_and_position(room):
         assert flag.t == start and trk.positions.palette[flag.preset][0] == guid
 
 
+def shape(start, end):
+    return ssf.ShapeBlock(start, end, 0, 2, (0.5, 0.5, 0.5, 0.5), 0, 1, 2, 1)
+
+
+def test_shape_block_straddling_the_section_is_a_cue(room):
+    script = room()
+    start, end = span(2, 3)
+    ssf.track(script, 1167).shapes = ssf.Shapes(1, 1, [shape(start - 1000, start + 1000),
+                                                       shape(start + 2000, start + 3000)])
+    out, cues = compile_(script, section(2, 3, movers={"move": "hold", "position": "DJ Booth"}))
+    assert len(cues) == 1
+    assert cues[0].fixture == "mover-ne" and "shape block" in cues[0].what
+    assert f"{start - 1000}–{start + 1000} ms" in cues[0].what
+    assert ssf.track(out, 1167).shapes.items == []        # both removed: the cue says so
+
+
 def test_mover_sweep_steps_through_its_positions(room):
     out, _ = compile_(room(), section(1, 4, movers={"move": "sweep", "every": "1bar",
                                                     "positions": ["Up", "Cake"]}))
