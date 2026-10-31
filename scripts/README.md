@@ -147,6 +147,9 @@ if a rule contradicts one of them, the README wins.
 | `block-frontmatter` | A block starts with front matter that has exactly the keys of the template in `blocks/README.md`, with valid values: `function`, `style` and `duration` in the documented forms, `genres` existing node ids, `bpm` and `energy` ranges, `lightshow` null or an existing path. |
 | `block-tracklist-resolves` | A block has a heading that starts with `## Tracklist`, and each `N. Artist — Title · …` line under it has that format and matches a track in some pool. |
 | `block-bridges-are-edges` | Each backticked node id in `## Bridge in` / `## Bridge out` follows a graph edge: into one of the block's genres for Bridge in, out of one for Bridge out. |
+| `lightshow-rig` | `lightshows/rig.yml` (optional) has exactly `room`, `fixtures` and `matrix`; each fixture has a `kind` (`mover`, `matrix`, `haze`, `hue-chandelier`) and, when given, a `corner` (`NE`, `SE`, `NW`, `SW`, `centre`); `matrix.white_max` is a number in (0, 1]. Schema in `lightshows/README.md`; the checks live in `scripts/lightshow.py`. |
+| `lightshow-track` | Each `lightshows/tracks/*.yml` has the choreography keys with valid values: `track` is `Artist — Title` and matches a pool track (same matcher as block tracklists), `soundswitch` is a GUID, `sections` are sorted and do not overlap, layer names, moves, draws, rates and `#RRGGBB` colours are from the vocabulary, and unknown option keys are findings. |
+| `lightshow-plan` | Each `lightshows/sets/*.md` (but `README.md`) has front matter whose `set` is an existing path relative to the repo root and whose `budget` keys are layers or `white-accent`. |
 
 A new rule is one function registered with `@rule("<rule-id>")` in
 `check_repo.py`. Add its row to this table in the same change:

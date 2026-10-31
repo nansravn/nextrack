@@ -46,3 +46,39 @@ generic here; venue-specific overrides go in the set.
   intensity to the block's start→end energy so the room *sees* the build.
 - **Cue on the block's structure.** Breaks and drops in the tracklist are your
   lighting cue points.
+
+## Schemas checked by the validator
+
+Checked by `check_repo.py` (rules `lightshow-rig`, `lightshow-track`,
+`lightshow-plan`); the checks live in `scripts/lightshow.py`.
+
+**`rig.yml`** — keys `room` (`shape`, `front` in `N E S W`), `fixtures`, `matrix`.
+A fixture is `{kind, node, index, corner, aim, fan, fog, lamps, follows}`: `kind` is
+`mover`, `matrix`, `haze` or `hue-chandelier`; `node` is the SoundSwitch node name
+(required unless `hue-chandelier`); `corner` is `NE`, `SE`, `NW`, `SW` or `centre`.
+`matrix` is `{rows, zone_order, white_max}`: `rows` lists `colour` / `white`, and
+`white_max` is a number in (0, 1].
+
+**`tracks/<artist-title-slug>.yml`** — keys `track` (`Artist — Title`, must match a pool
+track), `soundswitch` (GUID), `grid` (`{bpm, downbeat}`), `story`, `budget` (optional),
+`base` (`autoscript`), `sections`. A section is `{bars: [a, b], name, intent?}` plus any
+of the layers; bars are inclusive, from 1, sorted and not overlapping. YAML reads an
+unquoted `off` / `on` as a boolean; both spellings are accepted. A layer is `auto`,
+`off` or a mapping:
+
+| layer | values |
+|---|---|
+| `movers` | `{move: hold\|pingpong\|sweep\|blink\|uv, every, colour, level (0-1], position, positions, faster_from (bar), faster_every}` |
+| `matrix` | `{draw: solid\|rows-down\|rows-up\|columns\|zigzag\|centre-out\|arrow-up\|fill-up, rate, colour, mirror, pingpong, with_white}` |
+| `white` | `{accent: ["<bar>.<beat>", …]}` or `{flash: <rate>}` |
+| `uv` | `on`, `off`, `auto` |
+| `strobe` | `{hit: ["<bar>.<beat>", …]}` or `{roll: [a, b]}` |
+| `hue` | `dark`, `pulse`, `bright`, or `{state: dark\|pulse\|bright, colour}` |
+| `haze` | `{burst: "<n>s"}`, `on`, `off`, `auto` |
+
+Rates are `1/16`, `1/8`, `1/4`, `1/2` or `<n>bar`; colours are `#RRGGBB`. Under a
+`matrix` other than `auto`, `white` defaults to `off` (applied by the compiler).
+
+**`sets/<set-file-stem>.md`** — front matter `set:` (path to the set, relative to the
+repo root) and `budget:` mapping an effect (a layer, or `white-accent`) to a list of
+names where it may appear.
