@@ -1,6 +1,9 @@
+import datetime
+import hashlib
 import json
 import re
 
+import pytest
 import yaml
 
 import nextrack_lights as nl
@@ -219,3 +222,222 @@ def test_sim_data_exports_names_levels_and_effective_lanes(make_script):
     assert mover["D"] == [[1200, "Stage Left"]]
     assert d["before"]["Main"]["k"] == [[0, 0.5], [10000, 0.5]]   # level / 2**32, to 4 places
     assert "RGB 01 - V" not in d["before"]   # only the nodes the rig names are exported
+
+
+# ------------------------------------------------------------ compile / apply ----
+
+GUID0 = PROJECT_GUIDS[0]
+
+
+@pytest.fixture
+def idle(monkeypatch):
+    """SoundSwitch is not running."""
+    monkeypatch.setattr(nl, "soundswitch_running", lambda: False)
+
+
+def _target(project):
+    return project / ("{" + GUID0.upper() + "}.ssfile")
+
+
+def _choreo_for_project(tmp_path, drop_last=0):
+    """Happier's choreography pointed at the test project's first track."""
+    data = yaml.safe_load(HAPPIER.read_text(encoding="utf-8"))
+    data["soundswitch"] = GUID0.upper()
+    if drop_last:
+        data["sections"] = data["sections"][:-drop_last]
+    path = tmp_path / f"choreo{drop_last}.yml"
+    path.write_text(yaml.safe_dump(data, allow_unicode=True), encoding="utf-8")
+    return path
+
+
+def _backups(project):
+    return project.parent / "nextrack-backups"
+
+
+def _apply(capsys, project, choreo, *flags):
+    return run(capsys, "--project", str(project), "apply", str(choreo), *flags)
+
+
+def _compiled(project, choreo, base_bytes):
+    script = ssf.parse_script(base_bytes)
+    venues, presets = ssf.Project(project).venues()
+    out, _ = nl.ls.compile_choreography(nl.ls.load_choreography(choreo), script,
+                                        nl.ls.load_rig(nl.DEFAULT_RIG), venues, presets)
+    return ssf.serialize_script(out)
+
+
+def test_compile_writes_only_the_output(make_project, make_script, tmp_path, capsys):
+    project = _happier_project(make_project, make_script)
+    before = _target(project).read_bytes()
+    choreo = _choreo_for_project(tmp_path)
+    out = tmp_path / "o" / "x.ssfile"
+    code, stdout, err = run(capsys, "--project", str(project), "compile", str(choreo), "-o", str(out))
+    assert code == 0, err
+    assert out.read_bytes() == _compiled(project, choreo, before)
+    assert _target(project).read_bytes() == before and not _backups(project).exists()
+    assert "manual cue" in stdout
+
+
+def test_compile_starts_from_the_base_when_there_is_one(make_project, make_script, tmp_path, capsys, idle):
+    project = _happier_project(make_project, make_script)
+    choreo = _choreo_for_project(tmp_path)
+    assert _apply(capsys, project, choreo, "--apply", "--accept-resize")[0] == 0
+    out = tmp_path / "x.ssfile"
+    code, _, err = run(capsys, "--project", str(project), "compile", str(choreo), "-o", str(out))
+    base = (_backups(project) / "base" / _target(project).name).read_bytes()
+    assert code == 0, err
+    assert out.read_bytes() == _compiled(project, choreo, base)
+
+
+def test_apply_dry_run_writes_nothing(make_project, make_script, tmp_path, capsys):
+    project = _happier_project(make_project, make_script)
+    before = _target(project).read_bytes()
+    code, out, err = _apply(capsys, project, _choreo_for_project(tmp_path))
+    assert code == 0, err
+    assert _target(project).read_bytes() == before and not _backups(project).exists()
+    assert "dry run" in out and "Mover 1" in out and "bytes" in out and "manual cue" in out
+
+
+def test_apply_refuses_while_soundswitch_runs(make_project, make_script, tmp_path, capsys, monkeypatch):
+    monkeypatch.setattr(nl, "soundswitch_running", lambda: True)
+    project = _happier_project(make_project, make_script)
+    before = _target(project).read_bytes()
+    code, _, err = _apply(capsys, project, _choreo_for_project(tmp_path), "--apply", "--accept-resize")
+    assert code == 1 and "SoundSwitch" in err
+    assert _target(project).read_bytes() == before and not _backups(project).exists()
+
+
+def test_soundswitch_running_reads_tasklist(monkeypatch):
+    class Done:
+        def __init__(self, out):
+            self.stdout = out
+
+    monkeypatch.setattr(nl.subprocess, "run", lambda *a, **k: Done("x\nSoundSwitch.exe  12 Console\n"))
+    assert nl.soundswitch_running() is True
+    monkeypatch.setattr(nl.subprocess, "run", lambda *a, **k: Done("x\nnotepad.exe\n"))
+    assert nl.soundswitch_running() is False
+
+    def missing(*a, **k):
+        raise FileNotFoundError("tasklist.exe")
+
+    monkeypatch.setattr(nl.subprocess, "run", missing)
+    assert nl.soundswitch_running() is False
+
+
+def test_first_apply_backs_up_writes_and_records(make_project, make_script, tmp_path, capsys, idle):
+    project = _happier_project(make_project, make_script)
+    old = _target(project).read_bytes()
+    choreo = _choreo_for_project(tmp_path)
+    code, out, err = _apply(capsys, project, choreo, "--apply", "--accept-resize")
+    assert code == 0, err
+    new = _target(project).read_bytes()
+    assert new == _compiled(project, choreo, old) and new != old
+    ssf.parse_script(new)
+    root = _backups(project)
+    assert (root / "base" / _target(project).name).read_bytes() == old
+    stamped = [p for p in root.iterdir() if p.is_dir() and p.name != "base"]
+    assert len(stamped) == 1 and re.fullmatch(r"\d{8}-\d{6}(-\d+)?", stamped[0].name)
+    assert (stamped[0] / _target(project).name).read_bytes() == old
+    state = json.loads((root / "state.json").read_text(encoding="utf-8"))
+    assert state[GUID0] == {"base": hashlib.sha256(old).hexdigest(),
+                            "applied": hashlib.sha256(new).hexdigest()}
+    assert list(project.glob("*.tmp")) == []
+    assert f'cp "{stamped[0] / _target(project).name}" "{_target(project)}"' in out
+
+
+def test_two_applies_in_one_second_get_distinct_backup_folders(
+        make_project, make_script, tmp_path, capsys, idle, monkeypatch):
+    monkeypatch.setattr(nl, "_now", lambda: datetime.datetime(2026, 10, 31, 12, 0, 0))
+    project = _happier_project(make_project, make_script)
+    assert _apply(capsys, project, _choreo_for_project(tmp_path), "--apply", "--accept-resize")[0] == 0
+    assert _apply(capsys, project, _choreo_for_project(tmp_path, 1), "--apply", "--accept-resize")[0] == 0
+    names = sorted(p.name for p in _backups(project).iterdir() if p.name not in ("base", "state.json"))
+    assert names == ["20261031-120000", "20261031-120000-2"]
+
+
+def test_reapply_after_deleting_a_section_reverts_that_span(make_project, make_script, tmp_path, capsys, idle):
+    project = _happier_project(make_project, make_script)
+    base = _target(project).read_bytes()
+    assert _apply(capsys, project, _choreo_for_project(tmp_path), "--apply", "--accept-resize")[0] == 0
+    first = _target(project).read_bytes()
+    shorter = _choreo_for_project(tmp_path, 1)
+    code, _, err = _apply(capsys, project, shorter, "--apply", "--accept-resize")
+    assert code == 0, err
+    second = _target(project).read_bytes()
+    assert second == _compiled(project, shorter, base) and second != first
+
+
+def test_edit_since_last_apply_is_refused_then_adopted(make_project, make_script, tmp_path, capsys, idle):
+    project = _happier_project(make_project, make_script)
+    choreo = _choreo_for_project(tmp_path)
+    assert _apply(capsys, project, choreo, "--apply", "--accept-resize")[0] == 0
+    edited = ssf.parse_script(_target(project).read_bytes())
+    ssf.track(edited, 1167).lanes[0].keys.append(ssf.Key(15000, 0))
+    _target(project).write_bytes(ssf.serialize_script(edited))
+    hand = _target(project).read_bytes()
+    code, _, err = _apply(capsys, project, choreo, "--apply", "--accept-resize")
+    assert code == 1 and "edited in SoundSwitch" in err
+    assert _target(project).read_bytes() == hand
+    code, _, err = _apply(capsys, project, choreo, "--apply", "--accept-resize", "--adopt-current")
+    assert code == 0, err
+    assert (_backups(project) / "base" / _target(project).name).read_bytes() == hand
+    assert _target(project).read_bytes() == _compiled(project, choreo, hand)
+
+
+def test_a_script_that_does_not_round_trip_is_refused(make_project, make_script, tmp_path, capsys, idle, monkeypatch):
+    project = _happier_project(make_project, make_script)
+    before = _target(project).read_bytes()
+    real = ssf.serialize_script
+    monkeypatch.setattr(ssf, "serialize_script", lambda s: real(s) + b"\0")
+    code, _, err = _apply(capsys, project, _choreo_for_project(tmp_path), "--apply", "--accept-resize")
+    assert code == 1 and "round-trip" in err
+    assert _target(project).read_bytes() == before
+    assert not (_backups(project) / "state.json").exists()
+    assert not (_backups(project) / "base").exists()
+
+
+def test_a_bad_base_is_refused_and_left_alone(make_project, make_script, tmp_path, capsys, idle):
+    project = _happier_project(make_project, make_script)
+    before = _target(project).read_bytes()
+    base = _backups(project) / "base"
+    base.mkdir(parents=True)
+    (base / _target(project).name).write_bytes(before[:len(before) // 2])
+    code, _, err = _apply(capsys, project, _choreo_for_project(tmp_path), "--apply", "--accept-resize")
+    assert code == 1 and "base" in err
+    assert _target(project).read_bytes() == before
+    assert not (_backups(project) / "state.json").exists()
+
+
+def test_size_change_needs_accept_resize(make_project, make_script, tmp_path, capsys, idle):
+    project = _happier_project(make_project, make_script)
+    before = _target(project).read_bytes()
+    code, _, err = _apply(capsys, project, _choreo_for_project(tmp_path), "--apply")
+    assert code == 1 and "--accept-resize" in err
+    assert _target(project).read_bytes() == before
+    assert not (_backups(project) / "state.json").exists()
+
+
+def test_apply_refuses_an_output_that_changes_an_untouched_part(
+        make_project, make_script, tmp_path, capsys, idle, monkeypatch):
+    project = _happier_project(make_project, make_script)
+    before = _target(project).read_bytes()
+    real = nl.ls.compile_choreography
+
+    def meddling(*a, **k):
+        out, cues = real(*a, **k)
+        out.cue_flags = [(1, 2)]
+        return out, cues
+
+    monkeypatch.setattr(nl.ls, "compile_choreography", meddling)
+    code, _, err = _apply(capsys, project, _choreo_for_project(tmp_path), "--apply", "--accept-resize")
+    assert code == 1 and "untouched" in err
+    assert _target(project).read_bytes() == before
+    assert not (_backups(project) / "state.json").exists()
+
+
+def test_apply_refuses_an_unfit_choreography_without_touching_anything(make_project, tmp_path, capsys, idle):
+    project = make_project()  # 120 BPM, Happier's grid is 100
+    before = _target(project).read_bytes()
+    code, _, err = _apply(capsys, project, _choreo_for_project(tmp_path), "--apply", "--accept-resize")
+    assert code == 1 and "grid" in err
+    assert _target(project).read_bytes() == before and not _backups(project).exists()
