@@ -27,8 +27,12 @@ from __future__ import annotations
 
 import argparse
 import bisect
+import copy
+import datetime
+import hashlib
 import json
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -625,6 +629,212 @@ def cmd_render(project: ssf.Project, args) -> int:
     return 0
 
 
+# ----------------------------------------------------------- compile / apply ----
+
+
+class Refused(Exception):
+    """A guard said no; the message is the one-line reason. Nothing has been written."""
+
+
+def soundswitch_running() -> bool:
+    """True when `tasklist.exe` lists SoundSwitch.exe (False where tasklist.exe is absent)."""
+    try:
+        done = subprocess.run(["tasklist.exe"], capture_output=True, text=True, timeout=30)
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return "SoundSwitch.exe" in (done.stdout or "")
+
+
+def _now() -> datetime.datetime:
+    return datetime.datetime.now()
+
+
+def _sha(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def _write_atomic(path: Path, data: bytes) -> None:
+    """Write `data` to a temp file next to `path`, then rename it over `path`."""
+    tmp = path.with_name(path.name + ".tmp")
+    try:
+        tmp.write_bytes(data)
+        os.replace(tmp, path)
+    finally:
+        if tmp.exists():
+            tmp.unlink()
+
+
+def _load_inputs(args) -> tuple[ls.Choreography, ls.Rig]:
+    rig_path = Path(args.rig) if args.rig else DEFAULT_RIG
+    if _yaml_checked(rig_path, ls.problems_rig) is None:
+        raise Refused(f"{rig_path}: invalid rig")
+    if _yaml_checked(Path(args.choreo), ls.problems_choreography) is None:
+        raise Refused(f"{args.choreo}: invalid choreography")
+    return ls.load_choreography(Path(args.choreo)), ls.load_rig(rig_path)
+
+
+def _compile_checked(choreo, base: ssf.TrackScript, venues, presets, rig) -> tuple[bytes, list]:
+    """Compile onto `base`, serialize, re-parse; refuse unless the bytes parse back to the
+    compiled script and everything outside the venue's tracks and Main equals `base`."""
+    try:
+        out, cues = ls.compile_choreography(choreo, base, rig, venues, presets)
+    except ls.CompileError as e:
+        raise Refused(str(e)) from e
+    data = ssf.serialize_script(out)
+    again = ssf.parse_script(data)
+    if again != out or ssf.serialize_script(again) != data:
+        raise Refused("the compiled script does not survive serialize and re-parse")
+    venue, _ = ls._venue_of(base, venues)
+    ids = {n.id for n in venue.nodes}
+    check = copy.deepcopy(again)
+    check.main = base.main
+    if len(check.venues) != len(base.venues):
+        raise Refused("the compiled script changed the number of venues; untouched parts differ from the base")
+    for cv, bv in zip(check.venues, base.venues):
+        if [t.node for t in cv.tracks] != [t.node for t in bv.tracks]:
+            raise Refused("the compiled script added or removed tracks; untouched parts differ from the base")
+        cv.tracks = [b if b.node in ids else c for c, b in zip(cv.tracks, bv.tracks)]
+    if check != base:
+        raise Refused("the compiled script changed tracks the choreography does not touch; "
+                      "untouched parts differ from the base")
+    return data, cues
+
+
+def _items(trk: ssf.Track) -> set[str]:
+    out = {f"key {i} {k.t} {k.level}" for i, lane in enumerate(trk.lanes) for k in lane.keys}
+    for name in ("blocks", "colours", "strobes", "position_blocks", "shapes"):
+        sec = getattr(trk, name)
+        out |= {f"{name} {item!r}" for item in (sec.items if sec else [])}
+    if trk.positions:
+        out |= {f"flag {f!r}" for f in trk.positions.flags}
+    return out
+
+
+def diff_summary(before: ssf.TrackScript, after: ssf.TrackScript, venues: list[ssf.VenueInfo]) -> list[str]:
+    """One line per fixture whose track changed: keys and blocks added and removed."""
+    nodes, _ = names_for(before, venues)
+    a_tracks = {t.node: t for t in [after.main, *ssf.tracks(after)]}
+    lines = []
+    for b in [before.main, *ssf.tracks(before)]:
+        old, new = _items(b), _items(a_tracks[b.node])
+        if old != new:
+            name = "Main" if b is before.main else (
+                f"{nodes[b.node].name} [{b.node}]" if b.node in nodes else f"node {b.node}")
+            lines.append(f"  {name}: +{len(new - old)} / -{len(old - new)} keys and blocks")
+    return lines
+
+
+def _plan_base(project: ssf.Project, ref: ssf.TrackRef, current: bytes, adopt: bool) -> tuple[bytes, bool]:
+    """`(base bytes, whether the base file must be (re)written)`. Writes nothing."""
+    guid = ref.guid
+    base_path = _base_path(project, guid)
+    root = base_path.parent.parent
+    state_path = root / "state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8")) if state_path.is_file() else {}
+    entry = state.get(guid) or {}
+    if adopt:
+        return current, True
+    if entry.get("applied") and _sha(current) != entry["applied"]:
+        raise Refused("the project file was edited in SoundSwitch since the last apply; "
+                      "--adopt-current keeps those edits as the new base")
+    if base_path.is_file():
+        base = base_path.read_bytes()
+        if entry.get("base") and _sha(base) != entry["base"]:
+            raise Refused(f"the base copy {base_path} changed since it was made (state.json disagrees)")
+        return base, False
+    return current, True
+
+
+def cmd_compile(project: ssf.Project, args) -> int:
+    choreo, rig = _load_inputs(args)
+    ref, base = _load(project, choreo.soundswitch, prefer_base=True)
+    out = Path(args.out)
+    if out.resolve() in (project.script_path(ref.guid).resolve(), _base_path(project, ref.guid).resolve()):
+        raise Refused(f"{out} is the project's own file or its base; pick another -o")
+    venues, presets = project.venues()
+    data, cues = _compile_checked(choreo, base, venues, presets, rig)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_bytes(data)
+    print(f"wrote {out} ({len(data):,} bytes) for {ref.artist} — {ref.title}")
+    for c in cues:
+        print(f"manual cue, bar {c.bar}: {c.fixture}: {c.what}")
+    return 0
+
+
+def cmd_apply(project: ssf.Project, args) -> int:
+    choreo, rig = _load_inputs(args)
+    ref = project.resolve(choreo.soundswitch)
+    target = project.script_path(ref.guid)
+    if not target.is_file():
+        raise Refused(f"{ref.artist} — {ref.title}: no script file {target.name}")
+    if args.apply and soundswitch_running():
+        raise Refused("SoundSwitch is running; close it before --apply")
+    current = target.read_bytes()
+    base_bytes, new_base = _plan_base(project, ref, current, args.adopt_current)
+    try:
+        base = ssf.parse_script(base_bytes)
+        round_trips = ssf.serialize_script(base) == base_bytes
+    except Exception as e:  # a corrupt file may fail in any way
+        raise Refused(f"the base script cannot be parsed ({e}); nothing was written") from e
+    if not round_trips:
+        raise Refused("the base script does not round-trip (parse then serialize changes its bytes); "
+                      "nothing was written")
+    venues, presets = project.venues()
+    data, cues = _compile_checked(choreo, base, venues, presets, rig)
+    resized = len(data) != len(current)
+    print(f"{ref.artist} — {ref.title}  ({ref.guid[:8]})")
+    print(f"compiled from the {'current project file' if new_base else 'base copy'}; "
+          f"size {len(current):,} -> {len(data):,} bytes")
+    lines = diff_summary(base, ssf.parse_script(data), venues)
+    print("fixtures touched:" if lines else "no fixture changes")
+    for line in lines:
+        print(line)
+    for c in cues:
+        print(f"manual cue, bar {c.bar}: {c.fixture}: {c.what}")
+    if not args.apply:
+        print("dry run: nothing written (add --apply to write)"
+              + ("; the size change also needs --accept-resize" if resized and not args.accept_resize else ""))
+        return 0
+    if resized and not args.accept_resize:
+        raise Refused(f"the output is {len(data):,} bytes, the project file {len(current):,}: "
+                      "a resized file needs --accept-resize")
+    root = _base_path(project, ref.guid).parent.parent
+    base_path = _base_path(project, ref.guid)
+    staged = target.with_name(target.name + ".tmp")
+    try:
+        staged.write_bytes(data)  # first, so an unwritable project leaves no base or backup behind
+        _commit(project, ref, target, staged, root, base_path, base_bytes, new_base, current, data)
+    finally:
+        if staged.exists():
+            staged.unlink()
+    return 0
+
+
+def _commit(project, ref, target, staged, root, base_path, base_bytes, new_base, current, data) -> None:
+    base_path.parent.mkdir(parents=True, exist_ok=True)
+    if new_base:
+        _write_atomic(base_path, base_bytes)
+    stamp = _now().strftime("%Y%m%d-%H%M%S")
+    folder, n = root / stamp, 1
+    while True:
+        try:
+            folder.mkdir()
+            break
+        except FileExistsError:
+            n += 1
+            folder = root / f"{stamp}-{n}"
+    backup = folder / target.name
+    backup.write_bytes(current)
+    os.replace(staged, target)
+    state_path = root / "state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8")) if state_path.is_file() else {}
+    state[ref.guid] = {"base": _sha(base_bytes), "applied": _sha(data)}
+    _write_atomic(state_path, json.dumps(state, indent=2, sort_keys=True).encode("utf-8"))
+    print(f"wrote {target}")
+    print(f"backup: {backup}")
+    print(f'restore: cp "{backup}" "{target}"')
+
+
 def main(argv: list[str] | None = None) -> int:
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--project", default=argparse.SUPPRESS,
@@ -654,6 +864,23 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--rig", help="the rig file (default: lightshows/rig.yml of this repo)")
     r.add_argument("-o", "--out", required=True, help="the HTML file to write")
 
+    c = sub.add_parser("compile", parents=[common], help=(
+        "compile a choreography onto the track's base script (else the project file) and write "
+        "it to -o; the project is not touched"))
+    c.add_argument("choreo", help="a lightshows/tracks/*.yml choreography")
+    c.add_argument("--rig", help="the rig file (default: lightshows/rig.yml of this repo)")
+    c.add_argument("-o", "--out", required=True, help="the .ssfile to write")
+    ap_ = sub.add_parser("apply", parents=[common], help=(
+        "dry-run by default: show what compiling the choreography would change. With --apply, "
+        "back up the project file and replace it (SoundSwitch must be closed)"))
+    ap_.add_argument("choreo", help="a lightshows/tracks/*.yml choreography")
+    ap_.add_argument("--rig", help="the rig file (default: lightshows/rig.yml of this repo)")
+    ap_.add_argument("--apply", action="store_true", help="really write the project file")
+    ap_.add_argument("--accept-resize", action="store_true",
+                     help="allow an output whose size differs from the project file")
+    ap_.add_argument("--adopt-current", action="store_true",
+                     help="make the project file as it is now the new base (keeps edits made in SoundSwitch)")
+
     args = ap.parse_args(argv)
     if not args.project:
         print(f"set --project or {PROJECT_ENV}", file=sys.stderr)
@@ -665,8 +892,8 @@ def main(argv: list[str] | None = None) -> int:
     project = ssf.Project(folder)
     try:
         code = {"tracks": cmd_tracks, "dump": cmd_dump, "analyze": cmd_analyze,
-                "render": cmd_render}[args.cmd](project, args)
-    except (LookupError, OSError, ValueError) as e:
+                "render": cmd_render, "compile": cmd_compile, "apply": cmd_apply}[args.cmd](project, args)
+    except (Refused, LookupError, OSError, ValueError) as e:
         print(e, file=sys.stderr)
         return 1
     for w in project.venue_warnings() if project._venues else []:
