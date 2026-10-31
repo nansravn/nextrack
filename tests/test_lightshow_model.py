@@ -239,6 +239,16 @@ def test_good_layer_values_are_clean(layers):
     assert ls.problems_choreography(with_section(**layers)) == []
 
 
+def test_module_level_schema_checks_are_not_shadowed():
+    # the compiler's layer functions must not reuse the schema checks' names
+    for name, bad in [("_movers", {"move": "spin"}), ("_matrix", {"draw": "spiral"}),
+                      ("_white", {}), ("_strobe", {}), ("_hue", {"state": "dim"}),
+                      ("_haze", {})]:
+        problems = getattr(ls, name)(bad)
+        assert problems and all(isinstance(p, str) for p in problems), name
+        assert ls._MAPPING_CHECKS[name[1:]] is getattr(ls, name)
+
+
 # -------------------------------------------------------------------- plan ----
 
 

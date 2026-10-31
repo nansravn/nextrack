@@ -990,13 +990,13 @@ def _compile_section(job: _Job, section: Section) -> None:
     start, end = job.grid.ms(first), job.grid.ms(last + 1) - 1
     w = _Window(first, last, start, end, job.grid.beat_ms(start))
     layers = section_layers(section)
-    edits = (_movers(job, w, layers["movers"]) + _matrix(job, w, layers["matrix"])
-             + _white(job, w, layers["white"]) + _strobe(job, w, layers["strobe"])
-             + _haze(job, w, layers["haze"]))  # fmt: skip
+    edits = (_compile_movers(job, w, layers["movers"]) + _compile_matrix(job, w, layers["matrix"])
+             + _compile_white(job, w, layers["white"]) + _compile_strobe(job, w, layers["strobe"])
+             + _compile_haze(job, w, layers["haze"]))  # fmt: skip
     if layers["uv"] != "auto":
         job.cue(first, start, "movers", f"UV {layers['uv']}, {w.bars}: {UV_WARNING}")
     if layers["hue"] != "auto":
-        state, colour = _hue(layers["hue"])
+        state, colour = _compile_hue(layers["hue"])
         changed = {"intensity"} | ({"colour"} if colour is not None else set())
         owned: dict[int, set[str]] = {}
         for e in edits:
@@ -1010,14 +1010,14 @@ def _compile_section(job: _Job, section: Section) -> None:
         e.apply(w)
 
 
-def _hue(value) -> tuple[str, int | None]:
+def _compile_hue(value) -> tuple[str, int | None]:
     """`(state, colour or None)` of a hue layer; `off` is `dark`."""
     if isinstance(value, dict):
         return value["state"], (_argb(value["colour"]) if "colour" in value else None)
     return ("dark" if value == "off" else value), None
 
 
-def _movers(job: _Job, w: _Window, value) -> list[_Edit]:
+def _compile_movers(job: _Job, w: _Window, value) -> list[_Edit]:
     if value == "auto":
         return []
     if isinstance(value, dict) and value["move"] == "uv":
@@ -1033,8 +1033,22 @@ def _movers(job: _Job, w: _Window, value) -> list[_Edit]:
         trk = f.tracks["mover"]
         keys = mover_keys(value, w.start, w.end, w.beat, i, first_bar=w.first)
         flags, palette = _position_flags(job, w, value, named, trk, f.key)
+        if flags is not None:
+            _cue_cut_shapes(job, w, trk, f.key)
         edits.append(_Edit(trk, keys=keys, colour=colour, flags=flags, palette=palette))
     return edits
+
+
+def _cue_cut_shapes(job: _Job, w: _Window, trk: Track, who: str) -> None:
+    """`set_positions` removes every shape block (G) that overlaps the span whole, so a
+    block reaching outside the section loses its outer part too: say so."""
+    for g in trk.shapes.items if trk.shapes else []:
+        overlaps = g.end > w.start and g.start < w.end
+        if overlaps and (g.start < w.start or g.end > w.end):
+            bars = f"bars {job.grid.bar_at(g.start)}–{job.grid.bar_at(g.end)}"
+            job.cue(w.first, w.start, who,
+                    f"shape block {g.start}–{g.end} ms ({bars}) extends outside {w.bars} of its "
+                    "section and is removed whole; restore its movement outside the section in SoundSwitch")
 
 
 def _preset_guids(job: _Job, w: _Window, move: dict) -> list[tuple[str, str]]:
@@ -1079,7 +1093,7 @@ def _position_flags(job: _Job, w: _Window, move: dict, named: list[tuple[str, st
     return [PositionFlag(t, usable[i % len(usable)]) for i, t in enumerate(times)], palette
 
 
-def _matrix(job: _Job, w: _Window, value) -> list[_Edit]:
+def _compile_matrix(job: _Job, w: _Window, value) -> list[_Edit]:
     """A draw: per-cell pulses (decay = one step) from the frames, the draw's colour on
     the colour cells and the unit's MASTER held at full. `off`: the colour cells dark."""
     if value == "auto":
@@ -1113,7 +1127,7 @@ def _matrix(job: _Job, w: _Window, value) -> list[_Edit]:
     return edits
 
 
-def _white(job: _Job, w: _Window, value) -> list[_Edit]:
+def _compile_white(job: _Job, w: _Window, value) -> list[_Edit]:
     """The W cells: dark (`off`), a one-beat flash per accent, or flashes at a rate; never
     above `white_max`."""
     if value == "auto":
@@ -1131,7 +1145,7 @@ def _white(job: _Job, w: _Window, value) -> list[_Edit]:
     return [_Edit(t, keys=keys) for u in units for t in u.cells(white=True)]
 
 
-def _strobe(job: _Job, w: _Window, value) -> list[_Edit]:
+def _compile_strobe(job: _Job, w: _Window, value) -> list[_Edit]:
     """v1 strobe: 1/16 pulses on the movers and the colour cells, one beat per `hit`, the
     `roll` bars clipped to the section. `off` cannot remove SoundSwitch's own strobe
     blocks yet, so it is a cue where the span has some."""
@@ -1170,7 +1184,7 @@ def _strobe(job: _Job, w: _Window, value) -> list[_Edit]:
     return edits
 
 
-def _haze(job: _Job, w: _Window, value) -> list[_Edit]:
+def _compile_haze(job: _Job, w: _Window, value) -> list[_Edit]:
     """Fog and fan levels (both typed Intensity in the venue): `on` full, `off` dark,
     `burst` fog full for N seconds with the fan on across the section. Experimental."""
     if value == "auto":
