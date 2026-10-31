@@ -1022,10 +1022,12 @@ def _venue_nodes(r: _Reader, parent: int | None, out: list[VenueNode], depth: in
         node.colour = r.u32()
 
 
-def _venue_tree(b: bytes, lo: int, hi: int) -> list[VenueNode]:
+def _venue_tree(b: bytes, lo: int, hi: int) -> list[VenueNode] | None:
     """The device tree in b[lo:hi]: `next id, n roots, (kind node)*`. Found as the first
-    node head that parses all the way through."""
+    node head that parses all the way through. `None` when the range has node heads but
+    none of them starts a tree (a damaged venue); `[]` when it has no node head at all."""
     first = b.find(_NODE_HEAD, lo + 12, hi)
+    saw_head = first >= 0
     while first >= 0:
         if _is_string_at(b, first + 16, 200):
             nroots = struct.unpack_from("<I", b, first - 8)[0]
@@ -1037,16 +1039,20 @@ def _venue_tree(b: bytes, lo: int, hi: int) -> list[VenueNode]:
                 for _ in range(nroots):
                     r.u32()
                     _venue_nodes(r, None, nodes)
+                next_id = struct.unpack_from("<I", b, first - 12)[0]
+                if len({n.id for n in nodes}) != len(nodes) or any(n.id >= next_id for n in nodes):
+                    raise ParseError("node ids do not fit the tree header")
                 return nodes
             except (ParseError, UnicodeDecodeError, struct.error):
                 pass
         first = b.find(_NODE_HEAD, first + 1, hi)
-    return []
+    return None if saw_head else []
 
 
-def _presets_at(b: bytes, o: int) -> list[Preset]:
+def _presets_at(b: bytes, o: int) -> tuple[list[Preset], int | None]:
     """Position presets from `o`: `2 nvenues (guid 2 n (node 1 pan tilt)*n)* 1 name colour guid next`,
-    one object after the other."""
+    one object after the other, then the order list (`n`, n u32). Also the offset where
+    parsing stopped when that was not the order list, else `None`."""
     r = _Reader(b, o)
     out: list[Preset] = []
     while True:
@@ -1069,10 +1075,24 @@ def _presets_at(b: bytes, o: int) -> list[Preset]:
             r.o = start
             break
         out.append(Preset(name, guid))
-    return out
+    stop = r.o
+    try:
+        n = r.u32()
+        order = r.rows(struct.Struct("<I"), n)
+        clean = n == len(out) and all(v[0] < 1000 for v in order)
+    except (ParseError, struct.error):
+        clean = False
+    return out, None if clean else stop
 
 
 def read_venues(data: bytes) -> tuple[list[VenueInfo], list[Preset]]:
+    return read_venues_with_warnings(data)[:2]
+
+
+def read_venues_with_warnings(data: bytes) -> tuple[list[VenueInfo], list[Preset], list[str]]:
+    """Venues, position presets and a warning for each part that did not parse: a venue
+    with node heads but no tree (returned with no nodes), a preset list that stops early,
+    or no presets at all."""
     if data[:4] != MAGIC or len(data) < _TM_HEADER:
         raise ParseError("not a SoundSwitch venues file: bad header at 0x0")
     found = []                          # (offset, body offset, name, guid)
@@ -1087,21 +1107,31 @@ def read_venues(data: bytes) -> tuple[list[VenueInfo], list[Preset]]:
             continue
         found.append((m.start(), end + 4, name, str(uuid.UUID(bytes_le=m.group(1)))))
     presets: list[Preset] = []
+    warnings: list[str] = []
     anchor = len(data)
     if found:
         # An empty venue's body can contain the anchor, so take the first one that yields presets.
         o = data.find(_POSITIONS_ANCHOR, found[-1][0] + 1)
         while o >= 0:
-            presets = _presets_at(data, o + 8)
+            presets, stop = _presets_at(data, o + 8)
             if presets:
                 anchor = o
+                if stop is not None:
+                    warnings.append(f"venues: position presets stop at {stop:#x} after {len(presets)} "
+                                    f"preset{'s' if len(presets) != 1 else ''}")
                 break
             o = data.find(_POSITIONS_ANCHOR, o + 1)
+        else:
+            warnings.append("venues: no position presets found")
     venues = []
     for i, (_, body, name, guid) in enumerate(found):
         hi = found[i + 1][0] if i + 1 < len(found) else anchor
-        venues.append(VenueInfo(name, guid, _venue_tree(data, body, hi)))
-    return venues, presets
+        nodes = _venue_tree(data, body, hi)
+        if nodes is None:
+            warnings.append(f"venues: venue {name!r} has device-tree nodes but its tree did not parse")
+            nodes = []
+        venues.append(VenueInfo(name, guid, nodes))
+    return venues, presets, warnings
 
 
 def _fold(s: str | None) -> str:
@@ -1118,17 +1148,23 @@ class Project:
     def __init__(self, folder: Path):
         self.folder = Path(folder)
         self._tracks: list[TrackRef] | None = None
-        self._venues: tuple[list[VenueInfo], list[Preset]] | None = None
+        self._venues: tuple[list[VenueInfo], list[Preset], list[str]] | None = None
 
     def trackmap(self) -> list[TrackRef]:
         if self._tracks is None:
             self._tracks = read_trackmap((self.folder / "SoundSwitchTrackMap.bin").read_bytes())
         return self._tracks
 
-    def venues(self) -> tuple[list[VenueInfo], list[Preset]]:
+    def _read_venues(self) -> tuple[list[VenueInfo], list[Preset], list[str]]:
         if self._venues is None:
-            self._venues = read_venues((self.folder / "SoundSwitchVenues.bin").read_bytes())
+            self._venues = read_venues_with_warnings((self.folder / "SoundSwitchVenues.bin").read_bytes())
         return self._venues
+
+    def venues(self) -> tuple[list[VenueInfo], list[Preset]]:
+        return self._read_venues()[:2]
+
+    def venue_warnings(self) -> list[str]:
+        return self._read_venues()[2]
 
     def script_path(self, guid: str) -> Path:
         return self.folder / ("{" + guid.upper() + "}.ssfile")
