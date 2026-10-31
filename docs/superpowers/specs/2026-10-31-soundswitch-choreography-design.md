@@ -251,9 +251,12 @@ autoscript), `off`, or a move. Bars are inclusive; a section may set any subset 
   · `zigzag` · `centre-out` · `arrow-up` · `fill-up` (the build: rows accumulate until the drop);
   options `rate`, `colour`, `mirror` (NW and SW draw symmetrically), `pingpong` (NW ↔ SW),
   `with_white` (default false).
-- **white:** `accent` (hits as `bar.beat`) · `flash` (rate); always capped by `white_max`.
+- **white:** `accent` (hits as `bar.beat`) · `flash` (rate); always capped by `white_max`. When a
+  section sets `matrix` to anything but `auto` and leaves `white` unset, `white` is `off`: the white
+  strip never sits under a drawing by default (`with_white` only lets a draw use row 4).
 - **strobe:** `hit` · `roll` (bars).
-- **hue:** `dark` · `pulse` · `bright`.
+- **hue:** `dark` · `pulse` · `bright`, each with an optional `colour`; without it Main's colour is
+  left as it was.
 - **haze:** `burst` (seconds) · `on`.
 
 The rig and choreography models, the vocabulary, the frame generators and the compiler live in
@@ -267,18 +270,20 @@ The rig and choreography models, the vocabulary, the frame generators and the co
 | `off` | intensity 0 across the span | compiles |
 | movers `hold`, `sweep` | intensity level; C block with the colour; F block + D flags for the position(s); G blocks removed from the span | compiles |
 | movers `pingpong`, `blink` | intensity keys (steps or eighth-note style decay, as the autoscript writes pulses: full → 0 over the step); colour as above; positions left to the autoscript unless given | compiles |
-| matrix draws | per-cell intensity keys from the 8×7 frame sequence, per-cell C blocks for the colour | compiles |
+| matrix draws | per-cell intensity keys from the 8×7 frame sequence, per-cell C blocks for the colour; the Vorlane's `MASTER` node held at full across the span (it may be the DMX master dimmer) | compiles |
 | `white` | intensity keys on the 8 W cells, scaled by `white_max` | compiles |
 | `strobe` | v1: fast intensity pulses (1/16) on the named fixtures; true E blocks once their rate unit is known (X8) | compiles (approximation) |
 | `hue` | Main-track intensity (`dark` 0, `pulse` beat decay, `bright` 0.85) and colour | compiles; see the rule below |
 | `haze` | intensity keys + B block on the fog/fan nodes (they are typed Intensity) | experimental until the owner confirms the machine reacts (X10) |
 | `uv` | — | manual cue until the colour "ext" word is understood (X3) |
 
-**The Main-track rule.** When a section changes `hue` (the Main track), every fixture whose layer is
-`auto` and which had no block of its own there would change with it. The compiler therefore first
-**materialises** Main's previous content for that span into those fixtures (a B block with the old
-Main intensity keys, plus C and F/D or G copies), and only then edits Main. The look of the room
-stays as the autoscript made it; only the chandelier changes.
+**The Main-track rule.** Each lane falls back to Main on its own: a node without its own intensity
+block follows Main's intensity, without its own colour block follows Main's colour, and so on. When
+a section changes a Main lane (`hue` changes intensity; `hue.colour` also colour), every node of
+the venue — fixtures, cells, the Vorlane `MASTER` nodes and the haze channels — that has no own
+content in that lane for the span, and whose layer in this section does not write that lane, first
+gets Main's previous content for that lane **materialised** into it. Only then is Main edited. The
+room keeps the look the autoscript (or the other layers) gave it; only the chandelier changes.
 
 Anything the compiler cannot express is printed as a manual cue (bar, time, fixture, what to do),
 so the owner can add it in SoundSwitch; it is never silently dropped.
@@ -321,6 +326,20 @@ Per the CLAUDE.md checklist, each with passing/failing tests, README and rule-ta
   `rig.yml`.
 - `lightshow-plan`: `set` path exists; budget keys are vocabulary effects.
 
+## Base copy and re-applying
+
+A choreography is always compiled from the track's **base**: the script as it was the first time
+`apply` touched that track, stored once in `<project parent>/nextrack-backups/base/<GUID>.ssfile`.
+So `auto` always means "the autoscript", and a section deleted from the YAML reverts on the next
+apply. `<project parent>/nextrack-backups/state.json` records, per GUID, the SHA-256 of the base and
+of the last applied output. If the project file no longer matches the last applied output (the
+owner edited it in SoundSwitch), `apply --apply` refuses; `--adopt-current` makes the current file
+the new base, keeping the hand edits (and `auto` then means "the current file"). `render`'s
+"before" is the base when one exists, else the current file. Compile also refuses a script whose
+tempo map has more than 8 anchors (5 of the owner's 501; bar numbers would not match the music),
+and a choreography whose `grid` disagrees with the script's first anchor (written for another
+version of the track).
+
 ## Safety model for writes
 
 1. Parse the target file; serialize; require byte identity, else refuse.
@@ -361,7 +380,16 @@ Module layout inside the two scripts, the YAML dump format, HTML/CSS of the simu
 
 ## Open questions for the owner
 
-*(Filled after the builder check.)*
+The builder check (2026-10-31) raised three questions; all are settled as defaults the owner can
+overturn (ledger 15–20): how re-applying works (base copy, hand-edit refusal), whether any of it
+targets tonight (no), and which nodes each layer owns (white off under drawings, per-lane Main
+materialisation, `MASTER` at full). Still the owner's to confirm, none blocking the build:
+
+1. Which unit and mover sit in which corner (`rig.yml`).
+2. Where each position preset points in the room (the simulator places them by guess).
+3. Whether the haze reacts to intensity on its fog node (X10), and the experiments X1–X9.
+4. Happier's live script still carries the two test edits from 2026-10-31: restore the original
+   before the first `apply`, so the base is the pure autoscript.
 
 ## Decision ledger
 
@@ -381,4 +409,9 @@ Module layout inside the two scripts, the YAML dump format, HTML/CSS of the simu
 | 12 | Resized writes need `--accept-resize` until X1 passes | the format is proven, SoundSwitch's acceptance is not | one extra flag, briefly |
 | 13 | `haze` compiles to intensity on the fog/fan nodes, marked experimental | they are typed Intensity in the venue; 4 scripts already ramp them | a haze machine that ignores it; the cue list still tells the owner |
 | 14 | `strobe` approximated by fast intensity pulses in v1 | E-block rate units unknown; pulses are proven | not a hardware strobe (no shutter channel) |
-| 15 | Bars come from the script's tempo map, not from rekordbox | the tempo map is in the `.ssfile` and matches SoundSwitch's grid | none for fixed-tempo tracks; multi-anchor maps handled explicitly |
+| 15 | Bars come from the script's tempo map, counted from the first anchor straight through later ones | 93% of the autoscript's Main colour blocks start on such a bar line across the 501 scripts (builder check) | 5 scripts with 67–170 anchors are refused for compile |
+| 16 | Compile from a stored base (first-apply copy); refuse when the project file has hand edits since the last apply, `--adopt-current` to keep them | `auto` must mean the autoscript and deleted sections must revert; hand edits must never be lost silently | an extra flag when the owner mixes SoundSwitch edits and YAML |
+| 17 | `white` is `off` under any non-`auto` `matrix` unless set | anti-goal: white under the colours by default; the white strip follows Main otherwise | a section wanting white with a drawing must say so |
+| 18 | Main-lane edits materialise per lane into every node without own content there, incl. Vorlane `MASTER` and haze | lanes fall back to Main independently; `MASTER` may be the DMX master dimmer | bigger scripts; nodes lose their link to later Main edits in that span |
+| 19 | Matrix draws hold the Vorlane `MASTER` at full in their span | otherwise a dark Main could dim a drawing through the master | none if `MASTER` is not a dimmer |
+| 20 | Nothing here targets tonight's party | the owner wants no SoundSwitch writes before it; build bottom-up in the spec's order | none |
