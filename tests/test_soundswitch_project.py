@@ -182,6 +182,16 @@ def test_resolve_absent(project):
         project.resolve("Nobody — Nothing")
 
 
+def test_a_guid_listed_twice_is_one_track(tmp_path, trackmap_bytes):
+    # the real track map lists one GUID twice with the same row: keep the first
+    entries = ENTRIES[:2] + [(5, G1, "Dançarina (again)", "Pedro Sampaio", r"C:\Music\a.mp3", 126, 152000)]
+    (tmp_path / "SoundSwitchTrackMap.bin").write_bytes(trackmap_bytes(entries))
+    project = Project(tmp_path)
+    assert [r.guid for r in project.trackmap()] == [G1, G2]
+    assert project.resolve(G1[:8]).title == "Dançarina"
+    assert project.resolve(G1).title == "Dançarina"
+
+
 # ----------------------------------------------------------------- real files ----
 
 

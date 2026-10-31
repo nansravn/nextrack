@@ -879,10 +879,11 @@ def compile_choreography(
     venue that holds the script's node ids; what cannot be written becomes a `ManualCue`.
 
     Per section: when `hue` changes a Main lane (intensity; colour too when `hue` has a
-    `colour`), Main's current content in that lane is first materialised into every node
-    of the venue whose own layer in this section does not write that lane, so only the
-    chandelier changes; then Main is edited; then movers, matrix, white, strobe and haze
-    write their nodes (white last over the W cells). `uv` is always a manual cue."""
+    `colour`), Main's current content in that lane is first materialised into every leaf
+    node of the venue (groups carry no content) whose own layer in this section does not
+    write that lane, so only the chandelier changes; then Main is edited; then movers,
+    matrix, white, strobe and haze write their nodes (white last over the W cells). `uv`
+    is always a manual cue."""
     _check_grid(choreo, script)
     out = copy.deepcopy(script)
     venue, trks = _venue_of(out, venues)
@@ -1001,13 +1002,23 @@ def _compile_section(job: _Job, section: Section) -> None:
         owned: dict[int, set[str]] = {}
         for e in edits:
             owned.setdefault(e.trk.node, set()).update(e.lanes())
+        groups = _group_ids(job.venue)
         for trk in job.tracks:
+            if trk.node in groups:
+                continue                # groups carry no content; their leaves are materialised
             lanes = changed - owned.get(trk.node, set())
             if lanes:
                 materialise_main(job.script, trk, start, end, frozenset(lanes))
         set_main(job.script, start, end, _shape(hue_keys(state, start, end, w.beat), start, end), colour)
     for e in edits:
         e.apply(w)
+
+
+def _group_ids(venue: VenueInfo) -> set[int]:
+    """The venue's group nodes: a node with children, or one without a look (an empty
+    group such as "Group 4"). Real scripts never give them content."""
+    return {n.id for n in venue.nodes if n.look is None} | {
+        n.parent for n in venue.nodes if n.parent is not None}
 
 
 def _compile_hue(value) -> tuple[str, int | None]:
