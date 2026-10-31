@@ -28,6 +28,7 @@ from __future__ import annotations
 import argparse
 import bisect
 import copy
+import dataclasses
 import datetime
 import hashlib
 import json
@@ -636,12 +637,25 @@ class Refused(Exception):
     """A guard said no; the message is the one-line reason. Nothing has been written."""
 
 
+WSL_INTEROP = Path("/proc/sys/fs/binfmt_misc/WSLInterop")
+
+
 def soundswitch_running() -> bool:
-    """True when `tasklist.exe` lists SoundSwitch.exe (False where tasklist.exe is absent)."""
+    """True when `tasklist.exe` lists SoundSwitch.exe. False when it is absent and this is
+    not WSL (nothing to check, e.g. CI). Any other failure raises `Refused`: a guard that
+    passes when its own check fails is no guard."""
+    cannot = "cannot verify that SoundSwitch is closed"
     try:
-        done = subprocess.run(["tasklist.exe"], capture_output=True, text=True, timeout=30)
-    except (OSError, subprocess.SubprocessError):
+        done = subprocess.run(["tasklist.exe"], capture_output=True, text=True,
+                              errors="replace", timeout=30)
+    except FileNotFoundError as e:
+        if WSL_INTEROP.exists():
+            raise Refused(f"{cannot}: tasklist.exe not found under WSL") from e
         return False
+    except (OSError, subprocess.SubprocessError) as e:
+        raise Refused(f"{cannot}: {e}") from e
+    if done.returncode != 0:
+        raise Refused(f"{cannot}: tasklist.exe exited with {done.returncode}")
     return "SoundSwitch.exe" in (done.stdout or "")
 
 
@@ -697,7 +711,97 @@ def _compile_checked(choreo, base: ssf.TrackScript, venues, presets, rig) -> tup
     if check != base:
         raise Refused("the compiled script changed tracks the choreography does not touch; "
                       "untouched parts differ from the base")
+    windows = _windows(choreo, base)
+    pairs = [("Main", again.main, base.main)]
+    for cv, bv in zip(again.venues, base.venues):
+        pairs += [(f"node {c.node}", c, b) for c, b in zip(cv.tracks, bv.tracks) if b.node in ids]
+    hue = any(ls.section_layers(sec)["hue"] != "auto" for sec in choreo.sections)
+    if not hue and again.main != base.main:
+        raise Refused("the compiled script changed Main although no section sets a hue; "
+                      "untouched parts differ from the base")
+    for name, c, b in pairs:
+        problem = _outside_problem(c, b, windows)
+        if problem:
+            raise Refused(f"the compiled script changed {name} {problem} outside the sections; "
+                          "untouched parts differ from the base")
     return data, cues
+
+
+def _windows(choreo, base: ssf.TrackScript) -> list[tuple[int, int]]:
+    """The sections' spans in ms, inclusive, as the compiler cuts them."""
+    g = ssf.grid(base)
+    return [(g.ms(sec.bars[0]), g.ms(sec.bars[1] + 1) - 1) for sec in choreo.sections]
+
+
+def _inside(t: int, windows) -> bool:
+    return any(s <= t <= e for s, e in windows)
+
+
+def _next_to(t: int, windows) -> bool:
+    return any(t == s - 1 or t == e + 1 for s, e in windows)
+
+
+def _clip_outside(item, windows) -> list[tuple[int, int]]:
+    """The pieces of [item.start, item.end] that lie outside every window."""
+    pieces = [(item.start, item.end)]
+    for s, e in windows:
+        cut = []
+        for a, b in pieces:
+            if b < s or a > e:
+                cut.append((a, b))
+                continue
+            if a < s:
+                cut.append((a, s - 1))
+            if b > e:
+                cut.append((e + 1, b))
+        pieces = cut
+    return pieces
+
+
+def _block_pieces(items, windows) -> list[tuple[int, int, str]]:
+    """Blocks clipped to the complement of the windows, touching equal pieces merged."""
+    pieces = []
+    for it in items:
+        sig = repr(dataclasses.replace(it, start=0, end=0))
+        pieces += [(a, b, sig) for a, b in _clip_outside(it, windows)]
+    merged: list[list] = []
+    for a, b, sig in sorted(pieces):
+        if merged and merged[-1][2] == sig and a <= merged[-1][1] + 1:
+            merged[-1][1] = max(merged[-1][1], b)
+        else:
+            merged.append([a, b, sig])
+    return [tuple(m) for m in merged]
+
+
+def _outside_problem(out: ssf.Track, base: ssf.Track, windows) -> str | None:
+    """What differs between the tracks outside the windows (None if nothing): intensity and
+    every other lane's keys (a boundary key next to a window passes when it carries the base's
+    level there), blocks B C E F G clipped to the complement, position flags."""
+    if (out.node, out.link, len(out.lanes)) != (base.node, base.link, len(base.lanes)):
+        return "its identity or lanes"
+    for i, (lo, lb) in enumerate(zip(out.lanes, base.lanes)):
+        if (lo.attr, lo.ver, lo.default) != (lb.attr, lb.ver, lb.default):
+            return f"lane {i} header"
+        old = {(k.t, k.level) for k in lb.keys if not _inside(k.t, windows)}
+        new = {(k.t, k.level) for k in lo.keys if not _inside(k.t, windows)}
+        for t, level in list(new - old):
+            if _next_to(t, windows) and level == ssf.level_at(lb, t):
+                new.discard((t, level))
+        if old != new:
+            return f"keys of lane {i}"
+    for name in ("blocks", "colours", "strobes", "position_blocks", "shapes"):
+        so, sb = getattr(out, name), getattr(base, name)
+        if _block_pieces(so.items if so else [], windows) != _block_pieces(sb.items if sb else [], windows):
+            return f"the {name} blocks"
+
+    def flags(trk):
+        pos = trk.positions
+        return sorted((f.t, pos.palette[f.preset][0] if f.preset < len(pos.palette) else f.preset)
+                      for f in (pos.flags if pos else []) if not _inside(f.t, windows))
+
+    if flags(out) != flags(base):
+        return "the position flags"
+    return None
 
 
 def _items(trk: ssf.Track) -> set[str]:
@@ -737,6 +841,11 @@ def _plan_base(project: ssf.Project, ref: ssf.TrackRef, current: bytes, adopt: b
     if entry.get("applied") and _sha(current) != entry["applied"]:
         raise Refused("the project file was edited in SoundSwitch since the last apply; "
                       "--adopt-current keeps those edits as the new base")
+    if entry.get("base") and not base_path.is_file():
+        first = sorted(p for p in root.glob("*/" + base_path.name) if p.parent.name != "base")
+        hint = f"; the earliest backup is {first[0]}" if first else ""
+        raise Refused(f"the base copy {base_path} is missing although state.json has one for this track{hint}; "
+                      "restoring it is safer than re-basing (--adopt-current makes the current file the base)")
     if base_path.is_file():
         base = base_path.read_bytes()
         if entry.get("base") and _sha(base) != entry["base"]:
