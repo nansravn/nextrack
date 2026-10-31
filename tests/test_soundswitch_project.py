@@ -1,11 +1,12 @@
 import os
+import struct
 import uuid
 from pathlib import Path
 
 import pytest
 
 from soundswitch_format import (
-    MAGIC, Project, read_trackmap, read_trackmap_with_warnings, read_venues,
+    MAGIC, Project, read_trackmap, read_trackmap_with_warnings, read_venues, read_venues_with_warnings,
 )
 
 REAL = os.environ.get("NEXTRACK_SOUNDSWITCH_REAL")
@@ -91,6 +92,36 @@ def test_venues_nodes_and_presets(venues_bytes):
     assert presets[0].guid == str(uuid.UUID(int=1))
 
 
+def test_venues_clean_file_has_no_warnings(venues_bytes):
+    # the empty "Casa" venue (and its decoy anchor) must not warn
+    assert read_venues_with_warnings(venues_bytes(_tree(), ["Stage Left", "Cake"]))[2] == []
+
+
+def test_venues_corrupted_tree_warns_and_returns_the_venue_without_nodes(venues_bytes):
+    data = bytearray(venues_bytes(_tree(), ["Cake"]))
+    first = bytes(data).find(struct.pack("<II", 3, 2))
+    data[first + 8:first + 12] = struct.pack("<I", 1167)   # keep the head
+    data[first + 12:first + 16] = struct.pack("<I", 9)     # break the name tag
+    venues, presets, warnings = read_venues_with_warnings(bytes(data))
+    assert [v.name for v in venues] == ["DJ Renan", "Casa"] and venues[0].nodes == []
+    assert [p.name for p in presets] == ["Cake"]
+    assert len(warnings) == 1 and "DJ Renan" in warnings[0]
+
+
+def test_venues_corrupted_second_preset_warns(venues_bytes):
+    good = venues_bytes(_tree(), ["Stage Left", "Cake", "Up"])
+    second = good.find("Cake".encode("utf-16le"))
+    data = bytearray(good)
+    data[second - 8:second - 4] = struct.pack("<I", 7)     # the name tag
+    venues, presets, warnings = read_venues_with_warnings(bytes(data))
+    assert [p.name for p in presets] == ["Stage Left"]
+    assert len(warnings) == 1 and "1 preset" in warnings[0]
+
+
+def test_venues_without_any_preset_warns(venues_bytes):
+    assert len(read_venues_with_warnings(venues_bytes(_tree(), []))[2]) == 1
+
+
 def test_venues_without_presets(venues_bytes):
     assert read_venues(venues_bytes(_tree(), []))[1] == []
 
@@ -114,6 +145,13 @@ def project(tmp_path, trackmap_bytes, venues_bytes):
 def test_project_reads_both_files(project):
     assert len(project.trackmap()) == 3
     assert project.venues()[0][0].name == "DJ Renan"
+
+
+def test_project_venue_warnings(project, tmp_path, venues_bytes):
+    assert project.venue_warnings() == []
+    bad = Project(tmp_path)
+    (tmp_path / "SoundSwitchVenues.bin").write_bytes(venues_bytes(_tree(), []))
+    assert len(bad.venue_warnings()) == 1
 
 
 def test_script_path_is_the_braced_upper_case_guid(project, tmp_path):
@@ -165,4 +203,4 @@ def test_real_project():
     assert [p.name for p in presets] == [
         "Disco Ball", "Stage Left", "Stage Right", "Dance Floor Centre", "DJ Booth",
         "Crossed Over", "Up", "Down", "Stage Center", "Cake"]
-    assert warnings == []
+    assert warnings == [] and proj.venue_warnings() == []
