@@ -538,9 +538,10 @@ def serialize_script(script: TrackScript) -> bytes:
     w.rows(_CUE, [(1, 1, t, index) for t, index in script.cue_flags])
     w.put(script.post_cue)
     if script.fmt >= FMT_NODE_LISTS:
-        w.u32(script.node_lists_ver)
-        for ver in script.node_lists:
-            w.u32(MARK, ver, 0)
+        # one entry per venue track, however many tracks the model now has
+        w.u32(1 if script.node_lists_ver is None else script.node_lists_ver)
+        for i in range(sum(len(v.tracks) for v in script.venues)):
+            w.u32(MARK, script.node_lists[i] if i < len(script.node_lists) else 1, 0)
     if not w.objs:                      # no shape objects: no tail, offA = offB = 0
         return b"".join(w.parts)
 

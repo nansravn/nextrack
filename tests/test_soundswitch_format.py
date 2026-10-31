@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from soundswitch_format import (
-    FULL, MAGIC, Key, ParseError, intensity, parse_script, serialize_script, track, tracks,
+    FULL, MAGIC, Key, Lane, ParseError, Track, intensity, parse_script, serialize_script, track, tracks,
 )
 
 REAL = os.environ.get("NEXTRACK_SOUNDSWITCH_REAL")
@@ -55,6 +55,19 @@ def test_first_shape_gets_the_default_tail(make_script):
     parsed = parse_script(data)
     assert parsed.tail_pre is not None and parsed.tail_post.endswith(b"Default")
     assert serialize_script(parsed) == data
+
+
+def test_per_node_lists_follow_the_track_count(make_script):
+    s = make_script()
+    s.venues[1].tracks.append(Track(1900, [Lane(4, 1, None, [])], None, 1, None, None, None,
+                                    None, None))
+    parsed = parse_script(serialize_script(s))
+    assert len(tracks(parsed)) == 3 and parsed.node_lists == [1, 1, 1]
+    s.venues[0].tracks.pop()
+    s.venues[0].tracks.pop()
+    s.node_lists_ver = None
+    parsed = parse_script(serialize_script(s))
+    assert parsed.node_lists == [1] and parsed.node_lists_ver == 1
 
 
 def test_bad_constant_names_the_offset():
