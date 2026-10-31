@@ -28,7 +28,7 @@ import re
 import sys
 import unicodedata
 from collections.abc import Callable, Hashable, Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 try:
@@ -40,7 +40,10 @@ except ImportError:
         "  Or:   sudo apt-get install -y python3-yaml"
     )
 
+import lightshow
+
 GRAPH_PATH = "genres/graph.yml"
+RIG_PATH = "lightshows/rig.yml"
 
 # --------------------------------------------------------------------- loader --
 
@@ -110,6 +113,9 @@ class Repo:
     blocks: list[Block]
     errors: list[Finding]
     graph_ok: bool = True
+    rig: tuple[str, object] | None = None  # (path, parsed YAML) of lightshows/rig.yml, if any
+    choreos: list[tuple[str, object]] = field(default_factory=list)  # lightshows/tracks/*.yml
+    plans: list[Block] = field(default_factory=list)  # lightshows/sets/*.md
 
     def node_ids(self) -> set[str]:
         return {n["id"] for n in self.nodes if isinstance(n.get("id"), str)}
@@ -322,13 +328,44 @@ def _load_blocks(root: Path, errors: list[Finding]) -> list[Block]:
     return blocks
 
 
+def _load_yaml_file(root: Path, rel: str, errors: list[Finding]) -> tuple[str, object] | None:
+    try:
+        return rel, _parse(rel, _read(root, rel))
+    except _LoadError as exc:
+        errors.append(exc.finding)
+        return None
+
+
+def _load_lightshows(root: Path, errors: list[Finding]):
+    """The rig (None when absent), the choreographies and the show plans. A file that
+    fails to parse is reported in `errors` and left out."""
+    rig = _load_yaml_file(root, RIG_PATH, errors) if (root / RIG_PATH).is_file() else None
+    choreos = []
+    for path in sorted((root / "lightshows/tracks").glob("*.yml")):
+        loaded = _load_yaml_file(root, path.relative_to(root).as_posix(), errors)
+        if loaded is not None:
+            choreos.append(loaded)
+    plans = []
+    for path in sorted((root / "lightshows/sets").glob("*.md")):
+        if path.name == "README.md":
+            continue
+        rel = path.relative_to(root).as_posix()
+        try:
+            plans.append(_split_block(rel, _read(root, rel), errors))
+        except _LoadError as exc:
+            errors.append(exc.finding)
+    return rig, choreos, plans
+
+
 def load_repo(root: Path) -> Repo:
-    """Load the graph, the pools and the blocks. Never raises on bad content."""
+    """Load the graph, the pools, the blocks and the lightshow files. Never raises on bad
+    content."""
     errors: list[Finding] = []
     nodes, graph_ok = _load_graph(root, errors)
     pools = _load_pools(root, errors)
     blocks = _load_blocks(root, errors)
-    return Repo(root, nodes, pools, blocks, errors, graph_ok)
+    rig, choreos, plans = _load_lightshows(root, errors)
+    return Repo(root, nodes, pools, blocks, errors, graph_ok, rig, choreos, plans)
 
 
 # ---------------------------------------------------------------------- rules --
@@ -1176,6 +1213,59 @@ def block_bridges_are_edges(repo: Repo) -> Iterable[Finding]:
                     problem = _bridge_problem(name, token, own, ids, edges)
                     if problem:
                         yield _block_finding(block, number, "block-bridges-are-edges", problem)
+
+
+# ---- lightshows (lightshows/) ----
+#
+# The schema checks live in `scripts/lightshow.py` (pure functions of parsed YAML); the
+# rules here only load, wrap and report them. Findings about a whole file use line 0, a
+# plan's use the line of its front matter. A file that failed to parse was reported by
+# the loader and is not in `repo`. None of these rules reads node ids or edges.
+
+
+@rule("lightshow-rig")
+def lightshow_rig(repo: Repo) -> Iterable[Finding]:
+    if repo.rig is None:
+        return
+    path, data = repo.rig
+    for problem in lightshow.problems_rig(data):
+        yield Finding(path, 0, "lightshow-rig", problem)
+
+
+def _choreo_track_problem(repo: Repo, track: str) -> str | None:
+    """Why the `track` of a choreography does not name a pool track, or None."""
+    artist, dash, title = track.partition(" — ")
+    if not (dash and artist.strip() and title.strip()):
+        return f"track {track!r} is not `Artist — Title` (em dash)"
+    if any(e.path.startswith("tracks/") for e in repo.errors):
+        return None  # a pool failed to parse: its tracks are unknown
+    if _resolves(_track_index(repo), artist, title):
+        return None
+    return f"track {track!r} matches no track in any pool"
+
+
+@rule("lightshow-track")
+def lightshow_track(repo: Repo) -> Iterable[Finding]:
+    for path, data in repo.choreos:
+        for problem in lightshow.problems_choreography(data, None):
+            yield Finding(path, 0, "lightshow-track", problem)
+        if isinstance(data, dict) and isinstance(data.get("track"), str):
+            problem = _choreo_track_problem(repo, data["track"])
+            if problem is not None:
+                yield Finding(path, 0, "lightshow-track", problem)
+
+
+@rule("lightshow-plan")
+def lightshow_plan(repo: Repo) -> Iterable[Finding]:
+    for plan in repo.plans:
+        if _parse_failed(plan):
+            continue
+        if plan.front is None:
+            message = "no front matter: the file must start with a `---` line"
+            yield Finding(plan.path, 1, "lightshow-plan", message)
+            continue
+        for problem in lightshow.problems_plan(plan.front, repo.root):
+            yield Finding(plan.path, plan.front["__line__"], "lightshow-plan", problem)
 
 
 # ------------------------------------------------------------------------ run --

@@ -2229,3 +2229,166 @@ def test_block_rules_check_every_block(mini_repo):
         (other, ghost, TRACKLIST),
         (other, bridge, BRIDGES),
     ]
+
+
+# ---------------------------------------------------------- lightshow rules ----
+
+RIG_RULE = "lightshow-rig"
+CHOREO_RULE = "lightshow-track"
+PLAN_RULE = "lightshow-plan"
+RIG_FILE = "lightshows/rig.yml"
+CHOREO_FILE = "lightshows/tracks/dancarina.yml"
+PLAN_FILE = "lightshows/sets/festa.md"
+
+GOOD_RIG = """\
+room: {shape: rectangle, front: N}
+fixtures:
+  mover-ne: {node: Mover 1, corner: NE, kind: mover}
+  hue:      {kind: hue-chandelier, corner: centre, lamps: 7, follows: main-track}
+matrix:
+  rows: [colour, white]
+  zone_order: row-major-top-left
+  white_max: 0.6
+"""
+
+GOOD_CHOREO = """\
+track: Pedro Sampaio — Dançarina
+soundswitch: F41EB9E9-B82B-4F58-A40C-B039222EBB0E
+grid: {bpm: 100, downbeat: "0:00.158"}
+story: Uma história.
+base: autoscript
+sections:
+  - bars: [1, 8]
+    name: intro
+    movers: off
+    matrix: {draw: columns, rate: 1/4, mirror: true}
+    hue: pulse
+  - bars: [9, 16]
+    name: drop
+    white: {accent: ["9.1"]}
+    uv: on
+"""
+
+GOOD_PLAN = """\
+---
+set: sets/festa.md
+budget:
+  white-accent: [peak-1]
+---
+
+Prosa.
+"""
+
+
+def light_repo(mini_repo):
+    mini_repo.write(RIG_FILE, GOOD_RIG)
+    mini_repo.write(CHOREO_FILE, GOOD_CHOREO)
+    mini_repo.write("sets/festa.md", "# Festa\n")
+    mini_repo.write(PLAN_FILE, GOOD_PLAN)
+    return mini_repo
+
+
+def test_lightshow_files_that_are_right_are_clean(mini_repo):
+    assert light_repo(mini_repo).findings() == []
+
+
+def test_lightshows_are_all_optional(mini_repo):
+    assert mini_repo.findings() == []  # no rig, no tracks, no sets: nothing to say
+
+
+def test_lightshow_rig_bad_corner_and_white_max(mini_repo):
+    light_repo(mini_repo)
+    mini_repo.edit(RIG_FILE, "corner: NE", "corner: up")
+    mini_repo.edit(RIG_FILE, "white_max: 0.6", "white_max: 0")
+    assert mini_repo.findings() == [(RIG_FILE, 0, RIG_RULE)] * 2
+
+
+def test_lightshow_rig_parse_error_is_reported_once(mini_repo):
+    light_repo(mini_repo)
+    mini_repo.write(RIG_FILE, "room: [\n")
+    assert mini_repo.findings() == [(RIG_FILE, 1, "parse-error")]
+
+
+def test_lightshow_track_unknown_layer(mini_repo):
+    light_repo(mini_repo)
+    mini_repo.edit(CHOREO_FILE, "    uv: on\n", "    lasers: on\n")
+    assert mini_repo.findings() == [(CHOREO_FILE, 0, CHOREO_RULE)]
+
+
+def test_lightshow_track_overlapping_sections(mini_repo):
+    light_repo(mini_repo)
+    mini_repo.edit(CHOREO_FILE, "bars: [9, 16]", "bars: [8, 16]")
+    assert mini_repo.findings() == [(CHOREO_FILE, 0, CHOREO_RULE)]
+
+
+def test_lightshow_track_bad_colour(mini_repo):
+    light_repo(mini_repo)
+    mini_repo.edit(CHOREO_FILE, "movers: off", 'movers: {move: hold, colour: "red"}')
+    assert mini_repo.findings() == [(CHOREO_FILE, 0, CHOREO_RULE)]
+
+
+def test_lightshow_track_not_in_a_pool(mini_repo):
+    light_repo(mini_repo)
+    mini_repo.edit(CHOREO_FILE, "Pedro Sampaio — Dançarina", "Nobody — Ghost Track")
+    assert mini_repo.findings() == [(CHOREO_FILE, 0, CHOREO_RULE)]
+
+
+def test_lightshow_track_without_the_em_dash(mini_repo):
+    light_repo(mini_repo)
+    mini_repo.edit(CHOREO_FILE, "Pedro Sampaio — Dançarina", "Dançarina")
+    assert mini_repo.findings() == [(CHOREO_FILE, 0, CHOREO_RULE)]
+
+
+def test_lightshow_track_is_not_called_unresolved_while_a_pool_is_broken(mini_repo):
+    light_repo(mini_repo)
+    mini_repo.edit(CHOREO_FILE, "Pedro Sampaio — Dançarina", "Nobody — Ghost Track")
+    mini_repo.write("tracks/beta.yml", "- [\n")
+    assert [f for f in mini_repo.findings() if f[2] == CHOREO_RULE] == []
+
+
+def test_lightshow_track_parse_error_is_reported_once(mini_repo):
+    light_repo(mini_repo)
+    mini_repo.write(CHOREO_FILE, "track: [\n")
+    assert mini_repo.findings() == [(CHOREO_FILE, 1, "parse-error")]
+
+
+def test_lightshow_track_accepts_unquoted_off_and_on(mini_repo):
+    light_repo(mini_repo)  # GOOD_CHOREO has `movers: off` and `uv: on`
+    assert [f for f in mini_repo.findings() if f[2] == CHOREO_RULE] == []
+
+
+def test_lightshow_track_reports_every_choreography(mini_repo):
+    light_repo(mini_repo)
+    other = "lightshows/tracks/other.yml"
+    mini_repo.write(other, GOOD_CHOREO.replace("base: autoscript", "base: copy"))
+    assert mini_repo.findings() == [(other, 0, CHOREO_RULE)]
+
+
+def test_lightshow_plan_missing_set_path(mini_repo):
+    light_repo(mini_repo)
+    mini_repo.edit(PLAN_FILE, "set: sets/festa.md", "set: sets/nada.md")
+    assert mini_repo.findings() == [(PLAN_FILE, 2, PLAN_RULE)]
+
+
+def test_lightshow_plan_unknown_budget_effect(mini_repo):
+    light_repo(mini_repo)
+    mini_repo.edit(PLAN_FILE, "white-accent:", "lasers:")
+    assert mini_repo.findings() == [(PLAN_FILE, 2, PLAN_RULE)]
+
+
+def test_lightshow_plan_without_front_matter(mini_repo):
+    light_repo(mini_repo)
+    mini_repo.write(PLAN_FILE, "Só prosa.\n")
+    assert mini_repo.findings() == [(PLAN_FILE, 1, PLAN_RULE)]
+
+
+def test_lightshow_plan_front_matter_parse_error_is_reported_once(mini_repo):
+    light_repo(mini_repo)
+    mini_repo.write(PLAN_FILE, "---\nset: [\n---\n")
+    assert [f[2] for f in mini_repo.findings()] == ["parse-error"]
+
+
+def test_lightshow_rules_do_not_read_the_graph(mini_repo):
+    light_repo(mini_repo)
+    mini_repo.write("genres/graph.yml", "nodes: [\n")
+    assert [f[2] for f in mini_repo.findings() if f[2].startswith("lightshow")] == []
