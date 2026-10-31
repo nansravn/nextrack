@@ -149,6 +149,60 @@ def venues_bytes():
     return _build
 
 
+# ------------------------------------------------- SoundSwitch project folder ----
+
+PROJECT_GUIDS = ("0026489d-4cb2-42ca-b2d9-9746823aaf0a", "00dfbf8c-c5c0-46fd-8e18-3d44a648ff7a")
+
+
+@pytest.fixture
+def make_project(tmp_path, make_script, trackmap_bytes, venues_bytes):
+    """Factory: a synthetic SoundSwitch project folder; returns its path.
+
+    Two 16 s tracks at 120 BPM (8 bars, one phrase): `PROJECT_GUIDS[0]` has Mover 1
+    pulsing 8 times; `PROJECT_GUIDS[1]` has a Vorlane whose W cell is lit for half the
+    time its RGB cell is."""
+    import soundswitch_format as ssf
+
+    def cell(node, keys):
+        return ssf.Track(node=node, lanes=[ssf.Lane(4, 1, None, [ssf.Key(t, v) for t, v in keys])],
+                         blocks=ssf.Section(1, [ssf.Span(0, 16000)]), link=1, colours=None,
+                         positions=None, strobes=None, position_blocks=None, shapes=None)
+
+    def _build():
+        folder = tmp_path / "project"
+        folder.mkdir()
+        entries = [
+            (5, PROJECT_GUIDS[0], "Dançarina", "Pedro Sampaio", r"C:\Music\a.mp3", 120, 16000),
+            (5, PROJECT_GUIDS[1], "Voa Voa", "Chiclete com Banana", r"C:\Music\b.mp3", 120, 16000),
+        ]
+        (folder / "SoundSwitchTrackMap.bin").write_bytes(trackmap_bytes(entries))
+        tree = [
+            {"id": 1167, "name": "Mover 1", "look": 1087, "colour": 0xFFFFE100},
+            {"id": 1818, "name": "VORLANE VL-1000 RGBW v2", "model": "VORLANE VL-1000 RGBW v2",
+             "colour": 0xFF38BAC7, "children": [
+                 {"id": 1820, "name": "RGB 01 - VORLANE VL-1000 RGBW v2", "look": 1725, "colour": 0xFF38BAC7},
+                 {"id": 1821, "name": "W 1 - VORLANE VL-1000 RGBW v2", "look": 1726, "colour": 0xFFFFFFFF}]},
+        ]
+        (folder / "SoundSwitchVenues.bin").write_bytes(venues_bytes(tree, ["Stage Left"]))
+
+        pulses = [k for i in range(8) for k in ((i * 2000, 0), (i * 2000 + 1, ssf.FULL), (i * 2000 + 500, 0))]
+        a = make_script(tempo=[(0, 120.0)])
+        mover = ssf.track(a, 1167)
+        mover.lanes[0].keys = [ssf.Key(t, v) for t, v in pulses]
+        mover.blocks = ssf.Section(1, [ssf.Span(0, 16000)])
+        a.venues[0].tracks = [mover]
+        b = make_script(tempo=[(0, 120.0)])
+        b.venues[0].tracks = [
+            cell(1820, [(0, ssf.FULL), (16000, ssf.FULL)]),
+            cell(1821, [(0, ssf.FULL), (7999, ssf.FULL), (8000, 0)]),
+        ]
+        for guid, script in zip(PROJECT_GUIDS, (a, b)):
+            (folder / ("{" + guid.upper() + "}.ssfile")).write_bytes(ssf.serialize_script(script))
+        return folder
+
+    return _build
+
+
 # --------------------------------------------------------- synthetic audio ----
 
 
