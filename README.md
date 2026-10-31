@@ -68,7 +68,7 @@ nextrack/
 ├── blocks/          # ⭐ time-boxed themed sequences (the DJ + lightshow unit)
 ├── radios/          # thematic programs (arcs of blocks)
 ├── sets/            # full performances per gig
-├── lightshows/      # per-block lighting scenes (future)
+├── lightshows/      # the rig, per-track choreographies and show plans (SoundSwitch)
 ├── scripts/         # tooling — retag/rename audio, pull BPM/key into tracks/, check_repo.py validator
 ├── tests/           # pytest suite for scripts/ (synthetic audio only, never committed)
 ├── CLAUDE.md        # instructions for coding agents: invariants, commands, checklists

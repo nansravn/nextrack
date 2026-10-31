@@ -4,6 +4,7 @@ Tooling for keeping the on-disk audio library tidy and in sync with the repo, an
 for checking that the repo agrees with itself.
 
 - [`nextrack_tags.py`](#nextrack_tagspy) — retag and rename the audio library, pull BPM/key into `tracks/`.
+- [`nextrack_lights.py`](#nextrack_lightspy) — read SoundSwitch's light scripts, simulate the room, compile choreographies onto a track's script.
 - [`check_repo.py`](#check_repopy) — validate the graph, docs, pools and blocks against each other.
 
 ## `nextrack_tags.py`
@@ -89,6 +90,119 @@ git diff ../tracks                                             # review
 - WAV files are reported and skipped (tag support is limited; there's one).
 - MP3s are saved as ID3v2.4 (their existing version) — no downgrade that could
   confuse Serato.
+
+## `nextrack_lights.py`
+
+Reads the light scripts SoundSwitch wrote for the owner's tracks and, from a
+choreography in [`lightshows/tracks/`](../lightshows/README.md), edits one of them.
+`soundswitch_format.py` (the file format, see
+[docs/soundswitch/file-format.md](../docs/soundswitch/file-format.md)) and `lightshow.py`
+(the rig and choreography models, the vocabulary and the compiler) are its libraries.
+`tracks`, `dump`, `analyze`, `render` and `compile` only read the project; `apply` is the
+one command that can write.
+
+### Setup
+
+```bash
+uv sync
+# the SoundSwitch project folder (machine-specific, so it is not in the repo)
+echo 'export NEXTRACK_SOUNDSWITCH_PROJECT="/path/to/SoundSwitch/project"' >> ~/.bashrc
+uv run scripts/nextrack_lights.py --help
+```
+
+Or pass `--project PATH` to any command. A *track* argument is the script GUID, a GUID
+prefix, or `Artist — Title` (text of the track map).
+
+### Commands
+
+```bash
+# list the project's tracks (GUID8, BPM, length, artist — title)
+uv run scripts/nextrack_lights.py tracks
+uv run scripts/nextrack_lights.py tracks --match happier
+
+# per 8-bar phrase and fixture: lit share, pulses, colours, positions, shapes
+uv run scripts/nextrack_lights.py dump "Marshmello x Bastille — Happier"
+uv run scripts/nextrack_lights.py dump F41EB9E9 --yaml
+
+# the dump reduced to metrics (Markdown): who overrides Main, white over colour, ...
+uv run scripts/nextrack_lights.py analyze F41EB9E9 <another-track>
+
+# the room simulated in one HTML file, before and (with --choreo) after
+uv run scripts/nextrack_lights.py render F41EB9E9 --choreo lightshows/tracks/marshmello-x-bastille-happier.yml -o /tmp/sim.html
+
+# compile a choreography to a file; the project is not touched
+uv run scripts/nextrack_lights.py compile lightshows/tracks/marshmello-x-bastille-happier.yml -o /tmp/happier.ssfile
+
+# dry-run of the real thing, then write it into the project
+uv run scripts/nextrack_lights.py apply lightshows/tracks/marshmello-x-bastille-happier.yml
+uv run scripts/nextrack_lights.py apply lightshows/tracks/marshmello-x-bastille-happier.yml --apply
+```
+
+`render`, `compile` and `apply` take `--rig PATH` (default `lightshows/rig.yml`). They
+refuse an invalid rig or choreography with the same messages `check_repo.py` gives, and
+print the **manual cues** (things SoundSwitch must be told by hand) after the result.
+`compile -o` refuses to overwrite the project's own file or its base copy.
+
+### Reading `dump`
+
+An *effective* value is what the fixture really shows: its own when one of its blocks
+covers the moment, else the Main track's. Each row is one fixture per 8-bar phrase, but
+the cells of a Vorlane are folded into two rows, `<Vorlane> RGB` (cells named `RGB nn`)
+and `<Vorlane> W` (cells named `W n`). For such a row:
+
+- `lit` is the share of the phrase in which **any** cell is lit (the union of the cells'
+  lit time; "lit" is an effective level above 1 %);
+- `pulses` counts rises (from under 10 % to over 90 %) on the pointwise maximum of the cells'
+  effective curves: cells pulsing in unison count once, alternating cells count every step;
+- colours, positions and shapes are the union across the cells.
+
+### Golden rule: dry-run, then `--apply`
+
+`apply` prints what it would change (fixtures touched, keys and blocks added and removed,
+the manual cues) and writes nothing until you add `--apply`. Read the dry run first.
+
+### Safety model of `apply --apply`
+
+- **SoundSwitch must be closed.** The tool runs `tasklist.exe` and refuses while
+  `SoundSwitch.exe` is listed. Under WSL, if `tasklist.exe` cannot be run, it refuses
+  too, because a check that passes when it fails is no check. On a machine that is not
+  WSL and has no `tasklist.exe` (CI), there is nothing to check.
+- **Base copy.** The first `apply` of a track saves the project's current script as
+  `<project parent>/nextrack-backups/base/<GUID>.ssfile`. Every later `apply`,
+  `compile` and `render` starts from that base, so a choreography is always applied to
+  the autoscript and never to its own earlier output. `render` shows the base as
+  "before".
+- **`state.json`** next to it (`<project parent>/nextrack-backups/state.json`) holds, per
+  track, the hash of the base and of the file last written. `apply` refuses if the base
+  copy changed or is missing, or if the project file differs from what the last
+  `apply` wrote (you edited it in SoundSwitch).
+- **`--adopt-current`** answers that refusal: the project file as it is now becomes the
+  new base, keeping your edits. Use it after editing a track by hand in SoundSwitch.
+- **A timestamped backup** of the project file is written to
+  `nextrack-backups/<YYYYmmdd-HHMMSS>/` before the replace, and the command prints the
+  restore line: `restore: cp "<backup>" "<project file>"`.
+- **`--accept-resize`** is required when the compiled file differs in size from the
+  project file (it nearly always does). SoundSwitch is not yet known to load a script of
+  a different size (experiment X1 in
+  [docs/soundswitch/experiments.md](../docs/soundswitch/experiments.md)); until that is
+  answered, test on one track you can lose and keep the backup.
+- Before writing, the tool re-parses its own output and refuses unless it round-trips and
+  everything outside the venue's tracks and Main equals the base; the base itself must
+  parse and serialize back to the same bytes. Writes are temp-file-then-rename.
+
+To undo, copy the backup over the project file (the `restore:` line). The next `apply`
+then refuses (the file no longer matches `state.json`); say `--adopt-current` to start
+again from the restored file.
+
+### Tests against the real project
+
+Tests use synthetic scripts and run anywhere. A few more read the owner's real project;
+they are skipped unless `NEXTRACK_SOUNDSWITCH_REAL` points at a **read-only copy** of the
+project folder (never the live one):
+
+```bash
+NEXTRACK_SOUNDSWITCH_REAL=/path/to/copy-of-project uv run pytest
+```
 
 ## `check_repo.py`
 
