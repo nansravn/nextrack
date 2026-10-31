@@ -1,7 +1,10 @@
+import bisect
 import datetime
 import hashlib
 import json
+import os
 import re
+from pathlib import Path
 
 import pytest
 import yaml
@@ -312,8 +315,10 @@ class _Done:
         self.stdout, self.returncode = out, code
 
 
-def test_soundswitch_running_reads_tasklist(monkeypatch, tmp_path):
-    monkeypatch.setattr(nl.subprocess, "run", lambda *a, **k: _Done("x\nSoundSwitch.exe  12 Console\n"))
+@pytest.mark.parametrize("listed", ["SoundSwitch.exe", "SOUNDSWITCH.EXE", "soundswitch.exe",
+                                    "SoundSwitch64.exe"])
+def test_soundswitch_running_reads_tasklist(listed, monkeypatch, tmp_path):
+    monkeypatch.setattr(nl.subprocess, "run", lambda *a, **k: _Done(f"x\n{listed}  12 Console\n"))
     assert nl.soundswitch_running() is True
     monkeypatch.setattr(nl.subprocess, "run", lambda *a, **k: _Done("x\nnotepad.exe\n"))
     assert nl.soundswitch_running() is False
@@ -362,6 +367,110 @@ def test_a_missing_base_with_a_state_entry_is_refused(make_project, make_script,
     assert _target(project).read_bytes() == applied
     code, _, err = _apply(capsys, project, choreo, "--apply", "--accept-resize", "--adopt-current")
     assert code == 0, err
+
+
+def test_a_base_without_a_state_entry_must_match_the_project_file(
+        make_project, make_script, tmp_path, capsys, idle):
+    project = _happier_project(make_project, make_script)
+    choreo = _choreo_for_project(tmp_path)
+    assert _apply(capsys, project, choreo, "--apply", "--accept-resize")[0] == 0
+    edited = ssf.parse_script(_target(project).read_bytes())
+    ssf.track(edited, 1167).lanes[0].keys.append(ssf.Key(15000, 0))     # a hand edit
+    _target(project).write_bytes(ssf.serialize_script(edited))
+    hand = _target(project).read_bytes()
+    (_backups(project) / "state.json").unlink()
+    code, _, err = _apply(capsys, project, choreo, "--apply", "--accept-resize")
+    assert code == 1 and "state.json" in err and "--adopt-current" in err
+    assert _target(project).read_bytes() == hand
+
+
+def test_a_base_without_a_state_entry_is_used_when_the_project_file_matches_it(
+        make_project, make_script, tmp_path, capsys, idle):
+    project = _happier_project(make_project, make_script)
+    current = _target(project).read_bytes()
+    (_backups(project) / "base").mkdir(parents=True)
+    (_backups(project) / "base" / _target(project).name).write_bytes(current)
+    choreo = _choreo_for_project(tmp_path)
+    code, _, err = _apply(capsys, project, choreo, "--apply", "--accept-resize")
+    assert code == 0, err
+    assert _target(project).read_bytes() == _compiled(project, choreo, current)
+    state = json.loads((_backups(project) / "state.json").read_text(encoding="utf-8"))
+    assert state[GUID0]["base"] == hashlib.sha256(current).hexdigest()
+
+
+def test_a_base_that_changed_since_it_was_made_is_refused(
+        make_project, make_script, tmp_path, capsys, idle):
+    project = _happier_project(make_project, make_script)
+    choreo = _choreo_for_project(tmp_path)
+    assert _apply(capsys, project, choreo, "--apply", "--accept-resize")[0] == 0
+    applied = _target(project).read_bytes()
+    other = make_script()
+    ssf.track(other, 1167).lanes[0].keys.append(ssf.Key(15000, 0))
+    (_backups(project) / "base" / _target(project).name).write_bytes(ssf.serialize_script(other))
+    code, _, err = _apply(capsys, project, choreo, "--apply", "--accept-resize")
+    assert code == 1 and "changed since it was made" in err
+    assert _target(project).read_bytes() == applied
+
+
+def _fail_replacing(monkeypatch, target):
+    """`os.replace` fails when it would replace `target`, and only then."""
+    real = nl.os.replace
+
+    def replace(src, dst):
+        if Path(dst) == target:
+            raise OSError("disk full")
+        return real(src, dst)
+
+    monkeypatch.setattr(nl.os, "replace", replace)
+
+
+def test_a_failed_replace_leaves_no_new_base_and_no_state(
+        make_project, make_script, tmp_path, capsys, idle, monkeypatch):
+    project = _happier_project(make_project, make_script)
+    before = _target(project).read_bytes()
+    _fail_replacing(monkeypatch, _target(project))
+    code, _, err = _apply(capsys, project, _choreo_for_project(tmp_path), "--apply", "--accept-resize")
+    assert code == 1 and "disk full" in err
+    assert _target(project).read_bytes() == before
+    assert list(project.glob("*.tmp")) == [] and list(_backups(project).rglob("*.tmp")) == []
+    assert not (_backups(project) / "state.json").exists()
+    assert not (_backups(project) / "base" / _target(project).name).exists()
+
+
+def test_a_failed_replace_keeps_the_base_that_was_there(
+        make_project, make_script, tmp_path, capsys, idle, monkeypatch):
+    project = _happier_project(make_project, make_script)
+    original = _target(project).read_bytes()
+    choreo = _choreo_for_project(tmp_path)
+    assert _apply(capsys, project, choreo, "--apply", "--accept-resize")[0] == 0
+    state = (_backups(project) / "state.json").read_bytes()
+    edited = ssf.parse_script(_target(project).read_bytes())
+    ssf.track(edited, 1167).lanes[0].keys.append(ssf.Key(15000, 0))
+    _target(project).write_bytes(ssf.serialize_script(edited))
+    hand = _target(project).read_bytes()
+    _fail_replacing(monkeypatch, _target(project))
+    code, _, err = _apply(capsys, project, choreo, "--apply", "--accept-resize", "--adopt-current")
+    assert code == 1 and "disk full" in err
+    assert _target(project).read_bytes() == hand
+    assert (_backups(project) / "base" / _target(project).name).read_bytes() == original
+    assert (_backups(project) / "state.json").read_bytes() == state
+
+
+@pytest.mark.parametrize("where", ["own file, other case", "project, other case", "backups"])
+def test_compile_and_render_refuse_an_output_in_the_project_or_its_backups(
+        where, make_project, make_script, tmp_path, capsys):
+    project = _happier_project(make_project, make_script)
+    before = {p: p.read_bytes() for p in project.iterdir()}
+    folder = {"own file, other case": project, "project, other case": project.parent / project.name.upper(),
+              "backups": _backups(project) / "base"}[where]
+    for cmd, args, name in (("compile", [str(_choreo_for_project(tmp_path))], "{" + GUID0.lower() + "}.ssfile"),
+                            ("render", [GUID0[:8]], "sim.html")):
+        out = folder / name
+        code, _, err = run(capsys, "--project", str(project), cmd, *args, "-o", str(out))
+        assert code == 1 and "pick another -o" in err, (cmd, err)
+        assert not out.exists()
+    assert {p: p.read_bytes() for p in project.iterdir()} == before
+    assert not _backups(project).exists() and not (project.parent / project.name.upper()).exists()
 
 
 def _meddle(monkeypatch, edit):
@@ -415,6 +524,83 @@ def test_main_must_equal_the_base_when_no_section_sets_a_hue(make_project, make_
     code, _, err = _apply(capsys, project, choreo, "--apply", "--accept-resize")
     assert code == 1 and "Main" in err
     assert _target(project).read_bytes() == before
+
+
+# The guard on its own: one section, bars 2-3 (2558-7357 ms at 100 BPM from 158 ms), on
+# make_script's script, in a venue with Mover 1 and one Vorlane cell.
+GUARD_VENUES = [ssf.VenueInfo("DJ Renan", "0122adb8-e4b9-46c9-96c8-98a7e8f6a5a9", [
+    ssf.VenueNode(1167, "Mover 1", None, 1087, 0), ssf.VenueNode(1820, "RGB 01 - V", 1818, 1, 0)])]
+GUARD_PRESETS = [ssf.Preset("A", "11111111-2222-3333-4444-555555555555"),
+                 ssf.Preset("B", "66666666-7777-8888-9999-aaaaaaaaaaaa")]
+AFTER = 7358                                       # the first moment after the section
+
+
+def _guard(script, **layers):
+    choreo = nl.ls.Choreography(
+        track="A — B", soundswitch=GUID0.upper(), grid={"bpm": 100, "downbeat": "0:00.158"}, story="x",
+        budget=None, base="autoscript", sections=[nl.ls.Section((2, 3), "s", None, layers)])
+    return nl._compile_checked(choreo, script, GUARD_VENUES, GUARD_PRESETS, nl.ls.load_rig(nl.DEFAULT_RIG))
+
+
+def _main_gradient(make_script):
+    script = make_script()
+    script.main.colours = ssf.Section(1, [ssf.ColourBlock(0, 20_000, 0xFF000000, 0, 0xFFFFFFFF, 0x0000FF00)])
+    return script
+
+
+RED_HUE = {"state": "bright", "colour": "#FF0000"}
+
+
+def test_the_guard_accepts_a_gradient_cut_by_a_hue_colour(make_script):
+    data, _ = _guard(_main_gradient(make_script), hue=RED_HUE)
+    left = ssf.parse_script(data).main.colours.items[0]
+    assert (left.start, left.end) == (0, 2558) and left.colour_end != 0xFFFFFFFF
+
+
+def test_the_guard_refuses_a_gradient_that_shows_other_colours_outside(make_script, monkeypatch):
+    def edit(out):  # the old cut: the pieces around the section keep the stored colours
+        left, _, right = out.main.colours.items
+        left.colour_end, left.ext_end = 0xFFFFFFFF, 0x0000FF00
+        right.colour, right.ext = 0xFF000000, 0
+
+    _meddle(monkeypatch, edit)
+    with pytest.raises(nl.Refused, match="Main the colours"):
+        _guard(_main_gradient(make_script), hue=RED_HUE)
+
+
+def _mover_with_positions(make_script):
+    """Mover 1 in one position block over 0-20000 ms: preset A from 0, B from 5000."""
+    script = make_script()
+    mover = ssf.track(script, 1167)
+    mover.shapes = None
+    mover.positions = ssf.Positions(2, 1, list(script.main.positions.palette),
+                                    [ssf.PositionFlag(0, 0), ssf.PositionFlag(5000, 1)])
+    mover.position_blocks = ssf.Section(1, [ssf.Span(0, 20_000)])
+    return script
+
+
+HOLD_A = {"move": "hold", "position": "A"}
+
+
+def test_the_guard_accepts_the_preset_carried_past_a_section(make_script):
+    data, _ = _guard(_mover_with_positions(make_script), movers=HOLD_A)
+    mover = ssf.track(ssf.parse_script(data), 1167)
+    assert ssf.active_flag(mover, AFTER - 1).preset == 0 and ssf.active_flag(mover, AFTER).preset == 1
+
+
+@pytest.mark.parametrize("how", ["dropped", "another preset"])
+def test_the_guard_refuses_a_preset_changed_after_a_section(how, make_script, monkeypatch):
+    def edit(out):
+        flags = ssf.track(out, 1167).positions.flags
+        i = next(i for i, f in enumerate(flags) if f.t == AFTER)
+        if how == "dropped":
+            del flags[i]
+        else:
+            flags[i] = ssf.PositionFlag(AFTER, 0)
+
+    _meddle(monkeypatch, edit)
+    with pytest.raises(nl.Refused, match="node 1167 the position"):
+        _guard(_mover_with_positions(make_script), movers=HOLD_A)
 
 
 def test_first_apply_backs_up_writes_and_records(make_project, make_script, tmp_path, capsys, idle):
@@ -534,3 +720,140 @@ def test_apply_refuses_an_unfit_choreography_without_touching_anything(make_proj
     code, _, err = _apply(capsys, project, _choreo_for_project(tmp_path), "--apply", "--accept-resize")
     assert code == 1 and "grid" in err
     assert _target(project).read_bytes() == before and not _backups(project).exists()
+
+
+# ------------------------------------------------------- the real project ----
+# Skipped unless $NEXTRACK_SOUNDSWITCH_REAL points at a read-only copy of the project folder.
+
+REAL = os.environ.get("NEXTRACK_SOUNDSWITCH_REAL")
+
+
+class _Look:
+    """What one track shows at a moment: its own intensity, colour and position inside its
+    own blocks, else Main's (`main`; None for Main itself, whose flags hold all along)."""
+
+    def __init__(self, trk: ssf.Track, main: "_Look | None" = None):
+        self.main = main
+        lane = ssf.intensity(trk)
+        self.keys = lane.keys if lane else []
+        self.key_ts = [k.t for k in self.keys]
+        self.spans = [(s.start, s.end) for s in trk.blocks.items] if trk.blocks else []
+        self.colours = sorted(trk.colours.items, key=lambda c: c.start) if trk.colours else []
+        self.colour_ts = [c.start for c in self.colours]
+        self.flags = sorted(trk.positions.flags, key=lambda f: f.t) if trk.positions else []
+        self.flag_ts = [f.t for f in self.flags]
+        self.palette = trk.positions.palette if trk.positions else []
+        self.fspans = [(s.start, s.end) for s in trk.position_blocks.items] if trk.position_blocks else []
+
+    def level(self, t):
+        if self.main is not None and not any(a <= t <= b for a, b in self.spans):
+            return self.main.level(t)
+        i = bisect.bisect_right(self.key_ts, t)
+        if i == 0:
+            return 0
+        if i == len(self.keys):
+            return self.keys[-1].level
+        a, b = self.keys[i - 1], self.keys[i]
+        return round(a.level + (b.level - a.level) * (t - a.t) / (b.t - a.t))
+
+    def colour(self, t):
+        i = bisect.bisect_right(self.colour_ts, t)
+        for c in self.colours[max(0, i - 3):i]:       # a block owns [start, end)
+            if c.start <= t < c.end or c.start == c.end == t:
+                f = 0 if c.end == c.start else (t - c.start) / (c.end - c.start)
+                return tuple(sum(round(((x >> s) & 255) + (((y >> s) & 255) - ((x >> s) & 255)) * f) << s
+                                 for s in (0, 8, 16, 24))
+                             for x, y in ((c.colour, c.colour_end), (c.ext, c.ext_end)))
+        return self.main.colour(t) if self.main is not None else None
+
+    def preset(self, t):
+        lo = None
+        if self.main is not None:
+            holding = [a for a, b in self.fspans if a <= t <= b]
+            if not holding:
+                return self.main.preset(t)
+            lo = min(holding)
+        i = bisect.bisect_right(self.flag_ts, t)
+        if i == 0 or (lo is not None and self.flag_ts[i - 1] < lo):
+            return self.main.preset(t) if self.main is not None else None
+        return self.palette[self.flags[i - 1].preset][0].lower()
+
+    def moments(self) -> set[int]:
+        """Every moment where what the track itself shows may change, and its neighbours."""
+        ts = set()
+        for t in self.key_ts + self.flag_ts:
+            ts |= {t - 1, t, t + 1}
+        for a, b in self.spans + self.fspans + [(c.start, c.end) for c in self.colours]:
+            ts |= {a - 1, a, a + 1, (a + b) // 2, b - 1, b, b + 1}
+        return ts
+
+
+def _near(x, y, step):
+    """Equal within `step` (an intensity level), or within `step` per byte (a colour)."""
+    if x is None or y is None:
+        return x == y
+    if isinstance(x, int):
+        return abs(x - y) <= step
+    return all(abs(((p >> s) & 255) - ((q >> s) & 255)) <= step for p, q in zip(x, y) for s in (0, 8, 16, 24))
+
+
+def _real_cases():
+    happier = nl.ls.load_choreography(HAPPIER)
+
+    def choreo(guid, grid, *sections):
+        return nl.ls.Choreography("x — y", guid, grid, "probe", None, "autoscript",
+                                  [nl.ls.Section(bars, name, None, layers) for bars, name, layers in sections])
+
+    return {
+        "happier": happier,
+        # a hue colour over Main's gradients, a mover colour, a sweep between autoscript flags
+        "hue-colour": choreo(happier.soundswitch, happier.grid,
+                             ((10, 12), "hold", {"movers": {"move": "hold", "position": "DJ Booth",
+                                                            "colour": "#FFB347", "level": 0.5}}),
+                             ((22, 25), "hue", {"hue": {"state": "bright", "colour": "#FF0000"}}),
+                             ((34, 36), "sweep", {"movers": {"move": "sweep", "every": "1bar",
+                                                             "positions": ["Up", "Stage Left"]}})),
+        # a hold that ends between two autoscript flags of Mover 1's position block
+        "position-after": choreo("0026489D-4CB2-42CA-B2D9-9746823AAF0A", {"bpm": 154.0, "downbeat": "0:00.032"},
+                                 ((33, 34), "hold", {"movers": {"move": "hold", "position": "Stage Left"}})),
+    }
+
+
+@pytest.mark.skipif(not REAL, reason="NEXTRACK_SOUNDSWITCH_REAL not set")
+@pytest.mark.parametrize("case", ["happier", "hue-colour", "position-after"])
+def test_real_apply_output_shows_the_same_room_outside_the_sections(case):
+    """Through the apply guard, every venue node and Main show the base's intensity (within
+    one level step), colour (within one step per byte) and position outside the sections;
+    group nodes are not touched at all."""
+    project = ssf.Project(Path(REAL))
+    choreo = _real_cases()[case]
+    path = project.script_path(choreo.soundswitch)
+    if not path.is_file():
+        pytest.skip(f"{path.name} is not in this copy of the project")
+    venues, presets = project.venues()
+    base = ssf.parse_script(path.read_bytes())
+    data, _ = nl._compile_checked(choreo, base, venues, presets, nl.ls.load_rig(nl.DEFAULT_RIG))
+    out = ssf.parse_script(data)
+    g = ssf.grid(base)
+    windows = [(g.ms(s.bars[0]), g.ms(s.bars[1] + 1) - 1) for s in choreo.sections]
+    venue, _ = nl.ls._venue_of(base, venues)
+    ids = {n.id for n in venue.nodes}
+    groups = {n.id for n in venue.nodes if n.look is None} | {n.parent for n in venue.nodes}
+    edges = {t for s, e in windows for t in (s - 2, s - 1, e + 1, e + 2)}
+    looks = [(_Look(base.main), _Look(out.main))]
+    main_ts = looks[0][0].moments() | looks[0][1].moments() | edges
+    pairs = [(b, o) for vb, vo in zip(base.venues, out.venues) for b, o in zip(vb.tracks, vo.tracks)
+             if b.node in ids]
+    checked = 0
+    for b, o in [(base.main, out.main)] + pairs:
+        lb, lo = (looks[0] if b is base.main else (_Look(b, looks[0][0]), _Look(o, looks[0][1])))
+        if b.node in groups and b is not base.main:
+            assert o == b, f"group node {b.node} changed"
+        for t in sorted(lb.moments() | lo.moments() | main_ts):
+            if t < 0 or any(s <= t <= e for s, e in windows):
+                continue
+            checked += 1
+            assert _near(lb.level(t), lo.level(t), 1), (case, b.node, t, "level")
+            assert _near(lb.colour(t), lo.colour(t), 1), (case, b.node, t, "colour")
+            assert lb.preset(t) == lo.preset(t), (case, b.node, t, "position")
+    assert checked > 1000
