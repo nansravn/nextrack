@@ -60,6 +60,8 @@ def test_load_rig_reads_the_real_rig():
     assert rig.fixtures["haze"].node == " Lig Light LL-HZ600K"
     assert rig.fixtures["haze"].extra["fan"] == "Main -  Lig Light LL-HZ600K"
     assert rig.fixtures["hue"].node is None and rig.fixtures["hue"].extra["lamps"] == 7
+    assert ls.haze_level(rig) == 0.5
+    assert ls.haze_level(ls.Rig({}, ["colour"], "x", 0.6)) is None
 
 
 def test_the_real_files_have_no_problems():
@@ -262,3 +264,19 @@ def test_plan_front_matter(tmp_path):
     assert len(ls.problems_plan({**good, "budget": {"uv": "x"}}, tmp_path)) == 1
     assert len(ls.problems_plan({"set": "sets/a.md"}, tmp_path)) == 1
     assert len(ls.problems_plan(None, tmp_path)) == 1
+
+
+def test_rig_haze_needs_a_level():
+    data = rig_data(); del data["fixtures"]["haze"]["level"]
+    assert "fixture 'haze': missing key 'level'" in ls.problems_rig(data)
+
+
+@pytest.mark.parametrize("level", [0, -0.1, 1.5, "half", True])
+def test_rig_haze_level_must_be_in_range(level):
+    data = rig_data(); data["fixtures"]["haze"]["level"] = level
+    assert any("level" in p for p in ls.problems_rig(data))
+
+
+def test_rig_level_only_on_haze():
+    data = rig_data(); data["fixtures"]["mover-ne"]["level"] = 0.5
+    assert any("level" in p for p in ls.problems_rig(data))
