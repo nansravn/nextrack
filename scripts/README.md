@@ -246,10 +246,16 @@ A track is **compliant** when three things hold:
 - **applied**: `state.json` records an apply, and compiling that choreography now, from the
   base copy and with today's rig and compiler, gives exactly the bytes that apply wrote. So
   it turns false by itself when the YAML, the rig's `level` or the compiler changed since.
-  A refused compile shows its reason instead of yes or no, and so do an invalid choreography
-  and a GUID the project does not have;
+  A refused compile shows its reason instead of yes or no, and so do an invalid choreography,
+  a GUID the project does not have and an unreadable `state.json` (`state.json unreadable: …`);
 - **haze**: the project file's fan and fog hold the rig's level over the whole track, as
-  the guard of `apply` defines it (`—` when the script has no haze tracks in the venue).
+  the guard of `apply` defines it. It shows `—` when the rig or the venue has no haze tracks
+  for the script, and a `—` does not block compliance: there is no haze to hold. A project
+  file that does not parse, or a haze check that fails, shows its reason instead.
+
+A reason is one track's problem, so `status` goes on with the other tracks. A track map or
+venues file that cannot be read stops it with exit 1, because no track can be judged without
+them.
 
 The **note** column is not part of the verdict. It says `edited in SoundSwitch after the
 apply` when the project file differs from the official version (settle it with `restore`
