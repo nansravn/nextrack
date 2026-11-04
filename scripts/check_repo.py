@@ -869,6 +869,16 @@ def links_resolve(repo: Repo) -> Iterable[Finding]:
                 yield Finding(rel, line, "links-resolve", f"link to {link[1]!r} does not exist")
 
 
+BLOCK_LINK_RE = re.compile(r"\.\./blocks/([^/#]+)\.md(?:#.*)?")
+
+
+def set_block_ids(text: str) -> list[str]:
+    """The block id of every `../blocks/<id>.md` link of a set file, in order, duplicates
+    kept. As in links-resolve, a link inside code is not a link."""
+    return [m[1] for link in LINK_RE.finditer(_without_code(text))
+            if (m := BLOCK_LINK_RE.fullmatch(link[1]))]
+
+
 # ---- pools (tracks/*.yml) ----
 #
 # Entry findings point at the entry's `__line__`, the line of its first key, which
@@ -1109,16 +1119,16 @@ def block_frontmatter(repo: Repo) -> Iterable[Finding]:
 # block-tracklist-resolves
 
 
-def _track_index(repo: Repo) -> list[tuple[set[str], str]]:
-    """`(artist tokens, core title)` of every pool track whose artist and title are
-    strings. Any other track is skipped: `norm` gives `""` for it, and an empty token
-    set is a subset of every artist. track-schema reports it."""
+def _track_index(repo: Repo) -> list[tuple[str, str]]:
+    """`(artist, title)` of every pool track whose artist and title are strings. Any
+    other track is skipped: `norm` gives `""` for it, and an empty token set is a subset
+    of every artist. track-schema reports it."""
     index = []
     for pool in repo.pools:
         for entry in _mappings(pool):
             artist, title = entry.get("artist"), entry.get("title")
             if isinstance(artist, str) and isinstance(title, str):
-                index.append((artist_tokens(artist), core(title)))
+                index.append((artist, title))
     return index
 
 
@@ -1127,9 +1137,28 @@ def _same_title(a: str, b: str) -> bool:
     return a == b or a.startswith(b + " ") or b.startswith(a + " ")
 
 
-def _resolves(index: list[tuple[set[str], str]], artist: str, title: str) -> bool:
-    tokens, wanted = artist_tokens(artist), core(title)
-    return any((t <= tokens or tokens <= t) and _same_title(c, wanted) for t, c in index)
+def same_track(artist_a: str, title_a: str, artist_b: str, title_b: str) -> bool:
+    """Whether two `Artist — Title` pairs name the same track: the artist tokens of one
+    contain the other's, and the core titles are equal or one extends the other by whole
+    words. `Skank, Dubdogz — Algo Parecido (Extended)` is `Skank — Algo Parecido`."""
+    a, b = artist_tokens(artist_a), artist_tokens(artist_b)
+    return (a <= b or b <= a) and _same_title(core(title_a), core(title_b))
+
+
+def _resolves(index: list[tuple[str, str]], artist: str, title: str) -> bool:
+    return any(same_track(a, t, artist, title) for a, t in index)
+
+
+def tracklist_entries(block: Block) -> list[tuple[int, str, str]]:
+    """`(line, artist, title)` of each `N. Artist — Title · …` line of the block's
+    `## Tracklist` section, in order. Lines in another format are left out (the rule
+    reports them)."""
+    found = []
+    for number, text in section(block.body, TRACKLIST_HEADING) or []:
+        parsed = TRACK_LINE_RE.match(text)
+        if parsed:
+            found.append((number, parsed["artist"], parsed["title"]))
+    return found
 
 
 @rule("block-tracklist-resolves")

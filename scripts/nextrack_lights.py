@@ -4,7 +4,7 @@
 The SoundSwitch project folder holds one `{GUID}.ssfile` per analysed track, plus
 `SoundSwitchTrackMap.bin` (which GUID is which song) and `SoundSwitchVenues.bin` (the
 rig). The folder comes from --project, or from $NEXTRACK_SOUNDSWITCH_PROJECT if unset.
-Every command only reads the project, except `apply --apply`.
+Every command only reads the project, except `apply`, `restore` and `accept` with --apply.
 
 Subcommands:
   tracks   list the tracks of the project (GUID8, BPM, length, artist — title)
@@ -14,6 +14,9 @@ Subcommands:
            choreography compiled onto it), with a timeline and an optional audio file
   compile  a choreography compiled onto the track's base script, written to -o
   apply    dry run of compile into the project; --apply writes it (backup first)
+  restore  put the official version back over a hand-edited project file
+  accept   make a hand-edited project file the official version
+  status   per track: choreography, applied, haze, compliant, and a note on hand edits
 
 An "effective" value is what the fixture really shows: its own when one of its spans
 covers the moment, else the Main track's. See scripts/README.md.
@@ -35,18 +38,21 @@ import datetime
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
 
 import yaml
 
+import check_repo
 import lightshow as ls
 import soundswitch_format as ssf
 
 PROJECT_ENV = "NEXTRACK_SOUNDSWITCH_PROJECT"  # machine-specific, so it lives outside the repo
 SIM_TEMPLATE = Path(__file__).with_name("lightshow_sim.html")
-DEFAULT_RIG = Path(__file__).resolve().parent.parent / "lightshows" / "rig.yml"
+DEFAULT_REPO = Path(__file__).resolve().parent.parent
+DEFAULT_RIG = DEFAULT_REPO / "lightshows" / "rig.yml"
 MAIN_NODE = 2
 PHRASE_BARS = 8
 LIT = 0.01      # "lit" = effective level above 1 %
@@ -1140,6 +1146,206 @@ def cmd_accept(project: ssf.Project, args) -> int:
     return 0
 
 
+# ------------------------------------------------------------------ status ----
+
+STATUS_COLUMNS = ("track", "choreography", "applied", "haze", "compliant", "note")
+NO_SCRIPT = "no SoundSwitch script found under this name"
+
+
+def _read_choreography(path: Path) -> tuple[object, str | None]:
+    """The parsed file and why it is not a valid choreography, or None when it is."""
+    try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except yaml.YAMLError as e:
+        mark = getattr(e, "problem_mark", None)
+        where = f" at line {mark.line + 1}" if mark else ""
+        return None, f"invalid choreography: invalid YAML{where}: {getattr(e, 'problem', None) or e}"
+    except (OSError, ValueError) as e:
+        return None, f"invalid choreography: {e}"
+    problems = ls.problems_choreography(data)
+    return data, ("invalid choreography: " + problems[0]) if problems else None
+
+
+def _applied_now(project: ssf.Project, ref: ssf.TrackRef, choreo_path: Path, rig: ls.Rig,
+                 entry: dict) -> bool | str:
+    """Whether compiling the choreography now, from the base copy, with this rig and this
+    compiler, gives the bytes the last apply wrote. False without an apply record or a base
+    copy; the reason when the compile is refused."""
+    base_path = _base_path(project, ref.guid)
+    if not entry.get("applied") or not base_path.is_file():
+        return False
+    try:
+        base = ssf.parse_script(base_path.read_bytes())
+    except Exception as e:  # a corrupt file may fail in any way
+        return f"the base copy cannot be parsed ({e})"
+    venues, presets = project.venues()
+    try:
+        data, _ = _compile_checked(ls.load_choreography(choreo_path), base, venues, presets, rig,
+                                   ref.duration_ms or 0)
+    except Refused as e:
+        return str(e)
+    return _sha(data) == entry["applied"]
+
+
+def _haze_held(project: ssf.Project, current: bytes | None, rig: ls.Rig, duration_ms: int) -> bool | None:
+    """Whether the project file's fan and fog hold the rig's level over the whole track
+    (`lightshow.haze_problem`). False without a script file, None when the script has no
+    haze tracks in the venue (there is nothing to hold)."""
+    if current is None:
+        return False
+    script = ssf.parse_script(current)
+    venues, _ = project.venues()
+    try:
+        if not ls.haze_tracks(script, rig, venues):
+            return None
+    except ls.CompileError:  # no venue holds the script's nodes
+        return None
+    return ls.haze_problem(script, rig, venues, duration_ms) is None
+
+
+def track_status(project: ssf.Project, guid: str, choreo_path: Path | None, rig: ls.Rig,
+                 repo_root: Path) -> dict:
+    """One row of `status`: the script `guid` and its choreography `choreo_path` (None when
+    it has none). Keys: `track` (the track map's "Artist — Title"; for a GUID the project
+    lacks, the choreography's `track:` or its path in the repo), `choreography`, `applied`
+    (True, False, or why it cannot be told: an invalid choreography, a GUID not in the
+    project, a refused compile), `haze` (None when there is no haze to hold), `note` (hand
+    edits since the apply, accepted ones, or None) and `compliant`: a choreography, applied,
+    and a haze that holds. Reads only."""
+    data, problem = _read_choreography(choreo_path) if choreo_path else (None, None)
+    row = {"track": guid, "choreography": choreo_path is not None, "applied": False,
+           "haze": None, "note": None, "compliant": False}
+    ref = next((r for r in project.trackmap() if r.guid.lower() == guid.lower()), None)
+    if ref is None:
+        named = data.get("track") if isinstance(data, dict) else None
+        if isinstance(named, str):
+            row["track"] = named
+        elif choreo_path is not None:
+            row["track"] = Path(os.path.relpath(choreo_path, repo_root)).as_posix()
+        row["applied"] = problem or "its GUID is not in the project"
+        return row
+    row["track"] = f"{ref.artist} — {ref.title}"
+    entry = _read_state(_base_path(project, ref.guid).parent.parent).get(ref.guid) or {}
+    if problem:
+        row["applied"] = problem
+    elif choreo_path is not None:
+        row["applied"] = _applied_now(project, ref, choreo_path, rig, entry)
+    target = project.script_path(ref.guid)
+    current = target.read_bytes() if target.is_file() else None
+    row["haze"] = _haze_held(project, current, rig, ref.duration_ms or 0)
+    notes = []
+    if _official(entry) and current is not None and _sha(current) != _official(entry):
+        notes.append("edited in SoundSwitch after the apply")
+    if "accepted" in entry:
+        notes.append("hand edits accepted")
+    row["note"] = "; ".join(notes) or None
+    row["compliant"] = row["choreography"] and row["applied"] is True and row["haze"] is not False
+    return row
+
+
+def _choreographies(repo_root: Path) -> list[tuple[Path, dict]]:
+    """Every `lightshows/tracks/*.yml` of the repo, with its content ({} when that is not a
+    mapping or does not parse)."""
+    out = []
+    for path in sorted((repo_root / "lightshows" / "tracks").glob("*.yml")):
+        data, _ = _read_choreography(path)
+        out.append((path, data if isinstance(data, dict) else {}))
+    return out
+
+
+def _guid(choreo: dict) -> str:
+    guid = choreo.get("soundswitch")
+    return guid.lower() if isinstance(guid, str) else ""
+
+
+def _names(choreo: dict, artist: str, title: str) -> bool:
+    """Whether the choreography's `track:` is this `Artist — Title`, as check_repo matches them."""
+    track = choreo.get("track")
+    if not isinstance(track, str):
+        return False
+    a, dash, t = track.partition(" — ")
+    return bool(dash and a.strip() and t.strip()) and check_repo.same_track(artist, title, a, t)
+
+
+def _line_status(project: ssf.Project, artist: str, title: str, choreos: list[tuple[Path, dict]],
+                 by_guid: dict[str, Path], rig: ls.Rig, repo_root: Path) -> dict:
+    """The row of one tracklist line. Its script is the GUID of the first choreography whose
+    `track:` is that track, else the one the track map gives for `Artist — Title`."""
+    label = f"{artist} — {title}"
+    path, data = next(((p, d) for p, d in choreos if _names(d, artist, title)), (None, None))
+    if path is not None:
+        guid = _guid(data)
+    else:
+        try:
+            guid = project.resolve(label).guid
+        except LookupError as e:
+            several = re.findall(r"^\s+([0-9a-f]{8})-", str(e), re.M)
+            return {"track": label, "choreography": False, "applied": False, "haze": None,
+                    "note": f"several scripts: {', '.join(several)}" if several else NO_SCRIPT,
+                    "compliant": False}
+        path = by_guid.get(guid.lower())
+    return {**track_status(project, guid, path, rig, repo_root), "track": label}
+
+
+def _cell(value) -> str:
+    if value is True:
+        return "yes"
+    if value is False:
+        return "no"
+    if value is None:
+        return "—"
+    return " ".join(str(value).split())
+
+
+def _status_lines(groups: list[tuple[str | None, list[dict]]]) -> list[str]:
+    """Each group's header and rows. `track` is as wide as its widest cell, the verdicts as
+    their header: a reason longer than that only pushes the rest of its own row. A named
+    group (a block of a set) is headed by its name and followed by an empty line."""
+    tables = [[list(STATUS_COLUMNS)] + [[_cell(r[c]) for c in STATUS_COLUMNS[:-1]] + [_cell(r["note"] or "")]
+                                        for r in rows] for _, rows in groups]
+    widths = [max((len(cells[0]) for table in tables for cells in table), default=0),
+              *(len(c) for c in STATUS_COLUMNS[1:])]
+    out = []
+    for (name, _), table in zip(groups, tables):
+        out += [name] if name is not None else []
+        out += ["  ".join(c.ljust(w) for c, w in zip(cells, widths)).rstrip() for cells in table]
+        out += [""] if name is not None else []
+    return out
+
+
+def cmd_status(project: ssf.Project, args) -> int:
+    root = Path(args.repo)
+    rig_path = Path(args.rig) if args.rig else root / "lightshows" / "rig.yml"
+    if _yaml_checked(rig_path, ls.problems_rig) is None:
+        raise Refused(f"{rig_path}: invalid rig")
+    rig = ls.load_rig(rig_path)
+    choreos = _choreographies(root)
+    by_guid: dict[str, Path] = {}
+    for path, data in choreos:
+        by_guid.setdefault(_guid(data), path)
+    if args.block or args.set:
+        ids = [args.block] if args.block else check_repo.set_block_ids(Path(args.set).read_text(encoding="utf-8"))
+        blocks = {Path(b.path).stem: b for b in check_repo.load_repo(root).blocks}
+        groups = []
+        for block_id in ids:
+            if block_id not in blocks:
+                raise Refused(f"no block {block_id!r} in {root / 'blocks'}")
+            groups.append((block_id if args.set else None, [
+                _line_status(project, artist, title, choreos, by_guid, rig, root)
+                for _, artist, title in check_repo.tracklist_entries(blocks[block_id])]))
+    else:
+        groups = [(None, [track_status(project, _guid(data), path, rig, root) for path, data in choreos])]
+    for line in _status_lines(groups):
+        print(line)
+    rows = [r for _, group in groups for r in group]
+    print(f"{sum(r['compliant'] for r in rows)} of {len(rows)} tracks compliant")
+    if not (args.block or args.set):
+        rest = len({r.guid.lower() for r in project.trackmap()} - set(by_guid))
+        print(f"{rest} more track in the project has no choreography" if rest == 1
+              else f"{rest} more tracks in the project have no choreography")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--project", default=argparse.SUPPRESS,
@@ -1194,6 +1400,15 @@ def main(argv: list[str] | None = None) -> int:
         q = sub.add_parser(name, parents=[common], help=text + ". Dry-run by default")
         q.add_argument("track", help="GUID, GUID prefix or 'Artist — Title'")
         q.add_argument("--apply", action="store_true", help="really write (SoundSwitch must be closed)")
+    st = sub.add_parser("status", parents=[common], help=(
+        "per track: a choreography, the last apply still what it compiles to today, the haze at "
+        "the rig's level, compliant (all three), and a note on hand edits. Reads only; "
+        "SoundSwitch may be open"))
+    st.add_argument("--repo", default=str(DEFAULT_REPO), help="the NEXTRACK repo (default: this one)")
+    st.add_argument("--rig", help="the rig file (default: lightshows/rig.yml of --repo)")
+    which = st.add_mutually_exclusive_group()
+    which.add_argument("--block", metavar="ID", help="the tracklist of blocks/<ID>.md, in order")
+    which.add_argument("--set", metavar="PATH", help="the tracklists of the blocks a set file links, in order")
 
     args = ap.parse_args(argv)
     if not args.project:
@@ -1207,7 +1422,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         code = {"tracks": cmd_tracks, "dump": cmd_dump, "analyze": cmd_analyze,
                 "render": cmd_render, "compile": cmd_compile, "apply": cmd_apply,
-                "restore": cmd_restore, "accept": cmd_accept}[args.cmd](project, args)
+                "restore": cmd_restore, "accept": cmd_accept, "status": cmd_status}[args.cmd](project, args)
     except (Refused, LookupError, OSError, ValueError) as e:
         print(e, file=sys.stderr)
         return 1

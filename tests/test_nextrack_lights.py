@@ -11,7 +11,7 @@ import yaml
 
 import nextrack_lights as nl
 import soundswitch_format as ssf
-from conftest import PROJECT_GUIDS, REPO_ROOT
+from conftest import HAPPIER, PROJECT_GUIDS, REPO_ROOT, _choreo_for_project, _happier_project
 
 
 def run(capsys, *argv):
@@ -127,8 +127,6 @@ def test_group_pulses_alternating_cells_count_both_steps(make_script):
 
 # ------------------------------------------------------------------ render ----
 
-HAPPIER = REPO_ROOT / "lightshows/tracks/marshmello-x-bastille-happier.yml"
-
 
 def blob(html: str) -> dict:
     """The JSON the page embeds (after `const S = `)."""
@@ -156,24 +154,6 @@ def test_render_writes_a_self_contained_page(make_project, tmp_path, capsys):
     assert data["before"]["Mover 1"]["k"][:3] == [[0, 0.0], [1, 1.0], [500, 0.0]]
     assert data["before"]["Mover 1"]["B"] == [[0, 16000]]
     assert data["rig"]["mover-ne"] == {"corner": "NE", "kind": "mover", "node": "Mover 1"}
-
-
-def _happier_project(make_project, make_script, haze=False):
-    """The test project with Happier's grid (100 BPM at 0.158 s) on its first track. With
-    `haze`, the venue has the haze machine and the script has its fan and fog tracks, lit
-    like the autoscript and with no block of their own (they follow Main)."""
-    project = make_project(haze=haze)
-    script = make_script()
-    if haze:
-        for node in (1935, 1936):
-            script.venues[0].tracks.append(ssf.Track(
-                node=node, lanes=[ssf.Lane(4, 1, None, [ssf.Key(0, ssf.FULL), ssf.Key(8000, 0)])],
-                blocks=None, link=1, colours=None, positions=None, strobes=None,
-                position_blocks=None, shapes=None))
-        script.node_lists = [1] * len(script.venues[0].tracks)
-    path = project / ("{" + PROJECT_GUIDS[0].upper() + "}.ssfile")
-    path.write_bytes(ssf.serialize_script(script))
-    return project
 
 
 def test_render_with_choreo_adds_the_compiled_after(make_project, make_script, tmp_path, capsys):
@@ -242,25 +222,8 @@ def test_sim_data_exports_names_levels_and_effective_lanes(make_script):
 GUID0 = PROJECT_GUIDS[0]
 
 
-@pytest.fixture
-def idle(monkeypatch):
-    """SoundSwitch is not running."""
-    monkeypatch.setattr(nl, "soundswitch_running", lambda: False)
-
-
 def _target(project):
     return project / ("{" + GUID0.upper() + "}.ssfile")
-
-
-def _choreo_for_project(tmp_path, drop_last=0):
-    """Happier's choreography pointed at the test project's first track."""
-    data = yaml.safe_load(HAPPIER.read_text(encoding="utf-8"))
-    data["soundswitch"] = GUID0.upper()
-    if drop_last:
-        data["sections"] = data["sections"][:-drop_last]
-    path = tmp_path / f"choreo{drop_last}.yml"
-    path.write_text(yaml.safe_dump(data, allow_unicode=True), encoding="utf-8")
-    return path
 
 
 def _backups(project):

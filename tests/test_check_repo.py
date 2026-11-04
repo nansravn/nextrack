@@ -1617,6 +1617,32 @@ def test_section(body, prefix, expected):
     assert check_repo.section(body, prefix) == expected
 
 
+# ---- helpers shared with nextrack_lights.py status: same_track, tracklist_entries, set_block_ids ----
+
+
+def test_same_track_allows_extra_artists_and_version_words():
+    assert check_repo.same_track("Skank, Dubdogz", "Algo Parecido (Extended)", "Skank", "Algo Parecido")
+
+
+def test_same_track_needs_the_same_title():
+    assert not check_repo.same_track("Skank, Dubdogz", "Algo Parecido (Extended)", "Skank", "Different Title")
+
+
+def test_tracklist_entries_give_line_artist_and_title(mini_repo):
+    block = next(b for b in load_repo(mini_repo.root).blocks if b.path == "blocks/alpha-festa.md")
+    first = mini_repo.line_of("blocks/alpha-festa.md", "1. Pedro Sampaio")
+    assert check_repo.tracklist_entries(block) == [
+        (first, "Pedro Sampaio", "Dançarina"),
+        (first + 1, "Chiclete com Banana", "Voa Voa"),
+    ]
+
+
+def test_set_block_ids_keep_order_and_duplicates():
+    text = "1. [A](../blocks/a.md) · 20m\n2. [B](../blocks/b-c.md) · 30m\n3. [R](../radios/r.md)\n"
+    assert check_repo.set_block_ids(text + "4. [A again](../blocks/a.md)\n") == ["a", "b-c", "a"]
+    assert check_repo.set_block_ids("[A](../blocks/a.md) … [B](../blocks/b-c.md)") == ["a", "b-c"]
+
+
 # ---- block-frontmatter ----
 
 FRONT_PROBLEMS = [
