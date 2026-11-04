@@ -1182,25 +1182,42 @@ def _applied_now(project: ssf.Project, ref: ssf.TrackRef, choreo_path: Path, rig
     try:
         data, _ = _compile_checked(ls.load_choreography(choreo_path), base, venues, presets, rig,
                                    ref.duration_ms or 0)
-    except Refused as e:
+    except (Refused, ValueError) as e:  # ValueError: a CompileError from the haze check
         return str(e)
     return _sha(data) == entry["applied"]
 
 
-def _haze_held(project: ssf.Project, current: bytes | None, rig: ls.Rig, duration_ms: int) -> bool | None:
+def _haze_held(project: ssf.Project, current: bytes | None, rig: ls.Rig,
+               duration_ms: int) -> bool | str | None:
     """Whether the project file's fan and fog hold the rig's level over the whole track
     (`lightshow.haze_problem`). False without a script file, None when the script has no
-    haze tracks in the venue (there is nothing to hold)."""
+    haze tracks in the venue (there is nothing to hold), the reason when the file does not
+    parse or the check fails."""
     if current is None:
         return False
-    script = ssf.parse_script(current)
     venues, _ = project.venues()
+    try:
+        script = ssf.parse_script(current)
+    except Exception as e:  # a corrupt file may fail in any way
+        return f"the project file cannot be parsed ({e})"
     try:
         if not ls.haze_tracks(script, rig, venues):
             return None
-    except ls.CompileError:  # no venue holds the script's nodes
-        return None
-    return ls.haze_problem(script, rig, venues, duration_ms) is None
+        return ls.haze_problem(script, rig, venues, duration_ms) is None
+    except ValueError as e:  # CompileError: no venue holds the script's nodes
+        return f"the haze cannot be checked ({e})"
+
+
+def _state_entry(project: ssf.Project, guid: str) -> tuple[dict, str | None]:
+    """The track's record in state.json ({} when it has none), and why state.json cannot
+    be read, or None when it can."""
+    try:
+        state = _read_state(_base_path(project, guid).parent.parent)
+    except (OSError, ValueError) as e:  # ValueError: not JSON, or not UTF-8
+        return {}, f"state.json unreadable: {e}"
+    if not isinstance(state, dict) or not isinstance(state.get(guid) or {}, dict):
+        return {}, "state.json unreadable: it is not a mapping of GUIDs to records"
+    return state.get(guid) or {}, None
 
 
 def track_status(project: ssf.Project, guid: str, choreo_path: Path | None, rig: ls.Rig,
@@ -1209,9 +1226,11 @@ def track_status(project: ssf.Project, guid: str, choreo_path: Path | None, rig:
     it has none). Keys: `track` (the track map's "Artist — Title"; for a GUID the project
     lacks, the choreography's `track:` or its path in the repo), `choreography`, `applied`
     (True, False, or why it cannot be told: an invalid choreography, a GUID not in the
-    project, a refused compile), `haze` (None when there is no haze to hold), `note` (hand
-    edits since the apply, accepted ones, or None) and `compliant`: a choreography, applied,
-    and a haze that holds. Reads only."""
+    project, an unreadable state.json, a refused compile), `haze` (True, False, None when
+    there is no haze to hold, or why it cannot be told: a project file that does not parse,
+    a failed check), `note` (hand edits since the apply, accepted ones, or None) and
+    `compliant`: a choreography, applied, and a haze that holds or is None. Reads only;
+    an unreadable track map or venues file raises."""
     data, problem = _read_choreography(choreo_path) if choreo_path else (None, None)
     row = {"track": guid, "choreography": choreo_path is not None, "applied": False,
            "haze": None, "note": None, "compliant": False}
@@ -1225,9 +1244,9 @@ def track_status(project: ssf.Project, guid: str, choreo_path: Path | None, rig:
         row["applied"] = problem or "its GUID is not in the project"
         return row
     row["track"] = f"{ref.artist} — {ref.title}"
-    entry = _read_state(_base_path(project, ref.guid).parent.parent).get(ref.guid) or {}
-    if problem:
-        row["applied"] = problem
+    entry, unreadable = _state_entry(project, ref.guid)
+    if problem or unreadable:
+        row["applied"] = problem or unreadable
     elif choreo_path is not None:
         row["applied"] = _applied_now(project, ref, choreo_path, rig, entry)
     target = project.script_path(ref.guid)
@@ -1239,7 +1258,8 @@ def track_status(project: ssf.Project, guid: str, choreo_path: Path | None, rig:
     if "accepted" in entry:
         notes.append("hand edits accepted")
     row["note"] = "; ".join(notes) or None
-    row["compliant"] = row["choreography"] and row["applied"] is True and row["haze"] is not False
+    row["compliant"] = (row["choreography"] and row["applied"] is True
+                        and (row["haze"] is True or row["haze"] is None))
     return row
 
 
@@ -1319,6 +1339,11 @@ def cmd_status(project: ssf.Project, args) -> int:
     if _yaml_checked(rig_path, ls.problems_rig) is None:
         raise Refused(f"{rig_path}: invalid rig")
     rig = ls.load_rig(rig_path)
+    try:
+        project.venues()
+    except Exception as e:  # a corrupt file may fail in any way
+        raise Refused(f"{project.folder / 'SoundSwitchVenues.bin'} cannot be read ({e}); "
+                      "no track can be judged without the venue") from e
     choreos = _choreographies(root)
     by_guid: dict[str, Path] = {}
     for path, data in choreos:

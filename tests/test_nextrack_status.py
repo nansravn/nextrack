@@ -173,6 +173,54 @@ def test_a_corrupt_base_copy_is_the_reason(room, idle, capsys):
     assert row["compliant"] is False
 
 
+def test_a_corrupt_project_script_is_the_reason(room, capsys):
+    (room[0] / ("{" + GUID0.upper() + "}.ssfile")).write_bytes(b"junk")
+    row = _row(room)
+    assert isinstance(row["haze"], str) and "project file" in row["haze"]
+    assert row["compliant"] is False
+    code, out, err = _status(capsys, room, "--block", "alpha-festa")
+    assert code == 0, err
+    lines = out.splitlines()
+    assert _cells(lines[1])[3] == row["haze"]
+    assert _cells(lines[2])[0] == "Chiclete com Banana — Voa Voa"  # the other track goes on
+    assert lines[-1] == "0 of 2 tracks compliant"
+
+
+@pytest.mark.parametrize("text", ["{not json", "[1, 2]", '{"' + GUID0 + '": 5}'],
+                         ids=["not-json", "not-a-mapping", "entry-not-a-mapping"])
+def test_a_corrupt_state_file_is_the_reason(room, idle, capsys, text):
+    _apply(capsys, room)
+    (room[0].parent / "nextrack-backups" / "state.json").write_text(text, encoding="utf-8")
+    row = _row(room)
+    assert isinstance(row["applied"], str) and row["applied"].startswith("state.json unreadable: ")
+    assert row["compliant"] is False
+    code, out, err = _status(capsys, room)
+    assert code == 0, err
+    assert _cells(out.splitlines()[1])[2] == row["applied"]
+
+
+def test_a_haze_check_error_is_the_reason(room, idle, capsys, monkeypatch):
+    _apply(capsys, room)
+
+    def fail(*args, **kwargs):
+        raise nl.ls.CompileError("no venue holds this script's nodes")
+
+    monkeypatch.setattr(nl.ls, "haze_problem", fail)
+    row = _row(room)
+    assert isinstance(row["haze"], str) and "no venue holds this script's nodes" in row["haze"]
+    assert row["compliant"] is False
+    code, out, err = _status(capsys, room)
+    assert code == 0, err
+    assert _cells(out.splitlines()[1])[3] == row["haze"]
+
+
+def test_an_unreadable_venues_file_stops_status(room, capsys):
+    (room[0] / "SoundSwitchVenues.bin").write_bytes(b"junk")
+    code, out, err = _status(capsys, room)
+    assert code == 1 and out == ""
+    assert "SoundSwitchVenues.bin" in err and "no track can be judged" in err
+
+
 def test_invalid_choreography_and_unknown_guid(room, capsys):
     tracks = room[1] / "lightshows" / "tracks"
     shutil.copy(_choreo(room[1]), tracks / "bad.yml")
