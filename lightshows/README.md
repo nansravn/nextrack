@@ -76,10 +76,10 @@ sections:
 ```
 
 Keys: `track` (`Artist — Title`), `soundswitch` (GUID), `grid` (`{bpm, downbeat}`), `story`,
-`budget` (optional), `base` (`autoscript`), `sections`. A section is
-`{bars: [a, b], name, intent?}` plus any of the layers. Bars are counted from the
-downbeat in `grid`; the compiler maps them through the script's tempo map and refuses a
-track with more than 8 tempo anchors. YAML reads an unquoted `off` / `on` as a boolean;
+`budget` (optional), `base` (`autoscript`), `sections` (may be empty: see [Haze](#haze)).
+A section is `{bars: [a, b], name, intent?}` plus any of the layers. Bars are counted from
+the downbeat in `grid`; the compiler maps them through the script's tempo map and refuses
+a track with more than 8 tempo anchors. YAML reads an unquoted `off` / `on` as a boolean;
 both spellings are accepted.
 
 ### Layers
@@ -94,7 +94,6 @@ A layer is `auto`, `off` or a mapping.
 | `uv` | `on`, `off`, `auto` |
 | `strobe` | `{hit: ["<bar>.<beat>", ...]}` or `{roll: [a, b]}` |
 | `hue` | `dark`, `pulse`, `bright`, or `{state: dark\|pulse\|bright, colour}` |
-| `haze` | `{burst: "<n>s"}`, `on`, `off`, `auto` |
 
 Rates are `1/16`, `1/8`, `1/4`, `1/2` or `<n>bar` (a bar is four beats); colours are
 `#RRGGBB`.
@@ -111,8 +110,20 @@ Rates are `1/16`, `1/8`, `1/4`, `1/2` or `<n>bar` (a bar is four beats); colours
   each `bar.beat`; `flash` pulses at the rate.
 - `strobe`: v1 is 1/16-note pulses on the movers and the colour cells for one beat per
   `hit`, or for the bars of `roll`.
-- `haze`: fog on for `burst` seconds with the fan on across the section; experimental, the
-  tool prints a manual cue to confirm the machine reacted.
+
+### Haze
+
+Haze is a constant thin mist, not a layer: `haze` in a section or in a show plan's
+`budget` is a finding.
+Every compiled track holds the haze fixture's fan and fog at the rig's `level` over the
+whole track, from 0 ms to the end (the script's last event, or the song when it is
+longer), before, inside and after the sections. Whatever the autoscript had on the two
+channels (they follow Main) is replaced. Until the machine is confirmed to react, every
+compile prints one experimental manual cue for it.
+
+A choreography may have `sections: []`: the autoscript everywhere, plus the haze. Without
+sections no bar number is used, so `grid` is not checked against the script and a track
+with more than 8 tempo anchors compiles too.
 
 ### The matrix draws
 
@@ -178,9 +189,10 @@ room), `pingpong` (the first Vorlane gets the even steps and the second the odd 
   the autoscript's position block goes on past the section, the preset it had in force
   there comes back at the first moment after the section.
 - **Manual cues.** What the compiler cannot write is printed as `manual cue, bar N: ...`
-  by `render`, `compile` and `apply`: `uv`, `move: uv`, haze (to confirm), a position
-  preset the venue or script does not have, a shape block cut by a position change, a
-  strobe `off` over SoundSwitch's own strobe blocks. Add these in SoundSwitch by hand.
+  by `render`, `compile` and `apply`: `uv`, `move: uv`, the whole-track haze (one per
+  compile, to confirm the machine reacts; or why it was skipped), a position preset the
+  venue or script does not have, a shape block cut by a position change, a strobe `off`
+  over SoundSwitch's own strobe blocks. Add these in SoundSwitch by hand.
 - **Nothing outside the sections changes.** `apply` refuses unless everything outside the
   rig's tracks and Main equals the base, and outside the sections every venue track and
   Main shows the base's intensity, colour and position.

@@ -8,11 +8,13 @@ story: >-
   A luz começa íntima, só o lustre respirando e um foco quente na cabine; vai abrindo a sala
   aos poucos, enchendo as Vorlanes de baixo pra cima a cada subida. Os drops são alegria de
   pista com fundo melancólico (ciano e âmbar). No silêncio de 2:40 a sala inteira apaga por um
-  compasso. A ponte é contemplativa: haze, movings lentas e o centro aceso. O drop final solta
-  tudo, com o único acento da fita branca da música; a saída devolve a sala ao escuro.
+  compasso. A ponte é contemplativa: movings lentas e o centro aceso, dentro da neblina fina
+  que fica a música toda. O drop final solta tudo, com o único acento da fita branca da
+  música; a saída devolve a sala ao escuro.
 budget: >-
-  Gasta pouco de propósito: fita branca uma vez (3:12), nenhum strobe, nenhum UV, um haze.
-  Zigue-zague, seta e strobe ficam guardados para outras músicas do set.
+  Gasta pouco de propósito: fita branca uma vez (3:12), nenhum strobe, nenhum UV; a neblina
+  fica fixa no nível do rig. Zigue-zague, seta e strobe ficam guardados para outras músicas
+  do set.
 base: autoscript
 sections:
   - bars: [1, 8]
@@ -88,11 +90,10 @@ sections:
 
   - bars: [69, 76]
     name: ponte
-    intent: Contemplativo; haze, movings lentas em azul profundo, centro aceso.
+    intent: Contemplativo; movings lentas em azul profundo, centro aceso.
     movers: {move: sweep, every: 2bar, positions: [Up, Crossed Over, Stage Left, Stage Right], colour: "#3A5BFF"}
     matrix: off
     hue: bright
-    haze: {burst: 6s}
 
   - bars: [77, 80]
     name: subida-final

@@ -204,9 +204,6 @@ def test_section_unknown_layer_and_missing_name():
         {"hue": {"state": "dim"}},
         {"hue": {"colour": "#FFFFFF"}},
         {"hue": {"state": "pulse", "colour": "white"}},
-        {"haze": {"burst": "4"}},
-        {"haze": {"burst": "4s", "fan": 1}},
-        {"haze": {}},
         {"matrix": 3},
         {"hue": ["pulse"]},
     ],
@@ -221,8 +218,8 @@ def test_bad_layer_values_are_problems(layers):
         {"movers": "auto", "matrix": "auto", "white": "auto", "uv": "auto", "strobe": "auto"},
         {"movers": "off", "matrix": "off", "white": "off", "uv": "off", "strobe": "off"},
         {"movers": False, "matrix": False, "white": False, "uv": False, "strobe": False},
-        {"uv": True, "haze": True, "hue": "off"},
-        {"haze": "auto", "hue": "auto"},
+        {"uv": True, "hue": "off"},
+        {"hue": "auto"},
         {"movers": {"move": "hold", "position": "DJ Booth", "colour": "#ffb347", "level": 1}},
         {"movers": {"move": "sweep", "every": "2bar", "positions": ["Up", "Down"]}},
         {"movers": {"move": "pingpong", "every": "1/16", "faster_from": 27, "faster_every": "1/2"}},
@@ -234,7 +231,6 @@ def test_bad_layer_values_are_problems(layers):
         {"strobe": {"roll": [3, 4]}},
         {"hue": "dark"},
         {"hue": {"state": "bright", "colour": "#FFAA00"}},
-        {"haze": {"burst": "6s"}},
     ],
 )
 def test_good_layer_values_are_clean(layers):
@@ -244,11 +240,23 @@ def test_good_layer_values_are_clean(layers):
 def test_module_level_schema_checks_are_not_shadowed():
     # the compiler's layer functions must not reuse the schema checks' names
     for name, bad in [("_movers", {"move": "spin"}), ("_matrix", {"draw": "spiral"}),
-                      ("_white", {}), ("_strobe", {}), ("_hue", {"state": "dim"}),
-                      ("_haze", {})]:
+                      ("_white", {}), ("_strobe", {}), ("_hue", {"state": "dim"})]:
         problems = getattr(ls, name)(bad)
         assert problems and all(isinstance(p, str) for p in problems), name
         assert ls._MAPPING_CHECKS[name[1:]] is getattr(ls, name)
+
+
+def test_a_section_with_haze_is_a_problem():
+    # haze is constant over the whole track, not a section layer
+    assert any("haze" in p for p in ls.problems_choreography(with_section(haze="on")))
+
+
+def test_a_choreography_without_sections_is_clean():
+    assert ls.problems_choreography(choreo(sections=[])) == []
+
+
+def test_sections_must_be_a_list():
+    assert ls.problems_choreography(choreo(sections="x"))
 
 
 # -------------------------------------------------------------------- plan ----
@@ -262,6 +270,8 @@ def test_plan_front_matter(tmp_path):
     assert len(ls.problems_plan({**good, "set": "sets/b.md"}, tmp_path)) == 1
     assert len(ls.problems_plan({**good, "budget": {"lasers": ["x"]}}, tmp_path)) == 1
     assert len(ls.problems_plan({**good, "budget": {"uv": "x"}}, tmp_path)) == 1
+    assert any("budget key 'haze'" in p
+               for p in ls.problems_plan({**good, "budget": {"haze": ["x"]}}, tmp_path))
     assert len(ls.problems_plan({"set": "sets/a.md"}, tmp_path)) == 1
     assert len(ls.problems_plan(None, tmp_path)) == 1
 

@@ -8,10 +8,13 @@ return messages; they never raise on bad content. See lightshows/README.md.
 
 The generators (`matrix_frames`, `mover_keys`, `hue_keys`, …) turn the vocabulary into
 keyframes, and `compile_choreography` applies a choreography to a copy of a SoundSwitch
-track script, returning the edited copy and the manual cues it could not write.
+track script, returning the edited copy and the manual cues it could not write. Every
+compile also holds the haze at the rig's level over the whole track; `haze_problem` says
+whether a script does.
 
 Python API: `load_rig`, `load_choreography`, `problems_rig`, `problems_choreography`,
-`problems_plan`, `section_layers`, `compile_choreography` (`ManualCue`, `CompileError`).
+`problems_plan`, `section_layers`, `compile_choreography` (`ManualCue`, `CompileError`),
+`haze_level`, `haze_tracks`, `haze_problem`.
 """
 from __future__ import annotations
 
@@ -20,12 +23,13 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import soundswitch_format as ssf
 import yaml
 from soundswitch_format import (FULL, Grid, Key, PositionFlag, Preset, Track, TrackScript,
                                 VenueInfo, VenueNode, check, grid, materialise_main, set_colour,
                                 set_intensity, set_main, set_positions)
 
-LAYERS = ("movers", "matrix", "white", "uv", "strobe", "hue", "haze")
+LAYERS = ("movers", "matrix", "white", "uv", "strobe", "hue")  # no haze: every compile holds it
 MOVER_MOVES = ("hold", "pingpong", "sweep", "blink", "uv")
 MATRIX_DRAWS = (
     "solid", "rows-down", "rows-up", "columns", "zigzag", "centre-out", "arrow-up", "fill-up",
@@ -42,7 +46,6 @@ RATE_RE = re.compile(r"1/16|1/8|1/4|1/2|[1-9][0-9]*bar")
 COLOUR_RE = re.compile(r"#[0-9A-Fa-f]{6}")
 GUID_RE = re.compile(r"[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}")
 BEAT_RE = re.compile(r"[1-9][0-9]*\.[1-9][0-9]*")  # "<bar>.<beat>"
-SECONDS_RE = re.compile(r"[1-9][0-9]*s")
 DOWNBEAT_RE = re.compile(r"[0-9]+:[0-5][0-9](\.[0-9]+)?")
 
 # --------------------------------------------------------------------- models --
@@ -260,7 +263,8 @@ MATRIX_KEYS = ("draw", "rate", "colour", "mirror", "pingpong", "with_white")
 def problems_choreography(data: object, rig: Rig | None = None) -> list[str]:
     """Schema problems of a parsed choreography. `track` resolution against the pools is
     done by the rule, which has them. `rig` is accepted so that layers can be checked
-    against the room later; the v1 vocabulary needs nothing from it."""
+    against the room later; the v1 vocabulary needs nothing from it. `sections` may be
+    empty: the autoscript everywhere, plus the haze every compile holds."""
     if not isinstance(data, dict):
         return ["choreography must be a mapping"]
     out = list(_keys(data, CHOREO_KEYS, CHOREO_REQUIRED, "choreography"))
@@ -279,8 +283,8 @@ def problems_choreography(data: object, rig: Rig | None = None) -> list[str]:
         out.extend(_grid_problems(data["grid"]))
     if "sections" in data:
         sections = data["sections"]
-        if not isinstance(sections, list) or not sections:
-            out.append("sections must be a non-empty list")
+        if not isinstance(sections, list):
+            out.append("sections must be a list")
         else:
             last_end = 0
             for i, section in enumerate(sections, 1):
@@ -340,7 +344,6 @@ SCALARS = {  # words a layer takes besides a mapping
     "uv": ("auto", "off", "on"),
     "strobe": ("auto", "off"),
     "hue": ("auto", "off") + HUE_STATES,
-    "haze": ("auto", "off", "on"),
 }
 
 
@@ -444,20 +447,12 @@ def _hue(m: dict) -> list[str]:
     return out
 
 
-def _haze(m: dict) -> list[str]:
-    out = _key_msgs(m, ("burst",), ("burst",))
-    if "burst" in m and not (isinstance(m["burst"], str) and SECONDS_RE.fullmatch(m["burst"])):
-        out.append(f"burst {_show(m['burst'])} is not seconds such as '4s'")
-    return out
-
-
 _MAPPING_CHECKS = {
     "movers": _movers,
     "matrix": _matrix,
     "white": _white,
     "strobe": _strobe,
     "hue": _hue,
-    "haze": _haze,
 }
 
 
@@ -847,7 +842,7 @@ class _Edit:
 @dataclass
 class _Job:
     script: TrackScript           # the copy being edited
-    grid: Grid
+    grid: Grid | None             # None without sections: no bar number is used
     rig: Rig
     venue: VenueInfo
     tracks: list[Track]           # the script's tracks of the venue's nodes
@@ -884,27 +879,38 @@ def compile_choreography(
     rig: Rig,
     venues: list[VenueInfo],
     presets: list[Preset],
+    *,
+    duration_ms: int = 0,
 ) -> tuple[TrackScript, list[ManualCue]]:
     """Apply `choreo` to a copy of `script`; the input is never changed.
 
-    Refuses (`CompileError`) a script with more than 8 tempo anchors, a `grid` that is not
-    the script's first anchor (within 0.01 BPM and 2 ms), a script no venue holds, and a
-    result that breaks `soundswitch_format.check`. Fixtures are found by node name in the
-    venue that holds the script's node ids; what cannot be written becomes a `ManualCue`.
+    Refuses (`CompileError`) a script no venue holds and a result that breaks
+    `soundswitch_format.check`; with sections, also a script with more than 8 tempo
+    anchors and a `grid` that is not the script's first anchor (within 0.01 BPM and 2 ms).
+    Without sections no bar number is used, so neither is checked. Fixtures are found by
+    node name in the venue that holds the script's node ids; what cannot be written
+    becomes a `ManualCue`.
 
     Per section: when `hue` changes a Main lane (intensity; colour too when `hue` has a
     `colour`), Main's current content in that lane is first materialised into every leaf
     node of the venue (groups carry no content) whose own layer in this section does not
     write that lane, so only the chandelier changes; then Main is edited; then movers,
-    matrix, white, strobe and haze write their nodes (white last over the W cells). `uv`
-    is always a manual cue."""
-    _check_grid(choreo, script)
+    matrix, white and strobe write their nodes (white last over the W cells). `uv` is
+    always a manual cue.
+
+    Last, the haze fixture's fan and fog hold the rig's `level` over the whole track: from
+    0 ms to the script's last event, or to `duration_ms` (the song length) when that is
+    later. This replaces whatever the base or a section left in their intensity and
+    blocks, and is one manual cue for the whole track."""
+    if choreo.sections:
+        _check_grid(choreo, script)
     out = copy.deepcopy(script)
     venue, trks = _venue_of(out, venues)
     fixtures = _resolve(rig, venue, {t.node: t for t in trks})
-    job = _Job(out, grid(out), rig, venue, trks, fixtures, presets)
+    job = _Job(out, grid(out) if choreo.sections else None, rig, venue, trks, fixtures, presets)
     for section in choreo.sections:
         _compile_section(job, section)
+    _compile_haze_whole(job, haze_level(rig), ssf.script_end(out, duration_ms))
     problems = check(out)
     if problems:
         raise CompileError("the compiled script breaks the format's rules:\n  " + "\n  ".join(problems))
@@ -1006,8 +1012,7 @@ def _compile_section(job: _Job, section: Section) -> None:
     w = _Window(first, last, start, end, job.grid.beat_ms(start))
     layers = section_layers(section)
     edits = (_compile_movers(job, w, layers["movers"]) + _compile_matrix(job, w, layers["matrix"])
-             + _compile_white(job, w, layers["white"]) + _compile_strobe(job, w, layers["strobe"])
-             + _compile_haze(job, w, layers["haze"]))  # fmt: skip
+             + _compile_white(job, w, layers["white"]) + _compile_strobe(job, w, layers["strobe"]))  # fmt: skip
     if layers["uv"] != "auto":
         job.cue(first, start, "movers", f"UV {layers['uv']}, {w.bars}: {UV_WARNING}")
     if layers["hue"] != "auto":
@@ -1209,24 +1214,71 @@ def _compile_strobe(job: _Job, w: _Window, value) -> list[_Edit]:
     return edits
 
 
-def _compile_haze(job: _Job, w: _Window, value) -> list[_Edit]:
-    """Fog and fan levels (both typed Intensity in the venue): `on` full, `off` dark,
-    `burst` fog full for N seconds with the fan on across the section. Experimental."""
-    if value == "auto":
-        return []
-    full = [Key(w.start, FULL), Key(w.end, FULL)]
-    if value == "off":
-        fog = fan = _dark(w.start, w.end)
-    elif value == "on":
-        fog = fan = full
+# ----------------------------------------------------------------------- haze --
+# Haze is a constant thin mist, not an effect: after the sections (a `hue` section may
+# have materialised Main into the channels), every compile holds fan and fog at the rig's
+# level over the whole track. Both channels are typed Intensity in the venue.
+
+
+def _haze_of(fixtures: list[_Fixture]) -> _Fixture | None:
+    """The rig's haze fixture: the first one, the one `haze_level` reads."""
+    return next((f for f in fixtures if f.kind == "haze"), None)
+
+
+def _haze_roles(haze: _Fixture | None) -> list[Track]:
+    """The fixture's fan track, then its fog track, those it has."""
+    return [haze.tracks[role] for role in ("fan", "fog") if haze is not None and role in haze.tracks]
+
+
+def haze_tracks(script: TrackScript, rig: Rig, venues: list[VenueInfo]) -> list[Track]:
+    """The fan track, then the fog track, of the rig's haze fixture in the script's venue:
+    only those the venue and the script have, and [] when the rig has no haze. Raises
+    `CompileError` when no venue holds the script's nodes."""
+    venue, trks = _venue_of(script, venues)
+    return _haze_roles(_haze_of(_resolve(rig, venue, {t.node: t for t in trks})))
+
+
+def haze_problem(script: TrackScript, rig: Rig, venues: list[VenueInfo],
+                 duration_ms: int = 0) -> str | None:
+    """What keeps the haze tracks from holding the rig's level over the whole track, or
+    None. Holding it is exactly one own block from 0 to `script_end(script, duration_ms)`
+    and a non-empty intensity lane whose keys are all at the level. Also None when
+    `haze_tracks` is empty."""
+    trks = haze_tracks(script, rig, venues)
+    if not trks:
+        return None
+    level, end = haze_level(rig), ssf.script_end(script, duration_ms)
+    for trk in trks:
+        spans = [(s.start, s.end) for s in trk.blocks.items] if trk.blocks else []
+        if spans != [(0, end)]:
+            return f"haze node {trk.node}: blocks {spans} are not one block over 0–{end} ms"
+        lane = ssf.intensity(trk)
+        if lane is None or not lane.keys:
+            return f"haze node {trk.node}: no intensity keys"
+        off = next((k for k in lane.keys if k.level != level_of(level)), None)
+        if off is not None:
+            return (f"haze node {trk.node}: intensity {off.level / 2**32:.3g} at {off.t} ms "
+                    f"is not the rig's level {level:g}")
+    return None
+
+
+def _compile_haze_whole(job: _Job, level: float | None, end: int) -> None:
+    """Fan and fog at `level` over [0, end]: two keys and one own block, whatever was
+    there; the tracks' other parts are left alone. One cue for the whole track: the
+    experimental warning, or why a channel the venue or script lacks was skipped (the
+    other one is still written), or that the rig has no haze."""
+    haze = _haze_of(job.fixtures)
+    if haze is None or level is None:
+        job.cue(1, 0, "haze", "haze, whole track: the rig has no haze; not compiled")
+        return
+    for trk in _haze_roles(haze):
+        lane = ssf.intensity(trk)
+        if lane is None:
+            lane = ssf.Lane(4, 1, None, [])
+            trk.lanes.insert(0, lane)
+        lane.keys = [Key(0, level_of(level)), Key(end, level_of(level))]
+        trk.blocks = ssf.Section(trk.blocks.ver if trk.blocks else 1, [ssf.Span(0, end)])
+    if haze.missing:
+        job.cue(1, 0, "haze", f"haze, whole track: skipped {'; '.join(haze.missing)}")
     else:
-        stop = min(w.start + int(value["burst"][:-1]) * 1000 - 1, w.end)
-        fog = [Key(w.start, FULL), Key(stop, FULL)] + ([Key(stop + 1, 0)] if stop < w.end else [])
-        fan = full
-    what = value if isinstance(value, str) else f"burst {value['burst']}"
-    edits = []
-    for f in job.kind("haze", w, "haze"):
-        job.cue(w.first, w.start, f.key, f"haze {what}, {w.bars}: {HAZE_WARNING}")
-        edits += [_Edit(f.tracks[role], keys=keys) for role, keys in (("fog", fog), ("fan", fan))
-                  if role in f.tracks]
-    return edits
+        job.cue(1, 0, "haze", f"haze at {level:g}, whole track: {HAZE_WARNING}")
