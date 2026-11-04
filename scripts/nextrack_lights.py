@@ -559,6 +559,17 @@ def _check_out(project: ssf.Project, out: Path) -> None:
             raise Refused(f"{out} is inside {folder}; pick another -o")
 
 
+def _copy_path(project: ssf.Project, guid: str, kind: str) -> Path:
+    """The copy `apply` ("applied") or `accept` ("accepted") keeps of a track's script."""
+    return project.folder.parent / "nextrack-backups" / kind / project.script_path(guid).name
+
+
+def _official(entry: dict) -> str | None:
+    """The hash of the version the project file is expected to have: the accepted hand
+    edits when there are any, else what the last apply wrote."""
+    return entry.get("accepted") or entry.get("applied")
+
+
 def _load(project: ssf.Project, text: str, prefer_base: bool = False) -> tuple[ssf.TrackRef, ssf.TrackScript]:
     ref = project.resolve(text)
     path = project.script_path(ref.guid)
@@ -905,14 +916,13 @@ def _plan_base(project: ssf.Project, ref: ssf.TrackRef, current: bytes, adopt: b
     guid = ref.guid
     base_path = _base_path(project, guid)
     root = base_path.parent.parent
-    state_path = root / "state.json"
-    state = json.loads(state_path.read_text(encoding="utf-8")) if state_path.is_file() else {}
-    entry = state.get(guid) or {}
+    entry = _read_state(root).get(guid) or {}
     if adopt:
         return current, True
-    if entry.get("applied") and _sha(current) != entry["applied"]:
-        raise Refused("the project file was edited in SoundSwitch since the last apply; "
-                      "--adopt-current keeps those edits as the new base")
+    if _official(entry) and _sha(current) != _official(entry):
+        raise Refused("the project file was edited in SoundSwitch since the last apply: restore puts the "
+                      "official version back, accept makes the edited file official; "
+                      "--adopt-current keeps the edits as the new base")
     if entry.get("base") and not base_path.is_file():
         first = sorted(p for p in root.glob("*/" + base_path.name) if p.parent.name != "base")
         hint = f"; the earliest backup is {first[0]}" if first else ""
@@ -966,6 +976,8 @@ def cmd_apply(project: ssf.Project, args) -> int:
     venues, presets = project.venues()
     data, cues = _compile_checked(choreo, base, venues, presets, rig, ref.duration_ms or 0)
     resized = len(data) != len(current)
+    root = _base_path(project, ref.guid).parent.parent
+    accepted = bool(_read_state(root).get(ref.guid, {}).get("accepted")) and not args.adopt_current
     print(f"{ref.artist} — {ref.title}  ({ref.guid[:8]})")
     print(f"compiled from the {'current project file' if new_base else 'base copy'}; "
           f"size {len(current):,} -> {len(data):,} bytes")
@@ -975,14 +987,22 @@ def cmd_apply(project: ssf.Project, args) -> int:
         print(line)
     for c in cues:
         print(f"manual cue, bar {c.bar}: {c.fixture}: {c.what}")
+    if accepted:
+        print("this apply replaces the hand edits accepted for this track; their copy stays in "
+              f"{_copy_path(project, ref.guid, 'accepted')}")
     if not args.apply:
         print("dry run: nothing written (add --apply to write)"
-              + ("; the size change also needs --accept-resize" if resized and not args.accept_resize else ""))
+              + ("; the size change also needs --accept-resize" if resized and not args.accept_resize else "")
+              + ("; it also needs --drop-hand-edits"
+                 if accepted and not args.drop_hand_edits else ""))
         return 0
+    if accepted and not args.drop_hand_edits:
+        raise Refused("this track has accepted hand edits that this apply would replace; "
+                      "--drop-hand-edits confirms (their copy stays in "
+                      f"{_copy_path(project, ref.guid, 'accepted')})")
     if resized and not args.accept_resize:
         raise Refused(f"the output is {len(data):,} bytes, the project file {len(current):,}: "
                       "a resized file needs --accept-resize")
-    root = _base_path(project, ref.guid).parent.parent
     base_path = _base_path(project, ref.guid)
     staged = target.with_name(target.name + ".tmp")
     try:
@@ -994,6 +1014,31 @@ def cmd_apply(project: ssf.Project, args) -> int:
     return 0
 
 
+def _read_state(root: Path) -> dict:
+    state_path = root / "state.json"
+    return json.loads(state_path.read_text(encoding="utf-8")) if state_path.is_file() else {}
+
+
+def _write_state(root: Path, state: dict) -> None:
+    _write_atomic(root / "state.json", json.dumps(state, indent=2, sort_keys=True).encode("utf-8"))
+
+
+def _backup(root: Path, target: Path, current: bytes) -> Path:
+    """Write `current` into a new timestamped folder under `root`; return the file."""
+    stamp = _now().strftime("%Y%m%d-%H%M%S")
+    folder, n = root / stamp, 1
+    while True:
+        try:
+            folder.mkdir()
+            break
+        except FileExistsError:
+            n += 1
+            folder = root / f"{stamp}-{n}"
+    backup = folder / target.name
+    backup.write_bytes(current)
+    return backup
+
+
 def _commit(project, ref, target, staged, root, base_path, base_bytes, new_base, current, data) -> None:
     """Base (when new), timestamped backup, replace, state.json. If anything fails before the
     project file is replaced, the base is put back as it was: removed when this run wrote
@@ -1003,17 +1048,10 @@ def _commit(project, ref, target, staged, root, base_path, base_bytes, new_base,
     try:
         if new_base:
             _write_atomic(base_path, base_bytes)
-        stamp = _now().strftime("%Y%m%d-%H%M%S")
-        folder, n = root / stamp, 1
-        while True:
-            try:
-                folder.mkdir()
-                break
-            except FileExistsError:
-                n += 1
-                folder = root / f"{stamp}-{n}"
-        backup = folder / target.name
-        backup.write_bytes(current)
+        backup = _backup(root, target, current)
+        applied = _copy_path(project, ref.guid, "applied")
+        applied.parent.mkdir(parents=True, exist_ok=True)
+        _write_atomic(applied, data)
         os.replace(staged, target)
     except BaseException:
         if new_base and old_base is None:
@@ -1021,13 +1059,80 @@ def _commit(project, ref, target, staged, root, base_path, base_bytes, new_base,
         elif new_base:
             _write_atomic(base_path, old_base)
         raise
-    state_path = root / "state.json"
-    state = json.loads(state_path.read_text(encoding="utf-8")) if state_path.is_file() else {}
+    state = _read_state(root)
     state[ref.guid] = {"base": _sha(base_bytes), "applied": _sha(data)}
-    _write_atomic(state_path, json.dumps(state, indent=2, sort_keys=True).encode("utf-8"))
+    _write_state(root, state)
     print(f"wrote {target}")
     print(f"backup: {backup}")
     print(f'restore: cp "{backup}" "{target}"')
+
+
+def _official_track(project: ssf.Project, args, verb: str):
+    """`(ref, target, current, root, state, entry)` for restore and accept; refuses a
+    track `apply` has never written."""
+    ref = project.resolve(args.track)
+    target = project.script_path(ref.guid)
+    if not target.is_file():
+        raise Refused(f"{ref.artist} — {ref.title}: no script file {target.name}")
+    root = _base_path(project, ref.guid).parent.parent
+    state = _read_state(root)
+    entry = state.get(ref.guid) or {}
+    if not _official(entry):
+        raise Refused(f"{ref.artist} — {ref.title}: no apply record in state.json, so there is no "
+                      f"official version to {verb}")
+    return ref, target, target.read_bytes(), root, state, entry
+
+
+def cmd_restore(project: ssf.Project, args) -> int:
+    ref, target, current, root, _, entry = _official_track(project, args, "restore")
+    kind = "accepted" if entry.get("accepted") else "applied"
+    copy = _copy_path(project, ref.guid, kind)
+    if not copy.is_file():
+        raise Refused(f"the {kind} copy {copy} is missing, so the official version cannot be restored")
+    official = copy.read_bytes()
+    if _sha(official) != _official(entry):
+        raise Refused(f"the {kind} copy {copy} changed since it was made (state.json disagrees)")
+    if _sha(current) == _official(entry):
+        raise Refused(f"{ref.artist} — {ref.title}: the project file already is the {kind} version")
+    print(f"{ref.artist} — {ref.title}  ({ref.guid[:8]})")
+    print(f"would put the {kind} version ({copy}) back over the project file")
+    if not args.apply:
+        print("dry run: nothing written (add --apply to write)")
+        return 0
+    if soundswitch_running():
+        raise Refused("SoundSwitch is running; close it before --apply")
+    staged = target.with_name(target.name + ".tmp")
+    try:
+        staged.write_bytes(official)
+        backup = _backup(root, target, current)
+        os.replace(staged, target)
+    finally:
+        if staged.exists():
+            staged.unlink()
+    print(f"wrote {target}")
+    print(f"backup: {backup}")
+    print(f'restore: cp "{backup}" "{target}"')
+    return 0
+
+
+def cmd_accept(project: ssf.Project, args) -> int:
+    ref, target, current, root, state, entry = _official_track(project, args, "accept")
+    if _sha(current) == _official(entry):
+        raise Refused(f"{ref.artist} — {ref.title}: the project file already is the official version")
+    copy = _copy_path(project, ref.guid, "accepted")
+    print(f"{ref.artist} — {ref.title}  ({ref.guid[:8]})")
+    print(f"would make the project file as it is now the official version (copy: {copy})")
+    if not args.apply:
+        print("dry run: nothing written (add --apply to write)")
+        return 0
+    if soundswitch_running():
+        raise Refused("SoundSwitch is running; close it before --apply")
+    copy.parent.mkdir(parents=True, exist_ok=True)
+    _write_atomic(copy, current)
+    state[ref.guid] = {**entry, "accepted": _sha(current)}
+    _write_state(root, state)
+    print(f"accepted: {copy}")
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -1075,6 +1180,15 @@ def main(argv: list[str] | None = None) -> int:
                      help="allow an output whose size differs from the project file")
     ap_.add_argument("--adopt-current", action="store_true",
                      help="make the project file as it is now the new base (keeps edits made in SoundSwitch)")
+    ap_.add_argument("--drop-hand-edits", action="store_true",
+                     help="let this apply replace hand edits accepted with `accept` (their copy is kept)")
+    for name, text in (("restore", "put the official version (the last apply, or the accepted edits) "
+                                   "back over the project file; the edited file is backed up first"),
+                       ("accept", "make the project file's hand edits the official version, so later "
+                                  "applies refuse until --drop-hand-edits; the project file is not written")):
+        q = sub.add_parser(name, parents=[common], help=text + ". Dry-run by default")
+        q.add_argument("track", help="GUID, GUID prefix or 'Artist — Title'")
+        q.add_argument("--apply", action="store_true", help="really write (SoundSwitch must be closed)")
 
     args = ap.parse_args(argv)
     if not args.project:
@@ -1087,7 +1201,8 @@ def main(argv: list[str] | None = None) -> int:
     project = ssf.Project(folder)
     try:
         code = {"tracks": cmd_tracks, "dump": cmd_dump, "analyze": cmd_analyze,
-                "render": cmd_render, "compile": cmd_compile, "apply": cmd_apply}[args.cmd](project, args)
+                "render": cmd_render, "compile": cmd_compile, "apply": cmd_apply,
+                "restore": cmd_restore, "accept": cmd_accept}[args.cmd](project, args)
     except (Refused, LookupError, OSError, ValueError) as e:
         print(e, file=sys.stderr)
         return 1
