@@ -73,7 +73,7 @@ white strip is also lit.
 | same drop all night | row chase and 4 x 14 split alternate for about 47 minutes | one drawing per peak (`draw`), different per track |
 | two bars are clones | 1,368 of 1,368 identical | `mirror`, `pingpong` NW and SW |
 | white strip on top of colour | 67 % overlap | `white` only as `accent`/`flash` |
-| no darkness, no contrast | Hue dark under 6 %, no blackout, strobe or haze | `hue: dark` in builds and breaks, one blackout bar, budgeted strobe and haze |
+| no darkness, no contrast | Hue dark under 6 %, no blackout or strobe | `hue: dark` in builds and breaks, one blackout bar, budgeted strobe |
 | random positions every 2 bars | 98 % of intervals are 8 beats | one `position` per section |
 | builds do not build | 0 of 85 | `fill-up`, `faster_from`/`faster_every` |
 | colour neighbours collide | half the adjacent pairs within 30 degrees | a palette per block (the show plan) |

@@ -32,7 +32,7 @@ Copy this checklist into your reply and keep it current:
 - [ ] 3. Context: block, show plan, budget tally, lyrics' themes
 - [ ] 4. Proposal in pt-BR sent; owner approved it
 - [ ] 5. YAML written; check_repo clean; render; compile to a copy; cues listed in pt-BR
-- [ ] 6. Apply: only on the owner's explicit go (dry run, then --apply, SoundSwitch closed)
+- [ ] 6. Apply: only on the owner's explicit go (dry run, then --apply, SoundSwitch closed); then status
 ```
 
 ## 1. Resolve the track
@@ -66,9 +66,9 @@ Copy this checklist into your reply and keep it current:
 - The show plan: `budget` front matter (effect → blocks/peaks where it may appear), peaks
   and moments, this block's palette and fixture roles, the night's rules. The plan wins.
   No plan for the set: say so, offer to write one, and spend at most one white accent
-  (no strobe, haze or UV) meanwhile.
+  (no strobe or UV) meanwhile.
 - Choreographies already written: `grep -H "^track:" lightshows/tracks/*.yml`; for those of
-  this set, read the `budget:` prose, `grep -nE "white:|strobe:|uv:|haze:"` and the main draw.
+  this set, read the `budget:` prose, `grep -nE "white:|strobe:|uv:"` and the main draw.
 - Tally: effect · allowed in · already spent (track, bar) · this track. An effect the
   budget does not give this block or peak stays out; never repeat the main draw of the
   track before or after.
@@ -81,7 +81,7 @@ Copy this checklist into your reply and keep it current:
 - **Build into drops:** `hue: dark`, `matrix: {draw: fill-up, rate: 1bar}`, movers
   `pingpong` with `faster_from`/`faster_every` (an absolute bar).
 - **Movers:** one lit, the other dark (`pingpong`); a verse `hold`s one position per
-  section. Haze (only where budgeted) makes the beams read.
+  section. The haze is a constant thin mist at the rig's level in every compiled track, so the beams always read a little; no section decides it.
 - **Vorlanes:** two 8×7 drawings, one draw per section, `mirror` or `pingpong` so NW and
   SW never clone.
 - **White strip:** an accent, one beat on a budgeted drop (`white: {accent: ["81.1"]}`).
@@ -99,8 +99,9 @@ The proposal, in Portuguese, has four parts:
 2. **Orçamento**: the tally lines; what this track spends, the plan line that allows it,
    what stays saved for later.
 3. **Seções**: one line per musical phrase, `c. a-b (m:ss-m:ss) · nome · intenção`, then
-   only the layers that change (movings, Vorlanes, fita branca, lustre, haze/UV/strobe);
-   unset is the autoscript. Bar n starts at downbeat + (n − 1) × 240 / bpm seconds.
+   only the layers that change (movings, Vorlanes, fita branca, lustre, UV/strobe);
+   unset is the autoscript; a track the owner wants left on the autoscript gets
+   `sections: []` (the haze still applies). Bar n starts at downbeat + (n − 1) × 240 / bpm seconds.
 4. **Dúvidas**: drop bar, positions, anything you guessed.
 
 Cut sections where the music changes (bass in, drop, break), not on the autoscript's
@@ -119,8 +120,8 @@ the owner approves; on amendments, send the revised proposal.
 5. Translate every `manual cue, bar N: …` line into Portuguese: bar, time, fixture, what to
    do by hand in SoundSwitch.
 
-If compile refuses more than 8 tempo anchors, the track stays on the autoscript: tell the
-owner and stop. If `grid` does not match `the script's first tempo anchor (X BPM at Y ms)`,
+If compile refuses more than 8 tempo anchors, the lights stay on the autoscript: tell the
+owner, then write a choreography with `sections: []` so the haze still applies. If `grid` does not match `the script's first tempo anchor (X BPM at Y ms)`,
 copy those values into `grid`, unless the owner plays another version of the track.
 
 ## 6. Apply: only on the owner's explicit go
@@ -136,12 +137,18 @@ for the next track, and again after any change to the YAML.
    the flags below that the owner agreed to.
 4. Report the `wrote`, `backup:` and `restore:` lines verbatim; the owner then plays the
    bars and adds the manual cues.
+5. Run `uv run scripts/nextrack_lights.py status` for the track (or `--block ID` for its
+   block) and report the verdict to the owner in pt-BR. When `status` notes `edited in
+   SoundSwitch after the apply`, ask the owner: `restore` or `accept`. Show the dry run
+   first (`restore <track>` or `accept <track>`), and run `--apply` only on their word.
 
-Two flags need the owner's explicit yes after you explain them:
+Three flags need the owner's explicit yes after you explain them:
 
 - `--accept-resize`: the output's size differs from the project file (nearly always).
   SoundSwitch is not yet known to load a resized script (X1); the backup and `restore:` line
   are the way back. Suggest a track the owner can lose for the first time.
+- `--drop-hand-edits`: the track has hand edits the owner accepted (`accept`), and the
+  apply replaces them with the choreography. Say which track, and ask before adding it.
 - `--adopt-current`: the project file changed since the last apply (edited in SoundSwitch
   or restored). The file as it is now becomes the base, keeping those edits; `auto` then
   means that file, not the autoscript.
@@ -149,7 +156,7 @@ Two flags need the owner's explicit yes after you explain them:
 The first apply stores the current project file as the track's base; if the owner edited
 that track in SoundSwitch, ask whether that is the base they want. Any other refusal
 (SoundSwitch running, base changed, round trip, a change outside the sections): report it
-and wait for the owner. Never add a flag on your own to get past a refusal: report the
+and wait for the owner. A refusal that names `restore` and `accept` means the track was edited in SoundSwitch after the apply: put it to the owner. Never add a flag on your own to get past a refusal: report the
 refusal and wait.
 
 ## Red flags
@@ -158,7 +165,8 @@ refusal and wait.
 |---|---|
 | "They approved the choreography, so I apply it" | Approval is for the YAML. Writing SoundSwitch needs its own go. |
 | "They said go for the last track, and I only tweaked one section" | A go covers one track's YAML as it was. Ask again. |
-| "`--adopt-current` / `--accept-resize` gets past this refusal" | Report the refusal and wait. A flag goes in only on the owner's explicit yes. |
+| "`--adopt-current` / `--accept-resize` / `--drop-hand-edits` gets past this refusal" | Report the refusal and wait. A flag goes in only on the owner's explicit yes. |
+| "`--drop-hand-edits` only drops edits the owner accepted" | It replaces hand edits the owner chose to keep. Explain, ask, wait. |
 | "It is only `--accept-resize`" | It writes a file SoundSwitch may not load. Explain, ask, wait. |
 | "This drop deserves white or strobe too" | Not in the budget for this block or peak: out. Ask the owner. |
 | "I'll write the YAML and they can amend it" | They amend the Portuguese proposal. YAML comes after approval. |

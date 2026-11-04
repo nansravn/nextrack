@@ -28,7 +28,7 @@ what `dump` does not show.
 | X7 | What is the new per-node trailing list of format 13? | Place an attribute cue (such as Custom Cue 1) on the haze fog track rather than Main. Save. | byte diff | Documentation today; if per-fixture cues exist, they could fire the haze from a cue instead of an intensity key. |
 | X8 | E blocks are strobe: what unit are the rates? | On a Vorlane cell, add a strobe block 1:00-1:05, start rate 10, end rate 90. Save. | byte diff of the E block | Real strobe blocks for the `strobe` layer instead of 1/16-note pulses. |
 | X9 | Colour per zone: which tracks hold it? | Set Vorlane 1 cells 1-8 to red from 1:00 to 1:10. | `dump` colours; expect eight new C blocks on the cell nodes, or one on the group node | Confirms that the compiler's per-cell colour (`matrix.colour`) is where SoundSwitch looks. |
-| X10 | Does the haze machine react to intensity keys on its fog node (Main - 2)? | On a scratch track, put 0 %, 50 % and 100 % intensity blocks on the fog node (the second haze channel). Play it with the machine on and watch the fog; the DMX output monitor shows channel 505 (fan 504). | `dump`; the machine itself | The `haze` layer is marked experimental (every use prints a manual cue). A yes removes that warning; a no means haze stays a manual cue or an attribute cue. |
+| X10 | Does the haze machine react to a constant level on its fan and fog nodes (both at the rig's level, 0.5 today)? | Compile any track, apply it on a scratch copy, play it with the machine on and watch the mist and channels 504-505 in the DMX output monitor. | `dump`; the machine itself | A yes removes the experimental cue; a no means the level must be set on the machine. |
 
 ## Venue file (E)
 
@@ -38,7 +38,7 @@ what `dump` does not show.
 | E2 | The fixture-record flag byte (movers differ). | In the DMX map or fixture settings, compare Mover 1 and Mover 2 (invert pan/tilt?). Toggle it on Mover 1. Save. | byte diff of the venue file | Whether movers mirror each other; mover corners in `rig.yml`. |
 | E3 | Is the group field an index or a bitmask? | Move the haze to control group 4. Save. | byte diff | Documentation only. |
 | E4 | Haze fixture type. | Note what the DMX map shows, set the type to Smoke/Atmospheric, save. | byte diff (type 1 to 16) | Documentation only; may let SoundSwitch's own smoke controls drive it. |
-| E5 | Haze output at 0, 50, 100 %. | Same as X10, reading channels 504 and 505 in the output monitor. | output monitor | Same as X10: how the compiler should write `haze` levels. |
+| E5 | Haze output at 0, 50, 100 %. | Same as X10, reading channels 504 and 505 in the output monitor. | output monitor | Same as X10: which level the compiler should write to the haze nodes. |
 | E6 | Lane attribute ids for colour, position, strobe. | Copy a scripted track. On the copy change only a mover's colour in one block; then only its position. Save. | byte diff of the copy | Checks that the tools address the right lane per attribute. |
 | E7 | Where the active venue is stored. | Switch to the other venue, quit, diff the venue file. | byte diff | If nothing changes the choice is in the registry; the tools always pick the venue by GUID from the script. |
 | E8 | Static look layout. | Create one static look in slot 33: Mover 1 red, "Disco Ball", strobe 50 %. Save. | byte diff | Documentation only. |
