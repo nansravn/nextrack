@@ -249,9 +249,11 @@ A track is **compliant** when three things hold:
   A refused compile shows its reason instead of yes or no, and so do an invalid choreography,
   a GUID the project does not have and an unreadable `state.json` (`state.json unreadable: …`);
 - **haze**: the project file's fan and fog hold the rig's level over the whole track, as
-  the guard of `apply` defines it. It shows `—` when the rig or the venue has no haze tracks
-  for the script, and a `—` does not block compliance: there is no haze to hold. A project
-  file that does not parse, or a haze check that fails, shows its reason instead.
+  the guard of `apply` defines it. It shows `—` only when the rig has no haze fixture or the venue lacks
+  its fan or fog nodes, and a `—` does not block compliance: there is no haze to hold. When the venue has a
+  channel node but the script has no track for it, it shows `haze node <id> has no track in
+  this script` and the track is not compliant. A project file that does not parse, or a haze
+  check that fails, shows its reason instead.
 
 A reason is one track's problem, so `status` goes on with the other tracks. A track map or
 venues file that cannot be read stops it with exit 1, because no track can be judged without

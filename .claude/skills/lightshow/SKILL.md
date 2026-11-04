@@ -136,9 +136,11 @@ for the next track, and again after any change to the YAML.
 3. `uv run scripts/nextrack_lights.py apply lightshows/tracks/<slug>.yml --apply`, plus only
    the flags below that the owner agreed to.
 4. Report the `wrote`, `backup:` and `restore:` lines verbatim; the owner then plays the
-   bars and adds the manual cues.
-5. Run `uv run scripts/nextrack_lights.py status` for the track (or `--block ID` for its
-   block) and report the verdict to the owner in pt-BR. When `status` notes `edited in
+   bars and adds the manual cues. The `restore:` line that `apply` prints undoes that apply
+   (it copies the backup back); the `restore` command puts the official version back over
+   hand edits. They are different things.
+5. Run `uv run scripts/nextrack_lights.py status --block <block-id>` for the track's block
+   (or `status` with no filter, then read the track's row) and report the verdict to the owner in pt-BR. When `status` notes `edited in
    SoundSwitch after the apply`, ask the owner: `restore` or `accept`. Show the dry run
    first (`restore <track>` or `accept <track>`), and run `--apply` only on their word.
 

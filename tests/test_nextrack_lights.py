@@ -343,6 +343,24 @@ def test_a_missing_base_with_a_state_entry_is_refused(make_project, make_script,
     assert code == 0, err
 
 
+def test_the_missing_base_hint_never_names_the_applied_or_accepted_copy(
+        make_project, make_script, tmp_path, capsys, idle):
+    import shutil
+
+    project = _happier_project(make_project, make_script)
+    choreo = _choreo_for_project(tmp_path)
+    assert _apply(capsys, project, choreo, "--apply", "--accept-resize")[0] == 0
+    for folder in (f for f in _backups(project).iterdir() if f.is_dir()):  # only the copies of the new kinds are left
+        if folder.name not in ("base", "applied"):
+            shutil.rmtree(folder)
+    (_backups(project) / "accepted").mkdir(exist_ok=True)
+    shutil.copy(_backups(project) / "applied" / _target(project).name, _backups(project) / "accepted")
+    (_backups(project) / "base" / _target(project).name).unlink()
+    code, _, err = _apply(capsys, project, choreo, "--apply", "--accept-resize")
+    assert code == 1 and "base copy" in err
+    assert "earliest backup" not in err
+
+
 def test_a_base_without_a_state_entry_must_match_the_project_file(
         make_project, make_script, tmp_path, capsys, idle):
     project = _happier_project(make_project, make_script)

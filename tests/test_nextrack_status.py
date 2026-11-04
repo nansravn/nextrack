@@ -273,7 +273,7 @@ BLOCK_ROWS = [
     ["Pedro Sampaio & MC Pedrinho — Dançarina", "yes", "yes", "yes", "yes"],  # only via the choreography
     ["Nobody — Song Z", "no", "no", "—", "no", "no SoundSwitch script found under this name"],
     ["Pedro Sampaio — Dançarina", "yes", "yes", "yes", "yes"],
-    ["Chiclete com Banana — Voa Voa", "no", "no", "—", "no"],
+    ["Chiclete com Banana — Voa Voa", "no", "no", "haze node 1935 has no track in this script", "no"],
 ]
 
 
@@ -286,6 +286,25 @@ def test_block_filter(room, idle, capsys):
     assert lines[0] == "track" + " " * 36 + "choreography  applied  haze  compliant  note"
     assert [_cells(line) for line in lines[1:-1]] == BLOCK_ROWS
     assert lines[-1] == "2 of 4 tracks compliant"
+
+
+def test_a_script_with_only_one_haze_channel_is_not_compliant(room, idle, capsys):
+    _apply(capsys, room)
+    assert _row(room)["compliant"] is True
+    _edit_script(room, lambda script: script.venues[0].tracks.remove(ssf.track(script, 1935)))
+    row = _row(room)
+    assert row["haze"] == "haze node 1935 has no track in this script"
+    assert row["compliant"] is False
+
+
+def test_a_venue_without_the_haze_machine_shows_a_dash(make_project, make_script, tmp_path, idle):
+    project = _happier_project(make_project, make_script)
+    repo = build_mini_repo(tmp_path / "repo").root
+    (repo / "lightshows" / "tracks").mkdir(parents=True)
+    shutil.copy(REPO_ROOT / "lightshows" / "rig.yml", repo / "lightshows" / "rig.yml")
+    choreo = _choreo_for_project(repo / "lightshows" / "tracks")
+    rig = nl.ls.load_rig(repo / "lightshows" / "rig.yml")
+    assert nl.track_status(ssf.Project(project), GUID0, choreo, rig, repo)["haze"] is None
 
 
 def test_several_scripts_list_their_guid8s(room, trackmap_bytes, capsys):
@@ -315,6 +334,52 @@ def test_set_filter(room, capsys):
     assert [_cells(line)[0] for line in lines[first + 2:first + 6]] == [r[0] for r in BLOCK_ROWS]
     assert lines[second + 2:second + 6] == lines[first + 2:first + 6]
     assert lines[-1] == "0 of 8 tracks compliant"
+
+
+def test_a_set_without_block_links_is_refused(room, capsys):
+    sets = room[1] / "sets"
+    sets.mkdir()
+    (sets / "plan.md").write_text("## Program\nno links here\n", encoding="utf-8")
+    code, out, err = _status(capsys, room, "--set", str(sets / "plan.md"))
+    assert code == 1 and "no block links in" in err and "tracks compliant" not in out
+
+
+def test_no_section_choreography_applies_on_a_variable_tempo_track(make_project, make_script, tmp_path, capsys, idle):
+    import soundswitch_format as ssf_
+
+    project = make_project(haze=True)
+    script = make_script(tempo=[(i * 2000, 100.0 + i) for i in range(9)])
+    for node in (1935, 1936):
+        script.venues[0].tracks.append(ssf_.Track(
+            node=node, lanes=[ssf_.Lane(4, 1, None, [ssf_.Key(0, ssf_.FULL), ssf_.Key(8000, 0)])],
+            blocks=None, link=1, colours=None, positions=None, strobes=None,
+            position_blocks=None, shapes=None))
+    script.node_lists = [1] * len(script.venues[0].tracks)
+    (project / ("{" + GUID0.upper() + "}.ssfile")).write_bytes(ssf_.serialize_script(script))
+    repo = build_mini_repo(tmp_path / "repo").root
+    (repo / "lightshows" / "tracks").mkdir(parents=True)
+    shutil.copy(REPO_ROOT / "lightshows" / "rig.yml", repo / "lightshows" / "rig.yml")
+    choreo = _choreo_for_project(repo / "lightshows" / "tracks")
+    _edit_choreo(choreo, lambda d: d.update(track=POOL_DANCARINA, sections=[]))
+    room_ = (project, repo)
+    code, _, err = run(capsys, "--project", str(project), "apply", str(choreo), "--apply", "--accept-resize")
+    assert code == 0, err
+    assert _row(room_, choreo=choreo)["compliant"] is True
+
+
+def test_no_section_choreography_compiles_on_a_script_without_a_tempo_map(make_project, make_script, tmp_path, capsys):
+    project = make_project()
+    script = make_script(tempo=[])
+    (project / ("{" + GUID0.upper() + "}.ssfile")).write_bytes(ssf.serialize_script(script))
+    choreo = _choreo_for_project(tmp_path)
+    _edit_choreo(choreo, lambda d: d.update(sections=[]))
+    out = tmp_path / "out.ssfile"
+    code, _, err = run(capsys, "--project", str(project), "compile", str(choreo), "--out", str(out))
+    assert code == 0, err
+    assert out.is_file()
+    html = tmp_path / "p.html"
+    code, _, err = run(capsys, "--project", str(project), "render", GUID0, "--choreo", str(choreo), "-o", str(html))
+    assert code == 0, err
 
 
 def _snapshot(root):

@@ -522,14 +522,14 @@ def sim_data(script: ssf.TrackScript, venues: list[ssf.VenueInfo], presets: list
                 out[label] = _node_data(trk, preset_name)
         return out
 
-    g = ssf.grid(script)
+    g = ssf.grid(script) if choreo and choreo.sections else None
     return {
         "title": title,
         "end": max(script_end(script, duration_ms), script_end(after) if after else 0),
         "grid": [[t, bpm] for t, bpm in script.tempo],
         "sections": [{"name": s.name, "bars": list(s.bars), "intent": s.intent,
                       "start": g.ms(s.bars[0]), "end": g.ms(s.bars[1] + 1)}
-                     for s in (choreo.sections if choreo else [])],
+                     for s in (choreo.sections if g else [])],
         "rig": rig_out,
         "before": export(script),
         "after": export(after) if after else None,
@@ -771,6 +771,8 @@ def _with_base_intensity(out: ssf.Track, base: ssf.Track) -> ssf.Track:
 
 def _windows(choreo, base: ssf.TrackScript) -> list[tuple[int, int]]:
     """The sections' spans in ms, inclusive, as the compiler cuts them."""
+    if not choreo.sections:
+        return []
     g = ssf.grid(base)
     return [(g.ms(sec.bars[0]), g.ms(sec.bars[1] + 1) - 1) for sec in choreo.sections]
 
@@ -930,7 +932,7 @@ def _plan_base(project: ssf.Project, ref: ssf.TrackRef, current: bytes, adopt: b
                       "official version back, accept makes the edited file official; "
                       "--adopt-current keeps the edits as the new base")
     if entry.get("base") and not base_path.is_file():
-        first = sorted(p for p in root.glob("*/" + base_path.name) if p.parent.name != "base")
+        first = sorted(p for p in root.glob("*/" + base_path.name) if p.parent.name not in ("base", "applied", "accepted"))
         hint = f"; the earliest backup is {first[0]}" if first else ""
         raise Refused(f"the base copy {base_path} is missing although state.json has one for this track{hint}; "
                       "restoring it is safer than re-basing (--adopt-current makes the current file the base)")
@@ -1190,9 +1192,10 @@ def _applied_now(project: ssf.Project, ref: ssf.TrackRef, choreo_path: Path, rig
 def _haze_held(project: ssf.Project, current: bytes | None, rig: ls.Rig,
                duration_ms: int) -> bool | str | None:
     """Whether the project file's fan and fog hold the rig's level over the whole track
-    (`lightshow.haze_problem`). False without a script file, None when the script has no
-    haze tracks in the venue (there is nothing to hold), the reason when the file does not
-    parse or the check fails."""
+    (`lightshow.haze_problem`). False without a script file, None when the rig has no haze
+    or the venue lacks its channel nodes (there is nothing to hold), the reason when the
+    script lacks a track for a channel node the venue has, the file does not parse or the
+    check fails."""
     if current is None:
         return False
     venues, _ = project.venues()
@@ -1201,6 +1204,9 @@ def _haze_held(project: ssf.Project, current: bytes | None, rig: ls.Rig,
     except Exception as e:  # a corrupt file may fail in any way
         return f"the project file cannot be parsed ({e})"
     try:
+        lost = ls.haze_untracked(script, rig, venues)
+        if lost:
+            return f"haze node {lost[0]} has no track in this script"
         if not ls.haze_tracks(script, rig, venues):
             return None
         return ls.haze_problem(script, rig, venues, duration_ms) is None
@@ -1350,6 +1356,8 @@ def cmd_status(project: ssf.Project, args) -> int:
         by_guid.setdefault(_guid(data), path)
     if args.block or args.set:
         ids = [args.block] if args.block else check_repo.set_block_ids(Path(args.set).read_text(encoding="utf-8"))
+        if not ids:
+            raise Refused(f"no block links in {args.set}")
         blocks = {Path(b.path).stem: b for b in check_repo.load_repo(root).blocks}
         groups = []
         for block_id in ids:
