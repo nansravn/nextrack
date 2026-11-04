@@ -1091,3 +1091,35 @@ def test_drop_hand_edits_applies_and_clears_accepted(make_project, make_script, 
     assert "accepted" not in _official_state(project)
     assert nl._copy_path(ssf.Project(project), GUID0.upper(), "accepted").read_bytes() == hand
     assert _target(project).read_bytes() != hand
+
+
+def test_a_second_accept_backs_up_the_first_accepted_copy(make_project, make_script, tmp_path, capsys, idle):
+    project, _ = _applied_haze(make_project, make_script, tmp_path, capsys)
+    first = _hand_edit(project)
+    assert _lights(capsys, project, "accept", GUID0, "--apply")[0] == 0
+    script = ssf.parse_script(first)
+    ssf.track(script, 1167).lanes[0].keys[0].level = 77
+    _target(project).write_bytes(ssf.serialize_script(script))
+    second = _target(project).read_bytes()
+    code, out, _ = _lights(capsys, project, "accept", GUID0)
+    assert code == 0 and "backed up and replaced" in out
+    code, out, err = _lights(capsys, project, "accept", GUID0, "--apply")
+    assert code == 0, err
+    accepted = nl._copy_path(ssf.Project(project), GUID0.upper(), "accepted")
+    assert accepted.read_bytes() == second
+    assert "backup:" in out
+    held = [p / accepted.name for p in _backups(project).iterdir()
+            if p.is_dir() and p.name not in ("base", "applied", "accepted")]
+    assert first in [p.read_bytes() for p in held if p.is_file()]
+
+
+def test_a_failed_replace_keeps_the_previous_applied_copy(
+        make_project, make_script, tmp_path, capsys, idle, monkeypatch):
+    project, _ = _applied_haze(make_project, make_script, tmp_path, capsys)
+    copy = nl._copy_path(ssf.Project(project), GUID0.upper(), "applied")
+    previous, state = copy.read_bytes(), (_backups(project) / "state.json").read_bytes()
+    _fail_replacing(monkeypatch, _target(project))
+    code, _, err = _apply(capsys, project, _choreo_for_project(tmp_path, 1), "--apply", "--accept-resize")
+    assert code == 1 and "disk full" in err
+    assert copy.read_bytes() == previous
+    assert (_backups(project) / "state.json").read_bytes() == state

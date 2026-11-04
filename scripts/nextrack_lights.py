@@ -1049,9 +1049,6 @@ def _commit(project, ref, target, staged, root, base_path, base_bytes, new_base,
         if new_base:
             _write_atomic(base_path, base_bytes)
         backup = _backup(root, target, current)
-        applied = _copy_path(project, ref.guid, "applied")
-        applied.parent.mkdir(parents=True, exist_ok=True)
-        _write_atomic(applied, data)
         os.replace(staged, target)
     except BaseException:
         if new_base and old_base is None:
@@ -1059,6 +1056,9 @@ def _commit(project, ref, target, staged, root, base_path, base_bytes, new_base,
         elif new_base:
             _write_atomic(base_path, old_base)
         raise
+    applied = _copy_path(project, ref.guid, "applied")  # after the replace: a failed one leaves the old copy
+    applied.parent.mkdir(parents=True, exist_ok=True)
+    _write_atomic(applied, data)
     state = _read_state(root)
     state[ref.guid] = {"base": _sha(base_bytes), "applied": _sha(data)}
     _write_state(root, state)
@@ -1122,12 +1122,17 @@ def cmd_accept(project: ssf.Project, args) -> int:
     copy = _copy_path(project, ref.guid, "accepted")
     print(f"{ref.artist} — {ref.title}  ({ref.guid[:8]})")
     print(f"would make the project file as it is now the official version (copy: {copy})")
+    if copy.is_file():
+        print("the earlier accepted version will be backed up and replaced")
     if not args.apply:
         print("dry run: nothing written (add --apply to write)")
         return 0
     if soundswitch_running():
         raise Refused("SoundSwitch is running; close it before --apply")
     copy.parent.mkdir(parents=True, exist_ok=True)
+    if copy.is_file():
+        earlier = _backup(root, copy, copy.read_bytes())
+        print(f"backup: {earlier}")
     _write_atomic(copy, current)
     state[ref.guid] = {**entry, "accepted": _sha(current)}
     _write_state(root, state)
