@@ -228,16 +228,7 @@ def position_changes(script: ssf.TrackScript, trk: ssf.Track, start: int, end: i
     return sorted(f for f in flags if start <= f[0] < end)
 
 
-def script_end(script: ssf.TrackScript, floor: int = 0) -> int:
-    """The last moment anything happens in the script (or `floor`, e.g. the song length)."""
-    end = floor
-    for trk in [script.main, *ssf.tracks(script)]:
-        for lane in trk.lanes:
-            end = max(end, *(k.t for k in lane.keys), 0)
-        for sec in (trk.blocks, trk.colours, trk.strobes, trk.position_blocks, trk.shapes):
-            if sec is not None:
-                end = max([end] + [i.end for i in sec.items])
-    return end
+script_end = ssf.script_end
 
 
 # ------------------------------------------------------------------- venue ----

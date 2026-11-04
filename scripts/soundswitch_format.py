@@ -188,6 +188,18 @@ def intensity(trk: Track) -> Lane | None:
     return next((ln for ln in trk.lanes if ln.attr == 4), None)
 
 
+def script_end(script: TrackScript, floor: int = 0) -> int:
+    """The last moment anything happens in the script (or `floor`, e.g. the song length)."""
+    end = floor
+    for trk in [script.main, *tracks(script)]:
+        for lane in trk.lanes:
+            end = max(end, *(k.t for k in lane.keys), 0)
+        for sec in (trk.blocks, trk.colours, trk.strobes, trk.position_blocks, trk.shapes):
+            if sec is not None:
+                end = max([end] + [i.end for i in sec.items])
+    return end
+
+
 # ------------------------------------------------------------------ parsing ----
 
 

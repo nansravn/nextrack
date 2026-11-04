@@ -5,6 +5,7 @@ Mover 1/2, two Vorlanes with MASTER, RGB 01-48 and W 1-8 children, and the haze 
 two channels. The script is synthetic: every node follows Main unless a test says so.
 The last test reads the owner's real project from $NEXTRACK_SOUNDSWITCH_REAL and is
 skipped without it."""
+import copy
 import os
 from pathlib import Path
 
@@ -117,6 +118,23 @@ def compile_(script, *sections, venues=VENUES, grid=None):
     return ls.compile_choreography(choreo(*sections, grid=grid), script, RIG, venues, PRESETS)
 
 
+HAZE_NODES = (1934, 1935, 1936)      # the haze group and its fan and fog channels
+
+
+def section_cues(cues):
+    """`cues` without the one whole-track haze cue that every compile gives."""
+    assert [c.fixture for c in cues].count("haze") == 1, cues
+    return [c for c in cues if c.fixture != "haze"]
+
+
+def without_haze(script):
+    """`script` without the haze nodes' tracks, which every compile writes."""
+    out = copy.deepcopy(script)
+    for v in out.venues:
+        v.tracks = [t for t in v.tracks if t.node not in HAZE_NODES]
+    return out
+
+
 def lvl(script, node, t):
     trk = script.main if node == 2 else ssf.track(script, node)
     return level_at(intensity(trk), t)
@@ -167,7 +185,7 @@ def test_movers_off_zeroes_both_movers_across_the_span_only(room):
     script = room()
     out, cues = compile_(script, section(2, 3, movers="off"))
     start, end = span(2, 3)
-    assert cues == []
+    assert section_cues(cues) == []
     for node in (1167, 1168):
         trk = ssf.track(out, node)
         assert all(lvl(out, node, t) == 0 and covered(trk, t)
@@ -193,7 +211,8 @@ def test_hue_dark_materialises_main_into_every_leaf_node(room):
     mid = (start + end) // 2
     assert lvl(out, 2, mid) == 0 and lvl(out, 2, start) == 0 and lvl(out, 2, end) == 0
     assert lvl(out, 2, start - 1) == MAIN_LEVEL and lvl(out, 2, end + 1) == MAIN_LEVEL
-    for node in (rgb(1818, 1), rgb(1876, 48), white(1818, 1), master(1818), 1935, 1936, 1168):
+    # every leaf but the haze channels, which hold the rig's level (see the haze tests)
+    for node in (rgb(1818, 1), rgb(1876, 48), white(1818, 1), master(1818), 1168):
         trk = ssf.track(out, node)
         assert covered(trk, start) and covered(trk, end) and lvl(out, node, mid) == MAIN_LEVEL
         assert trk.colours is None                     # no hue colour: colour lane untouched
@@ -206,7 +225,7 @@ def test_hue_dark_materialises_main_into_every_leaf_node(room):
 def test_hue_leaves_group_nodes_untouched(room):
     script = room()
     out, _ = compile_(script, section(2, 3, hue={"state": "bright", "colour": "#FF0000"},
-                                      movers="off", matrix={"draw": "solid"}, haze="on"))
+                                      movers="off", matrix={"draw": "solid"}))
     for node in GROUPS:
         assert ssf.track(out, node) == ssf.track(script, node), node
 
@@ -251,7 +270,7 @@ def test_mover_hold_sets_level_colour_and_position(room):
     out, cues = compile_(script, section(2, 3, movers={"move": "hold", "position": "DJ Booth",
                                                        "colour": "#FFB347", "level": 0.5}))
     start, end = span(2, 3)
-    assert cues == []
+    assert section_cues(cues) == []
     for node in (1167, 1168):
         trk = ssf.track(out, node)
         assert lvl(out, node, start + 10) == ls.level_of(0.5)
@@ -272,6 +291,7 @@ def test_shape_block_straddling_the_section_is_a_cue(room):
     ssf.track(script, 1167).shapes = ssf.Shapes(1, 1, [shape(start - 1000, start + 1000),
                                                        shape(start + 2000, start + 3000)])
     out, cues = compile_(script, section(2, 3, movers={"move": "hold", "position": "DJ Booth"}))
+    cues = section_cues(cues)
     assert len(cues) == 1
     assert cues[0].fixture == "mover-ne" and "shape block" in cues[0].what
     assert f"{start - 1000}–{start + 1000} ms" in cues[0].what
@@ -309,6 +329,7 @@ def test_a_position_section_keeps_the_preset_in_force_after_it(room):
 
 def test_unknown_preset_name_is_a_manual_cue(room):
     out, cues = compile_(room(), section(2, 3, movers={"move": "hold", "position": "Nowhere"}))
+    cues = section_cues(cues)
     assert len(cues) == 1 and "Nowhere" in cues[0].what
     assert (cues[0].bar, cues[0].time_ms) == (2, ms(2))
     assert lvl(out, 1167, ms(2) + 10) == ls.level_of(0.85)
@@ -329,6 +350,7 @@ def test_pingpong_faster_from_is_an_absolute_bar_and_rises_sharply(room):
 def test_movers_uv_is_a_manual_cue(room):
     script = room()
     out, cues = compile_(script, section(2, 3, movers={"move": "uv"}))
+    cues = section_cues(cues)
     assert len(cues) == 1 and "UV" in cues[0].what
     assert ssf.track(out, 1168) == ssf.track(script, 1168)
 
@@ -337,6 +359,7 @@ def test_missing_node_is_a_manual_cue_and_is_skipped(room):
     venues = [ssf.VenueInfo("DJ Renan", VENUE_GUID, venue_nodes(drop={1168}))]
     script = room()
     out, cues = compile_(script, section(2, 3, movers="off"), venues=venues)
+    cues = section_cues(cues)
     assert len(cues) == 1 and cues[0].fixture == "mover-se" and "Mover 2" in cues[0].what
     assert lvl(out, 1167, ms(2) + 10) == 0
     assert ssf.track(out, 1168) == ssf.track(script, 1168)
@@ -348,7 +371,7 @@ def test_missing_node_is_a_manual_cue_and_is_skipped(room):
 def test_matrix_solid_keeps_white_off_and_master_full(room):
     out, cues = compile_(room(), section(1, 2, matrix={"draw": "solid"}))
     start, end = span(1, 2)
-    assert cues == []
+    assert section_cues(cues) == []
     for unit in UNITS:
         for n in range(1, 9):
             trk = ssf.track(out, white(unit, n))
@@ -413,6 +436,7 @@ def test_white_accent_on_the_beat_capped(room):
 
 def test_white_accent_outside_the_section_is_a_cue(room):
     _, cues = compile_(room(), section(1, 4, white={"accent": ["9.1"]}))
+    cues = section_cues(cues)
     assert len(cues) == 1 and "9.1" in cues[0].what
 
 
@@ -422,7 +446,7 @@ def test_white_flash(room):
     assert [lvl(out, white(1818, 1), ms(1, b)) for b in (1, 2, 3, 4)] == [level] * 4
 
 
-# ---------------------------------------------------------- strobe, haze, uv ----
+# ---------------------------------------------------------------- strobe, uv ----
 
 
 def test_strobe_roll_pulses_movers_and_colour_cells(room):
@@ -436,19 +460,101 @@ def test_strobe_roll_pulses_movers_and_colour_cells(room):
     assert ssf.track(out, white(1818, 1)) == ssf.track(script, white(1818, 1))
 
 
-def test_haze_burst_is_experimental(room):
-    out, cues = compile_(room(), section(1, 4, haze={"burst": "4s"}))
-    assert len(cues) == 1 and "experimental: confirm the machine reacts" in cues[0].what
-    assert lvl(out, 1936, ms(1) + 3999) == FULL and lvl(out, 1936, ms(1) + 4100) == 0
-    assert lvl(out, 1935, ms(4)) == FULL
-
-
 def test_uv_on_is_one_manual_cue(room):
     script = room()
     out, cues = compile_(script, section(3, 4, uv="on"))
+    cues = section_cues(cues)
     assert len(cues) == 1
     assert (cues[0].bar, cues[0].time_ms) == (3, ms(3))
-    assert out == script
+    assert without_haze(out) == without_haze(script)
+
+
+# ----------------------------------------------------------------------- haze ----
+
+L = ls.level_of(0.5)
+
+
+def flat_haze(out, end):
+    for node in (1935, 1936):
+        trk = ssf.track(out, node)
+        assert trk.blocks.items == [ssf.Span(0, end)]
+        assert {k.level for k in intensity(trk).keys} == {L}
+
+
+def test_haze_holds_the_level_over_the_whole_track(room):
+    script = room()                                     # haze nodes follow Main; give 1936 own keys
+    fog = ssf.track(script, 1936); fog.lanes[0].keys = [Key(5000, FULL), Key(9000, 0)]
+    fog.blocks = ssf.Section(1, [ssf.Span(5000, 9000)])
+    out, cues = compile_(script, section(3, 4, movers="off"))
+    flat_haze(out, ssf.script_end(script))
+    assert [(c.bar, c.time_ms, c.fixture, c.what) for c in cues] == [
+        (1, 0, "haze", "haze at 0.5, whole track: experimental: confirm the machine reacts")]
+    assert ls.haze_problem(out, RIG, VENUES) is None
+
+
+def test_haze_stays_flat_under_a_hue_section(room):          # materialise must not leak in
+    out, _ = compile_(room(), section(1, 8, hue="pulse"))
+    flat_haze(out, ssf.script_end(out))
+
+
+def test_haze_covers_a_section_past_the_script_end(room):    # Review Focus 2
+    out, _ = compile_(room(), section(200, 201, movers="off"))   # room() ends at 400_000 ms
+    flat_haze(out, ssf.script_end(out)); assert ssf.script_end(out) >= ms(202) - 1
+
+
+def test_haze_end_honours_the_track_length(room):
+    out, _ = ls.compile_choreography(choreo(section(1, 2)), room(), RIG, VENUES, PRESETS,
+                                     duration_ms=500_000)
+    flat_haze(out, 500_000)
+
+
+def test_no_sections_skips_the_grid_checks(room):
+    many = tuple((158 + i * 1000, 100.0 + i) for i in range(9))      # 9 anchors
+    script = room(tempo=many)
+    out, _ = ls.compile_choreography(choreo(grid={"bpm": 90, "downbeat": "0:01.000"}),
+                                     script, RIG, VENUES, PRESETS)
+    changed = [t.node for t, b in zip(ssf.tracks(out), ssf.tracks(script)) if t != b]
+    assert changed == [1935, 1936] and out.main == script.main
+    with pytest.raises(ls.CompileError):
+        compile_(script, section(1, 2))
+
+
+def test_no_sections_needs_no_tempo_map(room):
+    out, _ = ls.compile_choreography(choreo(), room(tempo=()), RIG, VENUES, PRESETS)
+    flat_haze(out, 400_000)
+    with pytest.raises(ls.CompileError, match="tempo map"):
+        compile_(room(tempo=()), section(1, 2))
+
+
+def test_a_haze_channel_the_venue_lacks_is_the_one_cue(room):
+    venues = [ssf.VenueInfo("DJ Renan", VENUE_GUID, venue_nodes(drop={1936}))]
+    script = room()
+    out, cues = compile_(script, section(1, 2), venues=venues)
+    assert [(c.bar, c.time_ms, c.fixture, c.what) for c in cues] == [
+        (1, 0, "haze", "haze, whole track: skipped 'Main -  Lig Light LL-HZ600K - 2' is not in venue 'DJ Renan'")]
+    assert ssf.track(out, 1936) == ssf.track(script, 1936)
+    assert ssf.track(out, 1935).blocks.items == [ssf.Span(0, 400_000)]
+    assert ls.haze_problem(out, RIG, venues) is None
+
+
+def test_haze_problem_names_the_node(room):
+    assert ls.haze_problem(room(), RIG, VENUES).startswith("haze node 1935:")   # follows Main
+    out, _ = compile_(room(), section(1, 2))
+    assert ls.haze_problem(out, RIG, VENUES, duration_ms=500_000).startswith("haze node 1935:")
+    ssf.track(out, 1936).lanes[0].keys[-1].level = ls.level_of(0.4)
+    assert ls.haze_problem(out, RIG, VENUES) == (
+        "haze node 1936: intensity 0.4 at 400000 ms is not the rig's level 0.5")
+
+
+def test_a_rig_without_haze_writes_none(room):
+    rig = ls.Rig({k: f for k, f in RIG.fixtures.items() if f.kind != "haze"}, RIG.matrix_rows,
+                 RIG.zone_order, RIG.white_max)
+    script = room()
+    out, cues = ls.compile_choreography(choreo(section(1, 2)), script, rig, VENUES, PRESETS)
+    assert ssf.track(out, 1936) == ssf.track(script, 1936)
+    assert [(c.fixture, c.what) for c in cues] == [
+        ("haze", "haze, whole track: the rig has no haze; not compiled")]
+    assert ls.haze_tracks(out, rig, VENUES) == [] and ls.haze_problem(out, rig, VENUES) is None
 
 
 # ------------------------------------------------------------------- layers ----
@@ -482,7 +588,7 @@ def test_happier_compiles_on_a_synthetic_script(room):
     out, cues = ls.compile_choreography(ls.load_choreography(HAPPIER), script, RIG, VENUES, PRESETS)
     assert check(out) == []
     assert ssf.parse_script(ssf.serialize_script(out)) == out
-    assert [(c.bar, c.fixture) for c in cues] == [(69, "haze")]
+    assert [(c.bar, c.fixture) for c in cues] == [(1, "haze")]
     assert lvl(out, 1167, ms(4)) == 0                          # intro: movers off
     assert lvl(out, 2, ms(68) + 1200) == 0                     # silence: even the chandelier
     assert lvl(out, rgb(1818, 1), ms(68) + 1200) == 0

@@ -5,7 +5,6 @@ budget:                    # onde cada efeito raro pode aparecer: blocos e picos
   white: [final]           # a fita em flash: só no último refrão da noite
   strobe: [peak-2, peak-4, final]
   uv: [halloween-chegada, os-fantasmas, edm-assombrado]
-  haze: [os-fantasmas, edm-assombrado, funk-anos-2000-morto-muito-louco, final]
 ---
 
 # Plano de luz — Halloween em Casa
@@ -26,33 +25,33 @@ que gasta o que sobrou. Na Saideira o lustre acende de novo: a luz da casa volta
 Os nomes do `budget`. Cada pico tem um gesto próprio; nenhum repete o anterior.
 - `peak-1` — Swedish House Mafia — Don't You Worry Child (`edm-summer-eletrohits` #12, ~22:45):
   o sol nasce. Subida de 8 compassos com `fill-up` por compasso e centro escuro; no drop,
-  `arrow-up`, lustre `pulse` e o primeiro acento branco da noite. Sem strobe e sem haze.
+  `arrow-up`, lustre `pulse` e o primeiro acento branco da noite. Sem strobe.
 - `peak-2` — FISHER — Losing It (`edm-assombrado` #11, ~23:25): a casa assombrada no talo.
   Centro escuro, `zigzag` em 1/8 com `pingpong` NW↔SW, movings revezando em 1/4; o primeiro
   strobe da noite (`hit` no 1 do drop) e o acento branco.
 - `peak-3` — Ivete Sangalo — Festa (`axe-classicos` #9, ~00:20): o avesso do pico 2, a sala
   inteira acende. Lustre `bright`, Vorlanes `solid` em 1/4 com `pingpong`, movings `blink`, acento
-  branco no grito de "Festa". Festa é luz, não susto: sem strobe e sem haze.
+  branco no grito de "Festa". Festa é luz, não susto: sem strobe.
 - `peak-4` — MC Kevinho — Olha a Explosão (`funk-pop-festa` #10, ~02:10): a explosão sai do
   centro. `fill-up` em 1/2 na subida, um tempo de escuro total e, no drop, `centre-out` em 1/16,
   strobe `hit` e acento branco.
 - `final` — DJ Guuga — Vidrado Em Você (`baile-150-resenha` #12, ~02:35): tudo o que sobrou.
-  Haze, movings revezando no haze, `arrow-up`, strobe `roll` e a fita em `flash` no último
+  Movings revezando na neblina, `arrow-up`, strobe `roll` e a fita em `flash` no último
   refrão, a única vez da noite.
 
 ## Momentos
 Fora dos picos, um gesto por música:
 - **The Rapture Pt.III** (`halloween-chegada` #4): o primeiro escuro da noite. Lustre `dark`,
   Vorlanes `off`, movings em UV apontadas pro teto (`Up`): as fantasias brilham.
-- **Werewolves Of London → Thriller** (`os-fantasmas` #6–7): haze no uivo. No Thriller, UV na
+- **Werewolves Of London → Thriller** (`os-fantasmas` #6–7): No Thriller, UV na
   introdução e `zigzag`, o passo zumbi, com o lustre aceso pra galera ver a coreografia.
 - **Psycho Killer** (`edm-assombrado` #4): só UV no break, o resto escuro.
 - **Turn Off The Lights** (`edm-assombrado` #6): o apagão. Na voz, um compasso de escuro total,
-  junto com quem apaga a luz da sala; no drop, haze e as movings revezando: só as luzes da festa.
-- **Piratas** (entre o 6 e o 7, quando entrarem no pool): o haze do apagão vira neblina do mar;
+  junto com quem apaga a luz da sala; no drop, as movings revezando: só as luzes da festa.
+- **Piratas** (entre o 6 e o 7, quando entrarem no pool): no apagão, a neblina de sempre vira o mar;
   as movings fazem o farol (`sweep` lento, `every: 2bar`) em âmbar-tocha sobre azul-mar.
 - **Um Morto Muito Louco** (`funk-anos-2000-morto-muito-louco` #1, na volta do concurso de
-  fantasia): o morto sai da névoa. Escuro e haze na introdução; no refrão a sala acende inteira.
+  fantasia): o morto sai da névoa. Escuro na introdução; no refrão a sala acende inteira.
 - **Dança do Créu** (`funk-anos-2000-morto-muito-louco` #9): uma seção por velocidade, e o
   `pingpong` das movings acelera junto: `1bar`, 1/2, 1/4, 1/8, 1/16.
 - **Tem Café** (`saideira-funk-melody` #9): lustre `bright` em âmbar, o resto apagando.
@@ -99,9 +98,9 @@ Duas faixas seguidas alternam a cor do drop entre a dominante e a de apoio.
 2. **UV é do Halloween, e só no escuro.** Um trecho em cada um dos três momentos (Rapture,
    Thriller, Psycho Killer), com `hue: dark` e `matrix: off`: debaixo de cor o UV não aparece.
    No v1 o UV é cue manual no SoundSwitch.
-3. **Strobe e haze ficam nos picos e momentos.** Strobe: `hit` nos picos 2 e 4, `roll` só no
-   `final`. Haze: um `burst` em Werewolves, Turn Off The Lights, o Morto e o `final`, nunca em
-   músicas seguidas (a sala é pequena e o haze fica); experimental até a máquina responder.
+3. **Strobe fica nos picos e momentos.** Strobe: `hit` nos picos 2 e 4, `roll` só no
+   `final`. A neblina (haze) não é efeito: fica fixa no nível do rig a noite toda, em toda
+   música; experimental até a máquina responder.
 4. **Subtrair antes de somar.** Toda subida pra um drop tem o centro `dark` e cresce (`fill-up`
    por compasso ou `pingpong` com `faster_from`). A seção depois do drop começa com menos.
 5. **Escuro total é raro.** Um compasso com tudo `off` e `hue: dark` só quando a música para de
