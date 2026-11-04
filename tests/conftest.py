@@ -160,7 +160,7 @@ def make_project(tmp_path, make_script, trackmap_bytes, venues_bytes):
 
     Two 16 s tracks at 120 BPM (8 bars, one phrase): `PROJECT_GUIDS[0]` has Mover 1
     pulsing 8 times; `PROJECT_GUIDS[1]` has a Vorlane whose W cell is lit for half the
-    time its RGB cell is."""
+    time its RGB cell is. `haze=True` adds the rig's haze machine to the venue (ids 1934-1936)."""
     import soundswitch_format as ssf
 
     def cell(node, keys):
@@ -168,7 +168,7 @@ def make_project(tmp_path, make_script, trackmap_bytes, venues_bytes):
                          blocks=ssf.Section(1, [ssf.Span(0, 16000)]), link=1, colours=None,
                          positions=None, strobes=None, position_blocks=None, shapes=None)
 
-    def _build():
+    def _build(haze: bool = False):
         folder = tmp_path / "project"
         folder.mkdir()
         entries = [
@@ -183,6 +183,11 @@ def make_project(tmp_path, make_script, trackmap_bytes, venues_bytes):
                  {"id": 1820, "name": "RGB 01 - VORLANE VL-1000 RGBW v2", "look": 1725, "colour": 0xFF38BAC7},
                  {"id": 1821, "name": "W 1 - VORLANE VL-1000 RGBW v2", "look": 1726, "colour": 0xFFFFFFFF}]},
         ]
+        if haze:  # the rig's haze machine: a group with a fan and a fog child (note the double space)
+            tree.append({"id": 1934, "name": " Lig Light LL-HZ600K", "model": " Lig Light LL-HZ600K",
+                         "colour": 0xFFFFFFFF, "children": [
+                             {"id": 1935, "name": "Main -  Lig Light LL-HZ600K", "look": 1, "colour": 0xFFFFFFFF},
+                             {"id": 1936, "name": "Main -  Lig Light LL-HZ600K - 2", "look": 1, "colour": 0xFFFFFFFF}]})
         (folder / "SoundSwitchVenues.bin").write_bytes(venues_bytes(tree, ["Stage Left"]))
 
         pulses = [k for i in range(8) for k in ((i * 2000, 0), (i * 2000 + 1, ssf.FULL), (i * 2000 + 500, 0))]

@@ -195,7 +195,9 @@ room), `pingpong` (the first Vorlane gets the even steps and the second the odd 
   over SoundSwitch's own strobe blocks. Add these in SoundSwitch by hand.
 - **Nothing outside the sections changes.** `apply` refuses unless everything outside the
   rig's tracks and Main equals the base, and outside the sections every venue track and
-  Main shows the base's intensity, colour and position.
+  Main shows the base's intensity, colour and position. The one exception is the haze
+  fixture's fan and fog: outside the sections they change only to the rig's `level` over
+  the whole track.
 - **Undo.** To return a track to the autoscript, close SoundSwitch and copy
   `nextrack-backups/base/{GUID}.ssfile` (next to the project folder) over the file of the
   same name in the project folder. To undo only the last `apply`, use the `restore:` line

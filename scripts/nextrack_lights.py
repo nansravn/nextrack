@@ -490,7 +490,7 @@ def sim_data(script: ssf.TrackScript, venues: list[ssf.VenueInfo], presets: list
     the owner). Raises `lightshow.CompileError` when the choreography does not fit the script."""
     after, cues = None, []
     if choreo is not None:
-        after, cues = ls.compile_choreography(choreo, script, rig, venues, presets)
+        after, cues = ls.compile_choreography(choreo, script, rig, venues, presets, duration_ms=duration_ms)
     venue, trks = ls._venue_of(script, venues)
     fixtures = ls._resolve(rig, venue, {t.node: t for t in trks})
     names = [n.name for n in venue.nodes]
@@ -691,11 +691,15 @@ def _load_inputs(args) -> tuple[ls.Choreography, ls.Rig]:
     return ls.load_choreography(Path(args.choreo)), ls.load_rig(rig_path)
 
 
-def _compile_checked(choreo, base: ssf.TrackScript, venues, presets, rig) -> tuple[bytes, list]:
+def _compile_checked(choreo, base: ssf.TrackScript, venues, presets, rig,
+                     duration_ms: int = 0) -> tuple[bytes, list]:
     """Compile onto `base`, serialize, re-parse; refuse unless the bytes parse back to the
-    compiled script and everything outside the venue's tracks and Main equals `base`."""
+    compiled script and everything outside the venue's tracks and Main equals `base`. The
+    one exception outside the sections is the haze fixture's fan and fog: their intensity and
+    blocks may differ from the base, but only to hold the rig's level over the whole track
+    (`lightshow.haze_problem`); everything else on them is checked like any venue track."""
     try:
-        out, cues = ls.compile_choreography(choreo, base, rig, venues, presets)
+        out, cues = ls.compile_choreography(choreo, base, rig, venues, presets, duration_ms=duration_ms)
     except ls.CompileError as e:
         raise Refused(str(e)) from e
     data = ssf.serialize_script(out)
@@ -716,6 +720,7 @@ def _compile_checked(choreo, base: ssf.TrackScript, venues, presets, rig) -> tup
         raise Refused("the compiled script changed tracks the choreography does not touch; "
                       "untouched parts differ from the base")
     windows = _windows(choreo, base)
+    haze_ids = {t.node for t in ls.haze_tracks(again, rig, venues)}
     pairs = [("Main", again.main, base.main)]
     for cv, bv in zip(again.venues, base.venues):
         pairs += [(f"node {c.node}", c, b) for c, b in zip(cv.tracks, bv.tracks) if b.node in ids]
@@ -724,11 +729,27 @@ def _compile_checked(choreo, base: ssf.TrackScript, venues, presets, rig) -> tup
         raise Refused("the compiled script changed Main although no section sets a hue; "
                       "untouched parts differ from the base")
     for name, c, b in pairs:
+        if c.node in haze_ids and c is not again.main:
+            c = _with_base_intensity(c, b)  # their intensity and blocks are checked as a whole below
         problem = _outside_problem(c, b, windows, main=c is again.main)
         if problem:
             raise Refused(f"the compiled script changed {name} {problem} outside the sections; "
                           "untouched parts differ from the base")
+    problem = ls.haze_problem(again, rig, venues, duration_ms)
+    if problem:
+        raise Refused(f"the compiled script's haze is not constant: {problem}")
     return data, cues
+
+
+def _with_base_intensity(out: ssf.Track, base: ssf.Track) -> ssf.Track:
+    """A copy of `out` with `base`'s intensity lane and blocks, so that a comparison with
+    `base` leaves only what the haze rule does not cover."""
+    c = copy.deepcopy(out)
+    c.blocks = copy.deepcopy(base.blocks)
+    for i, (lo, lb) in enumerate(zip(out.lanes, base.lanes)):
+        if lo.attr == 4 and lb.attr == 4:
+            c.lanes[i] = copy.deepcopy(lb)
+    return c
 
 
 def _windows(choreo, base: ssf.TrackScript) -> list[tuple[int, int]]:
@@ -915,7 +936,7 @@ def cmd_compile(project: ssf.Project, args) -> int:
     choreo, rig = _load_inputs(args)
     ref, base = _load(project, choreo.soundswitch, prefer_base=True)
     venues, presets = project.venues()
-    data, cues = _compile_checked(choreo, base, venues, presets, rig)
+    data, cues = _compile_checked(choreo, base, venues, presets, rig, ref.duration_ms or 0)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_bytes(data)
     print(f"wrote {out} ({len(data):,} bytes) for {ref.artist} — {ref.title}")
@@ -943,7 +964,7 @@ def cmd_apply(project: ssf.Project, args) -> int:
         raise Refused("the base script does not round-trip (parse then serialize changes its bytes); "
                       "nothing was written")
     venues, presets = project.venues()
-    data, cues = _compile_checked(choreo, base, venues, presets, rig)
+    data, cues = _compile_checked(choreo, base, venues, presets, rig, ref.duration_ms or 0)
     resized = len(data) != len(current)
     print(f"{ref.artist} — {ref.title}  ({ref.guid[:8]})")
     print(f"compiled from the {'current project file' if new_base else 'base copy'}; "
