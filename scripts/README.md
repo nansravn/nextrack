@@ -98,8 +98,8 @@ choreography in [`lightshows/tracks/`](../lightshows/README.md), edits one of th
 `soundswitch_format.py` (the file format, see
 [docs/soundswitch/file-format.md](../docs/soundswitch/file-format.md)) and `lightshow.py`
 (the rig and choreography models, the vocabulary and the compiler) are its libraries.
-`tracks`, `dump`, `analyze`, `render` and `compile` only read the project; `apply` is the
-one command that can write.
+`tracks`, `dump`, `analyze`, `render` and `compile` only read the project; `apply`, `restore` and `accept` are the
+ones that can write.
 
 ### Setup
 
@@ -136,6 +136,12 @@ uv run scripts/nextrack_lights.py compile lightshows/tracks/marshmello-x-bastill
 # dry-run of the real thing, then write it into the project
 uv run scripts/nextrack_lights.py apply lightshows/tracks/marshmello-x-bastille-happier.yml
 uv run scripts/nextrack_lights.py apply lightshows/tracks/marshmello-x-bastille-happier.yml --apply
+
+# after hand edits in SoundSwitch: undo them, or make them official (dry-run, then --apply)
+uv run scripts/nextrack_lights.py restore F41EB9E9
+uv run scripts/nextrack_lights.py restore F41EB9E9 --apply
+uv run scripts/nextrack_lights.py accept F41EB9E9
+uv run scripts/nextrack_lights.py accept F41EB9E9 --apply
 ```
 
 `render`, `compile` and `apply` take `--rig PATH` (default `lightshows/rig.yml`). They
@@ -181,6 +187,19 @@ the manual cues) and writes nothing until you add `--apply`. Read the dry run fi
   `apply` wrote (you edited it in SoundSwitch). With a base copy but no `state.json`
   record of the track (the file was lost), the project file must equal the base, since
   hand edits could not be told apart otherwise.
+- **The official version** is what the project file is expected to be: the accepted hand
+  edits when there are any, else what the last `apply` wrote. `apply` keeps a copy of its
+  output in `nextrack-backups/applied/{GUID}.ssfile`. After editing a track in SoundSwitch,
+  `restore <track> --apply` backs the edited file up and puts the official version back;
+  `accept <track> --apply` leaves the project file alone, copies it to
+  `nextrack-backups/accepted/{GUID}.ssfile` and records its hash as `accepted` in
+  `state.json`, so the hand edits become the official version. Both are dry-run without
+  `--apply`, refuse while SoundSwitch runs, and refuse a track `apply` has not written or
+  whose project file already is the official version; `restore` also refuses when its copy
+  is missing or no longer matches `state.json`.
+- **`--drop-hand-edits`** is what an `apply` needs on a track with accepted hand edits,
+  since it replaces them. The dry run says so; `state.json` then loses `accepted`, and the
+  accepted copy stays in `nextrack-backups/accepted/`.
 - **`--adopt-current`** answers that refusal: the project file as it is now becomes the
   new base, keeping your edits. Use it after editing a track by hand in SoundSwitch.
 - **A timestamped backup** of the project file is written to
@@ -206,7 +225,8 @@ the manual cues) and writes nothing until you add `--apply`. Read the dry run fi
   cut gradient is rounded), and the same position preset in force. The base itself must
   parse and serialize back to the same bytes. Writes are temp-file-then-rename.
 
-To undo the last `apply`, copy the backup over the project file (the `restore:` line).
+To undo hand edits made after an `apply`, use `restore` (above). To undo the last
+`apply` itself, copy the backup over the project file (the `restore:` line).
 To return the track to the autoscript, close SoundSwitch and copy
 `nextrack-backups/base/{GUID}.ssfile` over the file of the same name in the project
 folder. Either way the next `apply` refuses (the file no longer matches `state.json`);

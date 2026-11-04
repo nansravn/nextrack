@@ -679,7 +679,7 @@ def test_first_apply_backs_up_writes_and_records(make_project, make_script, tmp_
     ssf.parse_script(new)
     root = _backups(project)
     assert (root / "base" / _target(project).name).read_bytes() == old
-    stamped = [p for p in root.iterdir() if p.is_dir() and p.name != "base"]
+    stamped = [p for p in root.iterdir() if p.is_dir() and p.name not in ("base", "applied", "accepted")]
     assert len(stamped) == 1 and re.fullmatch(r"\d{8}-\d{6}(-\d+)?", stamped[0].name)
     assert (stamped[0] / _target(project).name).read_bytes() == old
     state = json.loads((root / "state.json").read_text(encoding="utf-8"))
@@ -695,7 +695,7 @@ def test_two_applies_in_one_second_get_distinct_backup_folders(
     project = _happier_project(make_project, make_script)
     assert _apply(capsys, project, _choreo_for_project(tmp_path), "--apply", "--accept-resize")[0] == 0
     assert _apply(capsys, project, _choreo_for_project(tmp_path, 1), "--apply", "--accept-resize")[0] == 0
-    names = sorted(p.name for p in _backups(project).iterdir() if p.name not in ("base", "state.json"))
+    names = sorted(p.name for p in _backups(project).iterdir() if p.name not in ("base", "applied", "accepted", "state.json"))
     assert names == ["20261031-120000", "20261031-120000-2"]
 
 
@@ -922,3 +922,172 @@ def test_real_apply_output_shows_the_same_room_outside_the_sections(case):
             assert _near(lb.colour(t), lo.colour(t), 1), (case, b.node, t, "colour")
             assert lb.preset(t) == lo.preset(t), (case, b.node, t, "position")
     assert checked > 1000
+
+
+# --- the official version: restore and accept ---------------------------------------
+
+def _applied_haze(make_project, make_script, tmp_path, capsys):
+    project = _happier_project(make_project, make_script, haze=True)
+    choreo = _choreo_for_project(tmp_path)
+    code, _, err = _apply(capsys, project, choreo, "--apply", "--accept-resize")
+    assert code == 0, err
+    return project, choreo
+
+
+def _hand_edit(project):
+    """A hand edit: the level of one Mover 1 intensity key."""
+    script = ssf.parse_script(_target(project).read_bytes())
+    key = ssf.track(script, 1167).lanes[0].keys[0]
+    key.level = 5 if key.level != 5 else 9
+    _target(project).write_bytes(ssf.serialize_script(script))
+    return _target(project).read_bytes()
+
+
+def _official_state(project):
+    return json.loads((_backups(project) / "state.json").read_text(encoding="utf-8"))[GUID0]
+
+
+def _lights(capsys, project, *argv):
+    return run(capsys, "--project", str(project), *argv)
+
+
+def test_apply_keeps_a_copy_of_its_output(make_project, make_script, tmp_path, capsys, idle):
+    project, _ = _applied_haze(make_project, make_script, tmp_path, capsys)
+    assert nl._copy_path(ssf.Project(project), GUID0.upper(), "applied").read_bytes() == _target(project).read_bytes()
+
+
+def test_an_edited_track_is_refused_with_restore_and_accept(make_project, make_script, tmp_path, capsys, idle):
+    project, choreo = _applied_haze(make_project, make_script, tmp_path, capsys)
+    hand = _hand_edit(project)
+    code, _, err = _apply(capsys, project, choreo, "--apply", "--accept-resize")
+    assert code == 1 and "restore" in err and "accept" in err
+    assert _target(project).read_bytes() == hand
+
+
+def test_restore_dry_run_writes_nothing(make_project, make_script, tmp_path, capsys, idle):
+    project, _ = _applied_haze(make_project, make_script, tmp_path, capsys)
+    hand = _hand_edit(project)
+    before = sorted(p.name for p in _backups(project).iterdir())
+    code, out, err = _lights(capsys, project, "restore", GUID0)
+    assert code == 0, err
+    assert "dry run" in out
+    assert _target(project).read_bytes() == hand
+    assert sorted(p.name for p in _backups(project).iterdir()) == before
+
+
+def test_restore_puts_the_official_version_back(make_project, make_script, tmp_path, capsys, idle):
+    project, _ = _applied_haze(make_project, make_script, tmp_path, capsys)
+    official = _target(project).read_bytes()
+    hand = _hand_edit(project)
+    state = _official_state(project)
+    code, out, err = _lights(capsys, project, "restore", GUID0, "--apply")
+    assert code == 0, err
+    assert _target(project).read_bytes() == official
+    held = [p / _target(project).name for p in _backups(project).iterdir()
+            if p.is_dir() and p.name not in ("base", "applied", "accepted")]
+    assert hand in [p.read_bytes() for p in held]
+    assert "backup:" in out and "restore:" in out
+    assert _official_state(project) == state
+    assert list(project.glob("*.tmp")) == []
+
+
+def test_restore_refuses_when_nothing_changed(make_project, make_script, tmp_path, capsys, idle):
+    project, _ = _applied_haze(make_project, make_script, tmp_path, capsys)
+    code, _, err = _lights(capsys, project, "restore", GUID0, "--apply")
+    assert code == 1 and "already" in err
+
+
+def test_restore_refuses_without_an_apply_record(make_project, make_script, capsys, idle):
+    project = _happier_project(make_project, make_script)
+    code, _, err = _lights(capsys, project, "restore", GUID0, "--apply")
+    assert code == 1 and "apply" in err
+
+
+def test_restore_refuses_while_soundswitch_runs(make_project, make_script, tmp_path, capsys, idle, monkeypatch):
+    project, _ = _applied_haze(make_project, make_script, tmp_path, capsys)
+    hand = _hand_edit(project)
+    monkeypatch.setattr(nl, "soundswitch_running", lambda: True)
+    code, _, err = _lights(capsys, project, "restore", GUID0, "--apply")
+    assert code == 1 and "SoundSwitch is running" in err
+    assert _target(project).read_bytes() == hand
+
+
+def test_restore_names_a_missing_copy(make_project, make_script, tmp_path, capsys, idle):
+    project, _ = _applied_haze(make_project, make_script, tmp_path, capsys)
+    hand = _hand_edit(project)
+    nl._copy_path(ssf.Project(project), GUID0.upper(), "applied").unlink()
+    code, _, err = _lights(capsys, project, "restore", GUID0, "--apply")
+    assert code == 1 and "applied" in err
+    assert _target(project).read_bytes() == hand
+
+
+def test_accept_makes_the_edit_official(make_project, make_script, tmp_path, capsys, idle):
+    project, choreo = _applied_haze(make_project, make_script, tmp_path, capsys)
+    hand = _hand_edit(project)
+    code, _, err = _lights(capsys, project, "accept", GUID0, "--apply")
+    assert code == 0, err
+    assert _target(project).read_bytes() == hand
+    assert nl._copy_path(ssf.Project(project), GUID0.upper(), "accepted").read_bytes() == hand
+    assert _official_state(project)["accepted"] == hashlib.sha256(hand).hexdigest()
+    code, _, err = _apply(capsys, project, choreo, "--apply", "--accept-resize")
+    assert code == 1 and "--drop-hand-edits" in err
+    assert _target(project).read_bytes() == hand
+
+
+def test_accept_dry_run_writes_nothing(make_project, make_script, tmp_path, capsys, idle):
+    project, _ = _applied_haze(make_project, make_script, tmp_path, capsys)
+    _hand_edit(project)
+    code, out, err = _lights(capsys, project, "accept", GUID0)
+    assert code == 0, err
+    assert "dry run" in out
+    assert "accepted" not in _official_state(project)
+    assert not nl._copy_path(ssf.Project(project), GUID0.upper(), "accepted").exists()
+
+
+def test_accept_refuses_without_changes(make_project, make_script, tmp_path, capsys, idle):
+    project, _ = _applied_haze(make_project, make_script, tmp_path, capsys)
+    code, _, err = _lights(capsys, project, "accept", GUID0, "--apply")
+    assert code == 1 and "already" in err
+
+
+def test_accept_refuses_without_an_apply_record(make_project, make_script, capsys, idle):
+    project = _happier_project(make_project, make_script)
+    code, _, err = _lights(capsys, project, "accept", GUID0, "--apply")
+    assert code == 1 and "apply" in err
+
+
+def test_accept_refuses_while_soundswitch_runs(make_project, make_script, tmp_path, capsys, idle, monkeypatch):
+    project, _ = _applied_haze(make_project, make_script, tmp_path, capsys)
+    _hand_edit(project)
+    monkeypatch.setattr(nl, "soundswitch_running", lambda: True)
+    code, _, err = _lights(capsys, project, "accept", GUID0, "--apply")
+    assert code == 1 and "SoundSwitch is running" in err
+    assert "accepted" not in _official_state(project)
+
+
+def test_restore_after_accept_restores_the_accepted_version(make_project, make_script, tmp_path, capsys, idle):
+    project, _ = _applied_haze(make_project, make_script, tmp_path, capsys)
+    accepted = _hand_edit(project)
+    assert _lights(capsys, project, "accept", GUID0, "--apply")[0] == 0
+    script = ssf.parse_script(accepted)
+    ssf.track(script, 1167).lanes[0].keys[0].level = 77
+    _target(project).write_bytes(ssf.serialize_script(script))
+    assert _target(project).read_bytes() != accepted
+    code, _, err = _lights(capsys, project, "restore", GUID0, "--apply")
+    assert code == 0, err
+    assert _target(project).read_bytes() == accepted
+
+
+def test_drop_hand_edits_applies_and_clears_accepted(make_project, make_script, tmp_path, capsys, idle):
+    project, choreo = _applied_haze(make_project, make_script, tmp_path, capsys)
+    hand = _hand_edit(project)
+    assert _lights(capsys, project, "accept", GUID0, "--apply")[0] == 0
+    code, out, err = _apply(capsys, project, choreo, "--accept-resize")
+    assert code == 0, err
+    assert len([ln for ln in out.splitlines() if "hand edits" in ln]) == 1
+    assert _target(project).read_bytes() == hand
+    code, _, err = _apply(capsys, project, choreo, "--apply", "--accept-resize", "--drop-hand-edits")
+    assert code == 0, err
+    assert "accepted" not in _official_state(project)
+    assert nl._copy_path(ssf.Project(project), GUID0.upper(), "accepted").read_bytes() == hand
+    assert _target(project).read_bytes() != hand
