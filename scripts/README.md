@@ -192,6 +192,12 @@ the manual cues) and writes nothing until you add `--apply`. Read the dry run fi
   a different size (experiment X1 in
   [docs/soundswitch/experiments.md](../docs/soundswitch/experiments.md)); until that is
   answered, test on one track you can lose and keep the backup.
+- **The haze is the one exception outside the sections.** Only the haze fixture's fan and
+  fog may change there, and only to the rig's `level` over the whole track: one block from
+  0 to the end of the track, every intensity key at the level. The tool refuses unless
+  `lightshow.haze_problem` finds exactly that. Every other check is unchanged, and the
+  haze tracks' colours, strobes and positions are compared with the base like any venue
+  track.
 - Before writing, the tool re-parses its own output and refuses unless it round-trips,
   everything outside the venue's tracks and Main equals the base, and outside the
   sections every venue track and Main shows what the base shows: the same keys (a key

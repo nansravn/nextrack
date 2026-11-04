@@ -158,11 +158,21 @@ def test_render_writes_a_self_contained_page(make_project, tmp_path, capsys):
     assert data["rig"]["mover-ne"] == {"corner": "NE", "kind": "mover", "node": "Mover 1"}
 
 
-def _happier_project(make_project, make_script):
-    """The test project with Happier's grid (100 BPM at 0.158 s) on its first track."""
-    project = make_project()
+def _happier_project(make_project, make_script, haze=False):
+    """The test project with Happier's grid (100 BPM at 0.158 s) on its first track. With
+    `haze`, the venue has the haze machine and the script has its fan and fog tracks, lit
+    like the autoscript and with no block of their own (they follow Main)."""
+    project = make_project(haze=haze)
+    script = make_script()
+    if haze:
+        for node in (1935, 1936):
+            script.venues[0].tracks.append(ssf.Track(
+                node=node, lanes=[ssf.Lane(4, 1, None, [ssf.Key(0, ssf.FULL), ssf.Key(8000, 0)])],
+                blocks=None, link=1, colours=None, positions=None, strobes=None,
+                position_blocks=None, shapes=None))
+        script.node_lists = [1] * len(script.venues[0].tracks)
     path = project / ("{" + PROJECT_GUIDS[0].upper() + "}.ssfile")
-    path.write_bytes(ssf.serialize_script(make_script()))
+    path.write_bytes(ssf.serialize_script(script))
     return project
 
 
@@ -265,7 +275,8 @@ def _compiled(project, choreo, base_bytes):
     script = ssf.parse_script(base_bytes)
     venues, presets = ssf.Project(project).venues()
     out, _ = nl.ls.compile_choreography(nl.ls.load_choreography(choreo), script,
-                                        nl.ls.load_rig(nl.DEFAULT_RIG), venues, presets)
+                                        nl.ls.load_rig(nl.DEFAULT_RIG), venues, presets,
+                                        duration_ms=16000)
     return ssf.serialize_script(out)
 
 
@@ -484,8 +495,9 @@ def _meddle(monkeypatch, edit):
     monkeypatch.setattr(nl.ls, "compile_choreography", meddling)
 
 
-def test_a_change_outside_every_section_is_refused(make_project, make_script, tmp_path, capsys, idle, monkeypatch):
-    project = _happier_project(make_project, make_script)
+@pytest.mark.parametrize("haze", [False, True])
+def test_a_change_outside_every_section_is_refused(make_project, make_script, tmp_path, capsys, idle, monkeypatch, haze):
+    project = _happier_project(make_project, make_script, haze=haze)
     before = _target(project).read_bytes()
 
     def edit(out):  # a key at 1 ms, before bar 1, on a venue track
@@ -496,6 +508,59 @@ def test_a_change_outside_every_section_is_refused(make_project, make_script, tm
     code, _, err = _apply(capsys, project, _choreo_for_project(tmp_path), "--apply", "--accept-resize")
     assert code == 1 and "outside the sections" in err
     assert _target(project).read_bytes() == before and not (_backups(project) / "state.json").exists()
+
+
+def _haze_apply(capsys, project, tmp_path):
+    return _apply(capsys, project, _choreo_for_project(tmp_path), "--apply", "--accept-resize")
+
+
+def test_apply_writes_the_constant_haze(make_project, make_script, tmp_path, capsys, idle):
+    project = _happier_project(make_project, make_script, haze=True)
+    code, _, err = _haze_apply(capsys, project, tmp_path)
+    assert code == 0, err
+    rig, venues = nl.ls.load_rig(nl.DEFAULT_RIG), ssf.Project(project).venues()[0]
+    written = ssf.parse_script(_target(project).read_bytes())
+    assert len(nl.ls.haze_tracks(written, rig, venues)) == 2
+    assert nl.ls.haze_problem(written, rig, venues, 16000) is None
+
+
+def test_the_guard_refuses_haze_that_is_not_flat(make_project, make_script, tmp_path, capsys, idle, monkeypatch):
+    project = _happier_project(make_project, make_script, haze=True)
+    before = _target(project).read_bytes()
+
+    def edit(out):
+        ssf.intensity(ssf.track(out, 1936)).keys[-1].level = nl.ls.level_of(0.4)
+
+    _meddle(monkeypatch, edit)
+    code, _, err = _haze_apply(capsys, project, tmp_path)
+    assert code == 1 and "haze node 1936" in err
+    assert _target(project).read_bytes() == before
+
+
+def test_haze_colour_blocks_survive_and_are_checked(make_project, make_script, tmp_path, capsys, idle, monkeypatch):
+    project = _happier_project(make_project, make_script, haze=True)
+    script = ssf.parse_script(_target(project).read_bytes())
+    fog = ssf.track(script, 1936)
+    fog.blocks = ssf.Section(1, [ssf.Span(0, 16000)])
+    fog.colours = ssf.Section(1, [ssf.ColourBlock(0, 16000, 0xFF00FF00, 0, 0xFF00FF00, 0)])
+    fog.strobes = ssf.Section(1, [ssf.StrobeBlock(4000, 6000, 1, 1)])
+    _target(project).write_bytes(ssf.serialize_script(script))
+    before = _target(project).read_bytes()
+
+    def edit(out):
+        ssf.track(out, 1936).colours.items[0].colour = 0xFFFF0000
+
+    _meddle(monkeypatch, edit)
+    code, _, err = _haze_apply(capsys, project, tmp_path)
+    assert code == 1 and "node 1936" in err
+    assert _target(project).read_bytes() == before
+    monkeypatch.undo()
+    monkeypatch.setattr(nl, "soundswitch_running", lambda: False)
+    code, _, err = _haze_apply(capsys, project, tmp_path)
+    assert code == 0, err
+    fog = ssf.track(ssf.parse_script(_target(project).read_bytes()), 1936)
+    assert fog.colours.items == [ssf.ColourBlock(0, 16000, 0xFF00FF00, 0, 0xFF00FF00, 0)]
+    assert [(s.start, s.end) for s in fog.strobes.items] == [(4000, 6000)]
 
 
 def test_a_block_change_outside_every_section_is_refused(make_project, make_script, tmp_path, capsys, idle, monkeypatch):
