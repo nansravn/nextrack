@@ -40,7 +40,7 @@ room: {shape: rectangle, front: N}
 fixtures:
   mover-ne:  {node: "Mover 1", corner: NE, kind: mover}
   matrix-nw: {node: "VORLANE VL-1000 RGBW v2", index: 1, corner: NW, kind: matrix, aim: centre}
-  haze:      {node: " Lig Light LL-HZ600K", kind: haze, fan: "Main -  Lig Light LL-HZ600K", fog: "..."}
+  haze:      {node: " Lig Light LL-HZ600K", kind: haze, level: 0.5, fan: "Main -  Lig Light LL-HZ600K", fog: "..."}
   hue:       {kind: hue-chandelier, corner: centre, lamps: 7, follows: main-track}
 matrix:
   rows: [colour, colour, colour, white, colour, colour, colour]   # 8 zones per row
@@ -49,12 +49,13 @@ matrix:
 ```
 
 Keys: `room` (`shape`, `front` in `N E S W`), `fixtures`, `matrix`. A fixture is
-`{kind, node, index, corner, aim, fan, fog, lamps, follows}`: `kind` is `mover`,
+`{kind, node, index, corner, aim, fan, fog, lamps, follows, level}`: `kind` is `mover`,
 `matrix`, `haze` or `hue-chandelier`; `node` is the SoundSwitch node **name** (required
 unless `hue-chandelier`; ids are looked up in the venue, they change between rigs);
 `index` picks the n-th node with that name (the two Vorlanes share one); `corner` is `NE`,
 `SE`, `NW`, `SW` or `centre`. `matrix` is `{rows, zone_order, white_max}`: `rows` lists
-`colour` / `white`, `white_max` is a number in (0, 1].
+`colour` / `white`, `white_max` is a number in (0, 1]. The haze fixture's `level` (0-1]
+holds fan and fog over the whole of every compiled track.
 
 ## Choreography: `tracks/<artist-title-slug>.yml`
 

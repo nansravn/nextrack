@@ -66,6 +66,14 @@ class Rig:
     white_max: float
 
 
+def haze_level(rig: Rig) -> float | None:
+    """The `level` of the rig's first haze fixture, or None when the rig has none."""
+    for fixture in rig.fixtures.values():
+        if fixture.kind == "haze":
+            return float(fixture.extra["level"])
+    return None
+
+
 @dataclass
 class Section:
     bars: tuple[int, int]
@@ -191,7 +199,7 @@ def problems_rig(data: object) -> list[str]:
     return out
 
 
-FIXTURE_KEYS = ("node", "index", "corner", "kind", "aim", "fan", "fog", "lamps", "follows")
+FIXTURE_KEYS = ("node", "index", "corner", "kind", "aim", "fan", "fog", "lamps", "follows", "level")
 
 
 def _fixture_problems(key: str, spec: object) -> list[str]:
@@ -209,6 +217,12 @@ def _fixture_problems(key: str, spec: object) -> list[str]:
     for name in ("node", "fan", "fog", "follows", "aim"):
         if name in spec and not _is_str(spec[name]):
             out.append(f"{where}: {name} {_show(spec[name])} is not a non-empty string")
+    if kind == "haze" and "level" not in spec:
+        out.append(f"{where}: missing key 'level'")
+    elif "level" in spec and kind != "haze":
+        out.append(f"{where}: level is only for kind haze")
+    elif "level" in spec and not (_is_num(spec["level"]) and 0 < spec["level"] <= 1):
+        out.append(f"{where}: level {_show(spec['level'])} is not a number in (0, 1]")
     for name in ("index", "lamps"):
         if name in spec and not (_is_int(spec[name]) and spec[name] >= 1):
             out.append(f"{where}: {name} {_show(spec[name])} is not a positive integer")

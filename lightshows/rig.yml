@@ -6,8 +6,8 @@ fixtures:
   mover-se:  {node: "Mover 2", corner: SE, kind: mover}
   matrix-nw: {node: "VORLANE VL-1000 RGBW v2", index: 1, corner: NW, kind: matrix, aim: centre}
   matrix-sw: {node: "VORLANE VL-1000 RGBW v2", index: 2, corner: SW, kind: matrix, aim: centre}
-  # O nome do nó da máquina de fumaça começa com um espaço; os canais têm espaço duplo.
-  haze:      {node: " Lig Light LL-HZ600K", kind: haze, fan: "Main -  Lig Light LL-HZ600K", fog: "Main -  Lig Light LL-HZ600K - 2"}
+  # O nome do nó da máquina de haze (neblina) começa com um espaço; os canais têm espaço duplo.
+  haze:      {node: " Lig Light LL-HZ600K", kind: haze, level: 0.5, fan: "Main -  Lig Light LL-HZ600K", fog: "Main -  Lig Light LL-HZ600K - 2"}   # level: ventilador e neblina fixos nesse nível a música toda
   hue:       {kind: hue-chandelier, corner: centre, lamps: 7, follows: main-track}
 matrix:
   rows: [colour, colour, colour, white, colour, colour, colour]   # 8 zonas por fila

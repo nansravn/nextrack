@@ -55,7 +55,7 @@ is [`lightshows/rig.yml`](../lightshows/rig.yml); how to write for it is in
   at the centre of the room. Each is an 8 x 7 matrix of cells.
 - **A Hue chandelier** with seven lamps in the centre. It follows only SoundSwitch's Main
   track, so it is controlled by the `hue` layer.
-- **A haze machine** (fan and fog on two channels).
+- **A haze machine** (fan and fog on two channels): a constant thin mist at the rig's `level`.
 
 The corners are unconfirmed: the file says which fixture is which, not where it stands.
 Check with `render` against the real room (see
@@ -78,5 +78,5 @@ Notes:
 - Node ids change between rigs; `rig.yml` names nodes and the tool looks the ids up.
 - The haze nodes' names start with a space and have a double space inside (SoundSwitch
   wrote them so); `rig.yml` copies them exactly.
-- The haze channels are intensity channels, so a fog burst is an intensity key on the fog
-  node; whether the machine reacts is experiment X10.
+- The haze channels are intensity channels, so the level is an intensity key; whether
+  the machine reacts is experiment X10.
