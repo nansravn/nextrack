@@ -19,7 +19,8 @@ what `dump` does not show.
 
 | # | Question | Steps in SoundSwitch | Diff | What the answer changes |
 |---|---|---|---|---|
-| X1 | Does SoundSwitch load a script whose size changed? | Compile a choreography to a file (`compile -o`), close SoundSwitch, copy it over a scratch track's `.ssfile` (keep a backup), open the track, play across the edited bars. | none: it loads and plays, or it errors/ignores the file | Yes lifts the `--accept-resize` requirement of `apply`. No means the writer must keep the size (rewrite values in place), a big redesign. |
+| X1a | Does SoundSwitch load a script whose size changed? | Compile a choreography to a file (`compile -o`), close SoundSwitch, copy it over a scratch track's `.ssfile` (keep a backup), open the track in the editor and read the edited lanes (no lights needed). | none: the editor shows the compiled lanes, or it errors, re-analyses or shows the autoscript | **Done 2026-11-04: yes** (see Results). No would have meant the writer must keep the size (rewrite values in place), a big redesign. |
+| X1b | Does SoundSwitch play a resized script on the lights? | **Pending: needs the owner in the room with the lights.** Same file as X1a; play the track across the edited bars and watch the fixtures (or the DMX output monitor: dimmers at 0 through a silence bar, the white strip's one-beat accent). | none: the lights follow the compiled lanes, or the autoscript | Yes lifts the `--accept-resize` requirement of `apply`. No means SoundSwitch reads the editor data but plays something else: investigate before any real apply. |
 | X2 | Which value does the editor write for 100 %? | On a scratch fixture, draw one intensity key at exactly 100 % and one at 50 % near 1:00. Save. | `dump` and a byte diff of the two keys | Replaces the autoscript's `0xffffffa0` with the editor's value as the compiler's FULL, if different. |
 | X3 | What is byte 1 of the colour "ext" word: White, UV or other? | On the Main track, make one colour block pure White and another UV (if the picker offers it) near 0:10. Save. | byte diff of the C blocks | Decides whether `matrix` colours can carry white, and whether the `uv` layer can be compiled (today it is a manual cue). |
 | X4 | Order of the four shape parameters. | On a mover, open one shape effect and change only its start size, then only its end size (or speed). Save after each. | byte diff after each change | Lets the tools write shape blocks (sizes, speeds) instead of copying existing ones. |
@@ -29,6 +30,24 @@ what `dump` does not show.
 | X8 | E blocks are strobe: what unit are the rates? | On a Vorlane cell, add a strobe block 1:00-1:05, start rate 10, end rate 90. Save. | byte diff of the E block | Real strobe blocks for the `strobe` layer instead of 1/16-note pulses. |
 | X9 | Colour per zone: which tracks hold it? | Set Vorlane 1 cells 1-8 to red from 1:00 to 1:10. | `dump` colours; expect eight new C blocks on the cell nodes, or one on the group node | Confirms that the compiler's per-cell colour (`matrix.colour`) is where SoundSwitch looks. |
 | X10 | Does the haze machine react to a constant level on its fan and fog nodes (both at the rig's level, 0.5 today)? | Compile any track, apply it on a scratch copy, play it with the machine on and watch the mist and channels 504-505 in the DMX output monitor. | `dump`; the machine itself | A yes removes the experimental cue; a no means the level must be set on the machine. |
+
+### Results
+
+**X1a, 2026-11-04: done, it loads.** Happier's compiled choreography (537,096 bytes,
+against 997,548 for its autoscript) was copied over its `.ssfile` and opened in the editor,
+over remote desktop and without the lights: no error, no new analysis. The editor showed
+the compiled data, not the autoscript: one override on Mover 1 from 0:00 to the end, Mover 1
+flat at 0 until bar 9 and about 50 % from there, Main flat at 0 through bar 68 and about
+85 % at bar 69, and the Vorlane W cells at 0 except one key of about 60 % at bar 81 that
+falls to 0 within a beat. Opening and closing SoundSwitch, without saving, rewrote the
+`.ssfile`, the `.ssa`, `.ssproj` and the track map with the same bytes (new mtimes, same
+hashes), so an mtime is no sign of an edit; `apply` compares hashes.
+
+**X1b: pending.** The visual test needs the owner in the room. Until it passes, `apply`
+keeps demanding `--accept-resize`, and every other piece of work goes on in parallel.
+
+Seen on the way: the autoscript gives the W cells colour blocks too (Happier's turn green at
+1:45.758, at intensity 0). The compiler keeps them wherever it sets only intensity.
 
 ## Venue file (E)
 

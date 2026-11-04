@@ -21,8 +21,9 @@ SoundSwitch leaves it byte-identical), plus `SoundSwitchTrackMap.bin` and
   for, and parse then serialize reproduces each file byte for byte. The serializer
   recomputes every derived field (offsets, object ids, self-pointers, tail table), so
   the relocation rules below are proven, not copied.
-- A file whose size changed has not yet been shown to load in SoundSwitch (experiment
-  X1). Until then `apply` demands `--accept-resize`.
+- A file whose size changed loads in SoundSwitch's editor (experiment X1a, 2026-11-04);
+  playback on the lights is not yet confirmed (X1b). Until it is, `apply` demands
+  `--accept-resize`.
 - Nothing checksums a script: no hash in the file, none in the track map.
 - Structure in one line: `header, per-venue list of fixture tracks (one per device-tree
   node), global part (tempo map, Main track, attribute-cue flags), object table`.

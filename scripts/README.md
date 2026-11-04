@@ -212,10 +212,11 @@ the manual cues) and writes nothing until you add `--apply`. Read the dry run fi
   restore line: `restore: cp "<backup>" "<project file>"`. If the write fails before the
   project file is replaced, the base copy is put back as it was.
 - **`--accept-resize`** is required when the compiled file differs in size from the
-  project file (it nearly always does). SoundSwitch is not yet known to load a script of
-  a different size (experiment X1 in
-  [docs/soundswitch/experiments.md](../docs/soundswitch/experiments.md)); until that is
-  answered, test on one track you can lose and keep the backup.
+  project file (it nearly always does). SoundSwitch loads a script of a different size
+  into its editor (experiment X1a in
+  [docs/soundswitch/experiments.md](../docs/soundswitch/experiments.md)), but playback on
+  the lights is not yet confirmed (X1b); until it is, test on one track you can lose and
+  keep the backup.
 - **The haze is the one exception outside the sections.** Only the haze fixture's fan and
   fog may change there, and only to the rig's `level` over the whole track: one block from
   0 to the end of the track, every intensity key at the level. The tool refuses unless
