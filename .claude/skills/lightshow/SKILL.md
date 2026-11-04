@@ -147,8 +147,9 @@ for the next track, and again after any change to the YAML.
 Three flags need the owner's explicit yes after you explain them:
 
 - `--accept-resize`: the output's size differs from the project file (nearly always).
-  SoundSwitch is not yet known to load a resized script (X1); the backup and `restore:` line
-  are the way back. Suggest a track the owner can lose for the first time.
+  SoundSwitch loads a resized script into its editor (X1a), but playback on the lights is
+  not yet confirmed (X1b); the backup and `restore:` line are the way back. Suggest a
+  track the owner can lose for the first time.
 - `--drop-hand-edits`: the track has hand edits the owner accepted (`accept`), and the
   apply replaces them with the choreography. Say which track, and ask before adding it.
 - `--adopt-current`: the project file changed since the last apply (edited in SoundSwitch
@@ -169,6 +170,6 @@ refusal and wait.
 | "They said go for the last track, and I only tweaked one section" | A go covers one track's YAML as it was. Ask again. |
 | "`--adopt-current` / `--accept-resize` / `--drop-hand-edits` gets past this refusal" | Report the refusal and wait. A flag goes in only on the owner's explicit yes. |
 | "`--drop-hand-edits` only drops edits the owner accepted" | It replaces hand edits the owner chose to keep. Explain, ask, wait. |
-| "It is only `--accept-resize`" | It writes a file SoundSwitch may not load. Explain, ask, wait. |
+| "It is only `--accept-resize`" | It writes a file SoundSwitch is not yet known to play on the lights (X1b). Explain, ask, wait. |
 | "This drop deserves white or strobe too" | Not in the budget for this block or peak: out. Ask the owner. |
 | "I'll write the YAML and they can amend it" | They amend the Portuguese proposal. YAML comes after approval. |
