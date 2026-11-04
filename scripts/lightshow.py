@@ -799,6 +799,7 @@ class _Fixture:
     kind: str
     tracks: dict = field(default_factory=dict)
     missing: list[str] = field(default_factory=list)
+    untracked: list[int] = field(default_factory=list)  # venue node ids the script has no track for
 
     def cell_items(self) -> list[tuple[tuple[int, int], Track]]:
         """The Vorlane's `((row, col), track)` pairs, top-left first."""
@@ -961,6 +962,7 @@ def _want(res: _Fixture, role, node_id: int | None, label: str, by_node: dict[in
         res.missing.append(f"{label} is not in venue {venue.name!r}")
     elif node_id not in by_node:
         res.missing.append(f"{label} (node {node_id}) has no track in this script")
+        res.untracked.append(node_id)
     else:
         res.tracks[role] = by_node[node_id]
 
@@ -1236,6 +1238,14 @@ def haze_tracks(script: TrackScript, rig: Rig, venues: list[VenueInfo]) -> list[
     `CompileError` when no venue holds the script's nodes."""
     venue, trks = _venue_of(script, venues)
     return _haze_roles(_haze_of(_resolve(rig, venue, {t.node: t for t in trks})))
+
+
+def haze_untracked(script: TrackScript, rig: Rig, venues: list[VenueInfo]) -> list[int]:
+    """The ids of the haze fixture's fan and fog nodes that the venue has but the script
+    has no track for. Raises `CompileError` when no venue holds the script's nodes."""
+    venue, trks = _venue_of(script, venues)
+    haze = _haze_of(_resolve(rig, venue, {t.node: t for t in trks}))
+    return list(haze.untracked) if haze is not None else []
 
 
 def haze_problem(script: TrackScript, rig: Rig, venues: list[VenueInfo],

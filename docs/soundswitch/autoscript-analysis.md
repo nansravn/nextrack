@@ -88,7 +88,7 @@ What the analysis suggests for a whole night; the numbers become a show plan's `
   chorus.
 - **Strobe:** a hit or a roll on a few peaks; it is the rarest thing the autoscript does.
 - **UV:** the dark moments of a themed block only, under `hue: dark`, since colour hides it.
-- **Haze:** a burst at a few moments, never in consecutive songs.
+- **Haze:** not budgeted: the mist is constant at the rig's `level` in every compiled track.
 - **Blackout (everything off, a bar):** where the music really stops, a few times a night.
 - **Subtract before adding:** each build starts with the centre dark and grows.
 
