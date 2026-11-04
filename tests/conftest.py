@@ -481,3 +481,50 @@ def mini_repo(tmp_path):
 def mini_repo_at():
     """The builder itself, for tests that need the repo somewhere specific."""
     return build_mini_repo
+
+
+# ------------------------------------------- Happier on the test project ----
+# Shared by the apply, restore/accept and status tests (nextrack_lights.py).
+
+HAPPIER = REPO_ROOT / "lightshows/tracks/marshmello-x-bastille-happier.yml"
+
+
+def _happier_project(make_project, make_script, haze=False):
+    """The test project with Happier's grid (100 BPM at 0.158 s) on its first track. With
+    `haze`, the venue has the haze machine and the script has its fan and fog tracks, lit
+    like the autoscript and with no block of their own (they follow Main)."""
+    import soundswitch_format as ssf
+
+    project = make_project(haze=haze)
+    script = make_script()
+    if haze:
+        for node in (1935, 1936):
+            script.venues[0].tracks.append(ssf.Track(
+                node=node, lanes=[ssf.Lane(4, 1, None, [ssf.Key(0, ssf.FULL), ssf.Key(8000, 0)])],
+                blocks=None, link=1, colours=None, positions=None, strobes=None,
+                position_blocks=None, shapes=None))
+        script.node_lists = [1] * len(script.venues[0].tracks)
+    path = project / ("{" + PROJECT_GUIDS[0].upper() + "}.ssfile")
+    path.write_bytes(ssf.serialize_script(script))
+    return project
+
+
+def _choreo_for_project(tmp_path, drop_last=0):
+    """Happier's choreography pointed at the test project's first track."""
+    import yaml
+
+    data = yaml.safe_load(HAPPIER.read_text(encoding="utf-8"))
+    data["soundswitch"] = PROJECT_GUIDS[0].upper()
+    if drop_last:
+        data["sections"] = data["sections"][:-drop_last]
+    path = tmp_path / f"choreo{drop_last}.yml"
+    path.write_text(yaml.safe_dump(data, allow_unicode=True), encoding="utf-8")
+    return path
+
+
+@pytest.fixture
+def idle(monkeypatch):
+    """SoundSwitch is not running."""
+    import nextrack_lights as nl
+
+    monkeypatch.setattr(nl, "soundswitch_running", lambda: False)

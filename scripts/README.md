@@ -98,8 +98,8 @@ choreography in [`lightshows/tracks/`](../lightshows/README.md), edits one of th
 `soundswitch_format.py` (the file format, see
 [docs/soundswitch/file-format.md](../docs/soundswitch/file-format.md)) and `lightshow.py`
 (the rig and choreography models, the vocabulary and the compiler) are its libraries.
-`tracks`, `dump`, `analyze`, `render` and `compile` only read the project; `apply`, `restore` and `accept` are the
-ones that can write.
+`tracks`, `dump`, `analyze`, `render`, `compile` and `status` only read the project; `apply`, `restore` and
+`accept` are the ones that can write.
 
 ### Setup
 
@@ -142,6 +142,11 @@ uv run scripts/nextrack_lights.py restore F41EB9E9
 uv run scripts/nextrack_lights.py restore F41EB9E9 --apply
 uv run scripts/nextrack_lights.py accept F41EB9E9
 uv run scripts/nextrack_lights.py accept F41EB9E9 --apply
+
+# which tracks are compliant: every choreographed one, one block, or a set (reads only)
+uv run scripts/nextrack_lights.py status
+uv run scripts/nextrack_lights.py status --block edm-assombrado
+uv run scripts/nextrack_lights.py status --set sets/2026-10-31-halloween-em-casa.md
 ```
 
 `render`, `compile` and `apply` take `--rig PATH` (default `lightshows/rig.yml`). They
@@ -232,6 +237,37 @@ To return the track to the autoscript, close SoundSwitch and copy
 folder. Either way the next `apply` refuses (the file no longer matches `state.json`);
 say `--adopt-current` to start again from the file as it now is (after copying the base
 back, that is the base itself).
+
+### Compliance: `status`
+
+A track is **compliant** when three things hold:
+
+- **choreography**: a `lightshows/tracks/*.yml` names its GUID in `soundswitch:`;
+- **applied**: `state.json` records an apply, and compiling that choreography now, from the
+  base copy and with today's rig and compiler, gives exactly the bytes that apply wrote. So
+  it turns false by itself when the YAML, the rig's `level` or the compiler changed since.
+  A refused compile shows its reason instead of yes or no, and so do an invalid choreography
+  and a GUID the project does not have;
+- **haze**: the project file's fan and fog hold the rig's level over the whole track, as
+  the guard of `apply` defines it (`—` when the script has no haze tracks in the venue).
+
+The **note** column is not part of the verdict. It says `edited in SoundSwitch after the
+apply` when the project file differs from the official version (settle it with `restore`
+or `accept`), and `hand edits accepted` when the official version is an accepted one. Hand
+edits keep a track compliant unless they break the haze.
+
+Without a filter, `status` lists every track that has a choreography, then counts the
+project's tracks without one. `--block <id>` lists the block's tracklist in order, and
+`--set <file>` the tracklists of the blocks the set links, each under its block id. A
+tracklist line is matched to a script through a choreography whose `track:` is that track
+(the matcher `check_repo.py` uses), else through the track map by `Artist — Title`; when
+neither finds one, the line says `no SoundSwitch script found under this name`, and when the
+track map finds several, `several scripts: <GUID8>, …`. The last line counts the compliant
+tracks (`1 of 41 tracks compliant`). `--repo` (default: this repo) and `--rig` (default: the
+repo's `lightshows/rig.yml`) say where the choreographies and the rig are.
+
+`status` is read-only: it writes nothing, does not check whether SoundSwitch runs, and works
+with it open. Its exit status is 0 whatever the verdicts.
 
 ### Tests against the real project
 
