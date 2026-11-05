@@ -1,7 +1,7 @@
 """The musical map of a track: the file format, its schema checks and its (de)serialisation.
 
 A pure library: no I/O besides `load_map`, and no heavy imports at module level (the
-validator, `check_repo.py`, imports this). Schema: `lightshows/maps/README.md`.
+validator, `check_repo.py`, imports this). Schema: the "Musical maps" section of `lightshows/README.md`.
 """
 from __future__ import annotations
 
@@ -108,7 +108,7 @@ def _keys(label: str, value, required: tuple[str, ...], optional: tuple[str, ...
     return out
 
 
-def _grid(grid, bars: int) -> list[str]:
+def _grid(grid) -> list[str]:
     out = _keys("grid", grid, ("bpm", "downbeat", "anchors", "offset_ms"))
     if out or not isinstance(grid, dict):
         return out
@@ -130,7 +130,7 @@ def _grid(grid, bars: int) -> list[str]:
         return out
     if [a[0] for a in anchors] != sorted({a[0] for a in anchors}):
         out.append("grid.anchors are not sorted by time")
-    first = anchors[0]
+    first = anchors[0]  # a wrong first anchor is one problem: the time, else the tempo
     if down is not None and first[0] != _downbeat_ms(down):
         out.append("grid.anchors starts at a time other than grid.downbeat")
     elif _num(grid["bpm"]) and abs(first[1] - grid["bpm"]) > 1e-6:
@@ -172,7 +172,7 @@ def _hot_cues(data: dict, bars: int) -> list[str]:
         out.append("hot_cues is not a mapping or null")
     else:
         for name, where in cues.items():
-            if name not in CUE_NAMES or len(str(name)) != 1:
+            if not (isinstance(name, str) and len(name) == 1 and name in CUE_NAMES):
                 out.append(f"hot_cues has unexpected cue {name!r}")
             elif not (isinstance(where, str) and CUE_RE.fullmatch(where)
                       and int(where.split(".")[0]) <= bars):
@@ -264,7 +264,7 @@ def problems_map(data: object) -> list[str]:
     if not (_int(bars) and bars > 0):
         return out  # everything below is measured in bars
     if "grid" in data:
-        out += _grid(data["grid"], bars)
+        out += _grid(data["grid"])
     if "hot_cues" in data:
         out += _hot_cues(data, bars)
     if "voices" in data:
@@ -324,9 +324,26 @@ def _flow(value) -> str:
     return text.removesuffix("\n...\n").removesuffix("\n")
 
 
+def _chunked(value):
+    """A step value (one string or a list of strings) as one string per 8 bars."""
+    if isinstance(value, str):
+        value = [value]
+    if not (isinstance(value, list) and all(isinstance(s, str) for s in value)):
+        return value
+    text = "".join(value)
+    return [text[i:i + STEP_CHUNK] for i in range(0, len(text), STEP_CHUNK)]
+
+
 def dump_map(data: dict) -> str:
     """The map as YAML text: the generated-by comment, the keys in schema order, small
-    mappings and lists in flow style, step strings one per 8 bars."""
+    mappings and lists in flow style. Step strings (`steps`, `onsets`, `register`) are given
+    whole or in pieces and written one string per 8 bars."""
+    data = dict(data)
+    for key in ("steps", "onsets"):
+        if isinstance(data.get(key), dict):
+            data[key] = {v: _chunked(s) for v, s in data[key].items()}
+    if "register" in data:
+        data["register"] = _chunked(data["register"])
     lines = [HEADER]
     for key in KEYS:
         if key not in data:

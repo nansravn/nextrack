@@ -1294,8 +1294,11 @@ def lightshow_track(repo: Repo) -> Iterable[Finding]:
 @rule("musical-map")
 def musical_map_rule(repo: Repo) -> Iterable[Finding]:
     for path, data in repo.maps:
-        for problem in musical_map.problems_map(data):
+        problems = musical_map.problems_map(data)
+        for problem in problems:
             yield Finding(path, 0, "musical-map", problem)
+        if any(p.startswith("track ") for p in problems):
+            continue  # the track is already reported: no pool or file name to compare
         if isinstance(data, dict) and isinstance(data.get("track"), str):
             problem = _pool_track_problem(repo, data["track"])
             if problem is not None:
