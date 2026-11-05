@@ -481,3 +481,174 @@ def balance_letters(x, sr: int, bar_edges_ms) -> str:
         letters.append("L" if diff >= 6 else "l" if diff >= 2 else "R" if diff <= -6
                        else "r" if diff <= -2 else "c")
     return "".join(letters)
+
+
+ONSET_WIN_MS = 3.0     # energy window of the onset envelope
+ONSET_HOP_MS = 1.0
+ONSET_FLOOR_DB = 27.0  # an onset this far under the strongest one is not reported
+ONSET_MIN_GAP_MS = 30.0
+ONSET_ATTACK_MS = 10.0  # strength is the envelope rise over this long after the onset
+PITCH_SR = 11025       # the pitch tracker decimates to about this rate
+PITCH_MIN_HZ = 70.0
+PITCH_MAX_HZ = 1000.0
+YIN_THRESHOLD = 0.15
+YIN_UNVOICED = 0.5     # a best normalised difference above this is no pitch
+PHRASE_GAP_STEPS = 4   # gaps shorter than this (a beat) do not split a phrase
+VOICED_LEVEL = 3
+
+
+def _mono(x):
+    import numpy as np
+
+    x = np.asarray(x, dtype=np.float64)
+    return x if x.ndim == 1 else np.sqrt(np.mean(x ** 2, axis=1))  # power over channels
+
+
+def onset_digits(x, sr: int, edges_ms) -> tuple[str, list[float]]:
+    """Per step `.` or `1`-`9`: onset strength, 9 for the track's strongest onset and one less
+    per 3 dB below it. Onsets are peaks of the positive rise of a short-window energy envelope;
+    each is quantised to the nearest step (the strongest wins a step). Also returns the onset
+    times in ms."""
+    import numpy as np
+
+    edges = np.asarray(edges_ms, dtype=np.float64)
+    steps = len(edges) - 1
+    digits = ["."] * steps
+    x = _mono(x)
+    win = max(2, int(round(ONSET_WIN_MS * sr / 1000)))
+    hop = max(1, int(round(ONSET_HOP_MS * sr / 1000)))
+    if steps < 1 or len(x) < win + hop:
+        return "".join(digits), []
+    csum = np.concatenate([[0.0], np.cumsum(x ** 2)])
+    starts = np.arange(0, len(x) - win + 1, hop)
+    env = np.sqrt((csum[starts + win] - csum[starts]) / win)
+    flux = np.maximum(0.0, np.diff(env, prepend=0.0))
+    top = flux.max()
+    if top <= 0:
+        return "".join(digits), []
+    gap = max(1, int(round(ONSET_MIN_GAP_MS * sr / 1000 / hop)))
+    reach = max(1, int(round(ONSET_ATTACK_MS * sr / 1000 / hop)))
+    floor = top * 10 ** (-ONSET_FLOOR_DB / 20)
+    times = []
+    best = {}
+    for i in np.flatnonzero(flux >= floor):
+        a, b = max(0, i - gap), min(len(flux), i + gap + 1)
+        if i != a + int(np.argmax(flux[a:b])):
+            continue
+        t = starts[i] * 1000 / sr
+        if t > edges[-1]:
+            continue
+        step = min(steps - 1, int(np.argmin(np.abs(edges - t))))
+        times.append(float(t))
+        rise = env[i:i + reach].max() - (env[i - 1] if i else 0.0)  # the whole attack, not one hop
+        best[step] = max(best.get(step, 0.0), rise)
+    for step, s in best.items():
+        below = 20 * np.log10(max(best.values()) / s)
+        digits[step] = str(max(1, min(9, 9 - int(below // DB_PER_DIGIT))))
+    return "".join(digits), times
+
+
+def _yin_hz(frame, sr: float, tau_min: int, tau_max: int):
+    """Pitch of `frame` (length >= 2 * tau_max) by YIN: difference function, cumulative mean
+    normalisation, first dip under `YIN_THRESHOLD` (else the lowest); None if unvoiced."""
+    import numpy as np
+
+    w = len(frame) - tau_max
+    a = frame[:w]
+    n = 1 << (len(frame) + w).bit_length()
+    corr = np.fft.irfft(np.fft.rfft(frame, n) * np.conj(np.fft.rfft(a, n)), n)[: tau_max + 1]
+    csum = np.concatenate([[0.0], np.cumsum(frame ** 2)])
+    idx = np.arange(tau_max + 1)
+    d = csum[w] + (csum[idx + w] - csum[idx]) - 2 * corr
+    d[0] = 0.0
+    run = np.cumsum(d[1:])
+    cm = np.ones(tau_max + 1)
+    cm[1:] = d[1:] * np.arange(1, tau_max + 1) / np.maximum(run, 1e-12)
+    cand = cm[tau_min:]
+    below = np.flatnonzero(cand < YIN_THRESHOLD)
+    if len(below):
+        k = int(below[0])
+        while k + 1 < len(cand) and cand[k + 1] < cand[k]:
+            k += 1
+    else:
+        k = int(np.argmin(cand))
+        if cand[k] > YIN_UNVOICED:
+            return None
+    tau = float(tau_min + k)
+    if 0 < tau < tau_max:  # parabolic refinement
+        p, q, r = cm[int(tau) - 1], cm[int(tau)], cm[int(tau) + 1]
+        den = p - 2 * q + r
+        if den > 1e-12:
+            tau += 0.5 * (p - r) / den
+    return sr / tau
+
+
+def register_digits(x, sr: int, edges_ms, step_levels: str) -> str:
+    """Per step `.` where `step_levels` is 0-2, else `0`-`9`: the median pitch of the step
+    (YIN, 70-1000 Hz, two frames per step) on a log scale within the track's own voiced range,
+    its 5th percentile 0 and its 95th 9. A voiced step with no pitch takes the previous digit
+    (4 at the start)."""
+    import numpy as np
+
+    edges = np.asarray(edges_ms, dtype=np.float64)
+    x = _mono(x)
+    dec = max(1, int(round(sr / PITCH_SR)))
+    n = len(x) // dec * dec
+    x = x[:n].reshape(-1, dec).mean(axis=1)
+    rate = sr / dec
+    tau_min = max(1, int(rate / PITCH_MAX_HZ))
+    tau_max = int(np.ceil(rate / PITCH_MIN_HZ))
+    flen = 3 * tau_max
+    pitch: list[float | None] = []
+    for i, level in enumerate(step_levels):
+        if level in "012":
+            pitch.append(None)
+            continue
+        found = []
+        for frac in (0.25, 0.75):
+            mid = (edges[i] + frac * (edges[i + 1] - edges[i])) * rate / 1000
+            a = int(round(mid - flen / 2))
+            if a < 0 or a + flen > len(x) or edges[i + 1] <= edges[i]:
+                continue
+            f = _yin_hz(x[a:a + flen], rate, tau_min, tau_max)
+            if f is not None:
+                found.append(np.log2(f))
+        pitch.append(float(np.median(found)) if found else float("nan"))
+    vals = np.array([p for p in pitch if p is not None and not np.isnan(p)])
+    lo, hi = (np.percentile(vals, 5), np.percentile(vals, 95)) if len(vals) else (0.0, 0.0)
+    out, last = [], "4"
+    for p in pitch:
+        if p is None:
+            out.append(".")
+            continue
+        if not np.isnan(p):
+            last = str(int(max(0, min(9, round(9 * (p - lo) / (hi - lo)))))) if hi > lo else "4"
+        out.append(last)
+    return "".join(out)
+
+
+def _bar_beat(step: int) -> str:
+    return f"{step // STEPS_PER_BAR + 1}.{step % STEPS_PER_BAR // 4 + 1}"
+
+
+def phrases(step_levels: str, register: str, grid, edges_ms) -> list[dict]:
+    """Runs of voiced steps (level >= 3); a gap under `PHRASE_GAP_STEPS` does not split a run.
+    Each is `{from, to, register, level}`: `bar.beat` of the first and last step, the register
+    band (median digit 0-3 low, 4-6 mid, 7-9 high) and the highest step level in the run."""
+    import numpy as np
+
+    runs: list[list[int]] = []
+    for i, c in enumerate(step_levels):
+        if int(c) >= VOICED_LEVEL:
+            if runs and i - runs[-1][1] - 1 < PHRASE_GAP_STEPS:
+                runs[-1][1] = i
+            else:
+                runs.append([i, i])
+    out = []
+    for a, b in runs:
+        digits = [int(c) for c in register[a:b + 1] if c != "."]
+        med = float(np.median(digits)) if digits else 4.0
+        out.append({"from": _bar_beat(a), "to": _bar_beat(b),
+                    "register": "low" if med < 3.5 else "mid" if med < 6.5 else "high",
+                    "level": max(int(c) for c in step_levels[a:b + 1])})
+    return out

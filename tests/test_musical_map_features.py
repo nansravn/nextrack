@@ -2,7 +2,7 @@ import numpy as np
 
 import musical_map as mm
 from soundswitch_format import Grid
-from synth import SR, db, noise_burst, pan, place, silence, tone
+from synth import SR, clicks, db, glide, noise_burst, pan, place, silence, tone
 
 
 def test_step_edges_follow_the_grid():
@@ -138,3 +138,52 @@ def test_balance_boundaries():
         left, right = (1.0, db(-gain)) if gain > 0 else (db(gain), 1.0)
         assert mm.balance_letters(pan(x, left, right), SR, edges) == letter
     assert mm.balance_letters(pan(x, 1, db(-1.9)), SR, edges) == "c"
+
+
+def test_onsets_on_every_beat():
+    g = Grid([(0, 120.0)])
+    ms = 4000
+    beats = [i * 500 for i in range(8)]
+    x = clicks(beats, ms)
+    digits, times = mm.onset_digits(x, SR, mm.step_edges_ms(g, ms))
+    assert digits == "9...9...9...9...9...9...9...9..."
+    assert len(times) == 8
+    assert all(abs(t - b) <= 5 for t, b in zip(times, beats))
+
+
+def test_onset_strength_order():
+    g = Grid([(0, 120.0)])
+    x = clicks([0], 2000) + clicks([500], 2000, amp=0.9 * db(-12))
+    digits, _ = mm.onset_digits(x, SR, mm.step_edges_ms(g, 2000))
+    assert digits[0] == "9" and digits[4] != "." and digits[0] > digits[4]
+
+
+def test_register_rises_with_pitch():
+    g = Grid([(0, 120.0)])
+    ms = 4000
+    x = np.concatenate([glide(150, 600, ms), silence(500)])
+    edges = mm.step_edges_ms(g, ms + 500)
+    levels = "9" * 32 + "0" * (len(edges) - 1 - 32)
+    reg = mm.register_digits(x, SR, edges, levels)
+    assert len(reg) == len(levels)
+    assert set(reg[32:]) == {"."}
+    d = [int(c) for c in reg[:32]]
+    assert all(b >= a - 1 for a, b in zip(d, d[1:]))
+    assert d[0] <= 2 and d[-1] >= 7
+
+
+def test_phrase_gap_shorter_than_a_beat_does_not_split():
+    g = Grid([(0, 120.0)])
+    levels = "7" * 14 + "00" + "7" * 16
+    reg = "5" * 14 + ".." + "5" * 16
+    out = mm.phrases(levels, reg, g, mm.step_edges_ms(g, 8000))
+    assert out == [{"from": "1.1", "to": "2.4", "register": "mid", "level": 7}]
+
+
+def test_phrase_gap_of_a_bar_splits():
+    g = Grid([(0, 120.0)])
+    levels = "8" * 16 + "0" * 16 + "4" * 16
+    reg = "9" * 16 + "." * 16 + "1" * 16
+    out = mm.phrases(levels, reg, g, mm.step_edges_ms(g, 6000))
+    assert out == [{"from": "1.1", "to": "1.4", "register": "high", "level": 8},
+                   {"from": "3.1", "to": "3.4", "register": "low", "level": 4}]

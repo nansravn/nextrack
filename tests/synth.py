@@ -66,3 +66,11 @@ def pan(x: np.ndarray, left: float = 1.0, right: float = 1.0) -> np.ndarray:
 def db(gain_db: float) -> float:
     """A linear gain for `gain_db` decibels."""
     return 10 ** (gain_db / 20)
+
+
+def glide(f0: float, f1: float, ms: float, sr: int = SR, amp: float = 0.5) -> np.ndarray:
+    """A phase-continuous sine gliding exponentially from `f0` to `f1` Hz over `ms`."""
+    t = np.arange(_n(ms, sr)) / sr
+    k = np.log(f1 / f0) / (ms / 1000)
+    phase = 2 * np.pi * f0 * (np.exp(k * t) - 1) / k
+    return (amp * np.sin(phase)).astype(np.float32)
