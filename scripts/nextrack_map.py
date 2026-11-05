@@ -23,10 +23,13 @@ import argparse
 import contextlib
 import hashlib
 import importlib.util
+import io
 import os
 import re
 import sys
 from pathlib import Path
+
+import yaml
 
 import check_repo
 import musical_map as mm
@@ -104,12 +107,13 @@ def _label(artist: str, title: str) -> str:
 
 def pool_track(repo: check_repo.Repo, ref: ssf.TrackRef) -> str:
     """The pool's `Artist — Title` for a SoundSwitch track, else Refused."""
-    found = []
+    found: list[tuple[str, str]] = []
     for pool in repo.pools:
         for e in pool.entries:
             a, t = e.get("artist"), e.get("title")
             if isinstance(a, str) and isinstance(t, str) and check_repo.same_track(ref.artist, ref.title, a, t):
                 found.append((a, t))
+    found = list(dict.fromkeys(found))
     if len(found) > 1:
         exact = [f for f in found if check_repo.norm(f[1]) == check_repo.norm(ref.title)]
         if len(exact) == 1:
@@ -126,19 +130,18 @@ def map_path(repo_root: Path, track: str) -> Path:
     return repo_root / "lightshows" / "maps" / f"{mm.slug(track)}.yml"
 
 
-def read_audio(path: Path):
-    """`(samples (n, 2) float32, sr, sha12)` of an audio file; mono is doubled."""
+def read_audio(raw: bytes):
+    """`(samples (n, 2) float32, sr)` of an audio file's bytes; mono is doubled."""
     import numpy as np
     import soundfile as sf
 
-    sha = hashlib.sha256(path.read_bytes()).hexdigest()[:12]
-    x, sr = sf.read(path, dtype="float32", always_2d=True)
+    x, sr = sf.read(io.BytesIO(raw), dtype="float32", always_2d=True)
     if x.shape[1] == 1:
         x = np.repeat(x, 2, axis=1)
-    return np.ascontiguousarray(x[:, :2]), int(sr), sha
+    return np.ascontiguousarray(x[:, :2]), int(sr)
 
 
-def hot_cues_for(rb_track: RbTrack | None, grid) -> dict:
+def hot_cues_for(rb_track: RbTrack, grid) -> dict:
     return {letter: mm.cue_text(ms, grid) for letter, ms in rb_track.cues.items()}
 
 
@@ -155,6 +158,7 @@ class Session:
         if args.rekordbox:
             self.reader = stack.enter_context(open_rekordbox(Path(args.rekordbox)))
         self._separator = None
+        self._by_base: dict[str, list[ssf.TrackRef]] | None = None
 
     def separate(self, x, sr):
         if self._separator is None:
@@ -171,11 +175,17 @@ class Session:
         return [(int(ms), float(bpm)) for ms, bpm in tempo]
 
     def ref_for(self, rb_track: RbTrack) -> ssf.TrackRef:
-        want = mm.fold_name(_base(rb_track.path))
-        for ref in self.project.trackmap():
-            if mm.fold_name(_base(ref.path)) == want:
-                return ref
-        raise Refused("not in the SoundSwitch project")
+        if self._by_base is None:
+            self._by_base = {}
+            for ref in self.project.trackmap():
+                self._by_base.setdefault(mm.fold_name(_base(ref.path)), []).append(ref)
+        hits = self._by_base.get(mm.fold_name(_base(rb_track.path)), [])
+        if not hits:
+            raise Refused("not in the SoundSwitch project")
+        if len(hits) > 1:
+            raise Refused("several SoundSwitch tracks share this file name: "
+                          + "; ".join(f"{r.guid} {_label(r.artist, r.title)}" for r in hits))
+        return hits[0]
 
     def targets(self, args) -> list[tuple[str, ssf.TrackRef | None, RbTrack | None]]:
         """`(label, ref, rekordbox track)` per requested track; ref is None when the
@@ -211,8 +221,9 @@ def analyze_one(sess: Session, ref: ssf.TrackRef, known: RbTrack | None, out: li
     if sess.root is None:
         raise SystemExit(f"set --root or {ROOT_ENV}")
     audio = mm.find_audio(sess.root, ref.path)
-    existing, verdict = None, "written"
-    sha = hashlib.sha256(audio.read_bytes()).hexdigest()[:12]
+    verdict = "written"
+    raw = audio.read_bytes()
+    sha = hashlib.sha256(raw).hexdigest()[:12]
     if path.is_file() and not sess.args.force:
         existing = mm.load_map(path)
         if not mm.problems_map(existing) and not mm.is_stale(existing, audio_sha=sha, guid=ref.guid.upper(),
@@ -220,7 +231,7 @@ def analyze_one(sess: Session, ref: ssf.TrackRef, known: RbTrack | None, out: li
             out.append(f"kept {path}")
             return
         verdict = "redone (stale)"
-    x, sr, sha = read_audio(audio)
+    x, sr = read_audio(raw)
     stems, stem_sr = sess.separate(x, sr)
     if sess.args.keep_stems:
         import soundfile as sf
@@ -254,7 +265,7 @@ def run_targets(sess: Session, args, handler) -> int:
             if ref is None:
                 raise Refused("not in the SoundSwitch project")
             handler(sess, ref, known, lines)
-        except (Refused, LookupError, OSError, ValueError) as e:
+        except (Refused, LookupError, OSError, ValueError, RuntimeError, yaml.YAMLError) as e:
             lines.append(f"refused {label}: {e}")
             refused += 1
         print("\n".join(lines), flush=True)
@@ -282,7 +293,9 @@ def cues_one(sess: Session, ref: ssf.TrackRef, known: RbTrack | None, out: list[
         new["hot_cues_note"] = note
     block = mm.dump_map(new).splitlines()[1:]  # without the generated-by comment
     lines = path.read_text(encoding="utf-8").splitlines()
-    at = next(i for i, line in enumerate(lines) if line.startswith("hot_cues:"))
+    at = next((i for i, line in enumerate(lines) if line.startswith("hot_cues:")), None)
+    if at is None:
+        raise Refused(f"{path} has no hot_cues line: run analyze --force")
     kept = [line for line in lines if not line.startswith(("hot_cues:", "hot_cues_note:"))]
     kept[at:at] = block
     path.write_text("\n".join(kept) + "\n", encoding="utf-8")
@@ -312,7 +325,11 @@ def find_map(repo_root: Path, text: str) -> Path:
     words = check_repo.norm(text).split()
     hits = []
     for cand in sorted(folder.glob("*.yml")) if folder.is_dir() else []:
-        track = mm.load_map(cand).get("track")
+        try:
+            data = mm.load_map(cand)
+        except (yaml.YAMLError, OSError):
+            continue  # the validator reports a map that does not parse
+        track = data.get("track") if isinstance(data, dict) else None
         if words and isinstance(track, str) and all(w in check_repo.norm(track) for w in words):
             hits.append(cand)
     if len(hits) == 1:
