@@ -176,7 +176,7 @@ def test_phrase_gap_shorter_than_a_beat_does_not_split():
     g = Grid([(0, 120.0)])
     levels = "7" * 14 + "00" + "7" * 16
     reg = "5" * 14 + ".." + "5" * 16
-    out = mm.phrases(levels, reg, g, mm.step_edges_ms(g, 8000))
+    out = mm.phrases(levels, reg)
     assert out == [{"from": "1.1", "to": "2.4", "register": "mid", "level": 7}]
 
 
@@ -184,6 +184,32 @@ def test_phrase_gap_of_a_bar_splits():
     g = Grid([(0, 120.0)])
     levels = "8" * 16 + "0" * 16 + "4" * 16
     reg = "9" * 16 + "." * 16 + "1" * 16
-    out = mm.phrases(levels, reg, g, mm.step_edges_ms(g, 6000))
+    out = mm.phrases(levels, reg)
     assert out == [{"from": "1.1", "to": "1.4", "register": "high", "level": 8},
                    {"from": "3.1", "to": "3.4", "register": "low", "level": 4}]
+
+
+def test_unpitched_voiced_steps_read_dot_and_keep_the_phrase_register():
+    g = Grid([(0, 120.0)])
+    ms = 4000
+    x = glide(150, 300, ms)
+    x[int(1000 * SR / 1000):int(1500 * SR / 1000)] = noise_burst(500, amp=0.5)  # steps 8-11
+    reg = mm.register_digits(x, SR, mm.step_edges_ms(g, ms), "9" * 32)
+    assert reg[8:12] == "...."
+    assert "." not in reg[:7] and "." not in reg[13:]
+    assert len(mm.phrases("9" * 32, reg)) == 1
+    assert mm.phrases("9" * 4, "....") == [{"from": "1.1", "to": "1.1", "register": "mid", "level": 9}]
+
+
+def test_phrase_gap_boundary():
+    assert len(mm.phrases("7" * 4 + "0" * 3 + "7" * 4, "5" * 11)) == 1
+    assert len(mm.phrases("7" * 4 + "0" * 4 + "7" * 4, "5" * 12)) == 2
+
+
+def test_offgrid_onset_lands_on_the_nearest_step():
+    g = Grid([(0, 120.0)])  # a step is 125 ms
+    edges = mm.step_edges_ms(g, 2000)
+    d, times = mm.onset_digits(clicks([125 + 40], 2000), SR, edges)
+    assert d.index("9") == 1 and abs(times[0] - 165) <= 5
+    d, _ = mm.onset_digits(clicks([125 + 80], 2000), SR, edges)
+    assert d.index("9") == 2

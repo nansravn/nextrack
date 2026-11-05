@@ -492,7 +492,7 @@ PITCH_SR = 11025       # the pitch tracker decimates to about this rate
 PITCH_MIN_HZ = 70.0
 PITCH_MAX_HZ = 1000.0
 YIN_THRESHOLD = 0.15
-YIN_UNVOICED = 0.5     # a best normalised difference above this is no pitch
+YIN_UNVOICED = 0.3     # a best normalised difference above this is no pitch (breath, sibilance)
 PHRASE_GAP_STEPS = 4   # gaps shorter than this (a beat) do not split a phrase
 VOICED_LEVEL = 3
 
@@ -586,8 +586,8 @@ def _yin_hz(frame, sr: float, tau_min: int, tau_max: int):
 def register_digits(x, sr: int, edges_ms, step_levels: str) -> str:
     """Per step `.` where `step_levels` is 0-2, else `0`-`9`: the median pitch of the step
     (YIN, 70-1000 Hz, two frames per step) on a log scale within the track's own voiced range,
-    its 5th percentile 0 and its 95th 9. A voiced step with no pitch takes the previous digit
-    (4 at the start)."""
+    its 5th percentile 0 and its 95th 9. A voiced step with no pitch is `.` too and is left out
+    of the range."""
     import numpy as np
 
     edges = np.asarray(edges_ms, dtype=np.float64)
@@ -616,14 +616,12 @@ def register_digits(x, sr: int, edges_ms, step_levels: str) -> str:
         pitch.append(float(np.median(found)) if found else float("nan"))
     vals = np.array([p for p in pitch if p is not None and not np.isnan(p)])
     lo, hi = (np.percentile(vals, 5), np.percentile(vals, 95)) if len(vals) else (0.0, 0.0)
-    out, last = [], "4"
+    out = []
     for p in pitch:
-        if p is None:
+        if p is None or np.isnan(p):
             out.append(".")
-            continue
-        if not np.isnan(p):
-            last = str(int(max(0, min(9, round(9 * (p - lo) / (hi - lo)))))) if hi > lo else "4"
-        out.append(last)
+        else:
+            out.append(str(int(max(0, min(9, round(9 * (p - lo) / (hi - lo)))))) if hi > lo else "4")
     return "".join(out)
 
 
@@ -631,10 +629,11 @@ def _bar_beat(step: int) -> str:
     return f"{step // STEPS_PER_BAR + 1}.{step % STEPS_PER_BAR // 4 + 1}"
 
 
-def phrases(step_levels: str, register: str, grid, edges_ms) -> list[dict]:
+def phrases(step_levels: str, register: str) -> list[dict]:
     """Runs of voiced steps (level >= 3); a gap under `PHRASE_GAP_STEPS` does not split a run.
     Each is `{from, to, register, level}`: `bar.beat` of the first and last step, the register
-    band (median digit 0-3 low, 4-6 mid, 7-9 high) and the highest step level in the run."""
+    band (median of the pitched digits 0-3 low, 4-6 mid, 7-9 high; `mid` if none) and the highest
+    step level in the run. Step k is bar k // 16 + 1, beat k % 16 // 4 + 1."""
     import numpy as np
 
     runs: list[list[int]] = []
