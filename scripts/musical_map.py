@@ -868,8 +868,9 @@ def build_map(*, track: str, guid: str, audio_sha: str, audio_ms: int, anchors, 
     return data
 
 
-def _fold(text: str) -> str:
-    return unicodedata.normalize("NFC", text).casefold()
+def fold_name(text: str) -> str:
+    """A file or folder name made comparable: NFC, case-folded, NFC again."""
+    return unicodedata.normalize("NFC", unicodedata.normalize("NFC", text).casefold())
 
 
 def find_audio(root: Path, windows_path: str) -> Path:
@@ -879,11 +880,13 @@ def find_audio(root: Path, windows_path: str) -> Path:
     whose parent folder has the same name. Anything but exactly one file is a `LookupError`.
     """
     parts = [p for p in re.split(r"[\\/]", windows_path) if p]
-    base = _fold(parts[-1])
-    folder = _fold(parts[-2]) if len(parts) > 1 else None
-    hits = sorted(p for p in Path(root).rglob("*") if p.is_file() and _fold(p.name) == base)
+    if not parts:
+        raise LookupError(f"no file name in the path {windows_path!r}")
+    base = fold_name(parts[-1])
+    folder = fold_name(parts[-2]) if len(parts) > 1 else None
+    hits = sorted(p for p in Path(root).rglob("*") if p.is_file() and fold_name(p.name) == base)
     if len(hits) > 1:
-        same = [p for p in hits if _fold(p.parent.name) == folder]
+        same = [p for p in hits if fold_name(p.parent.name) == folder]
         if same:
             hits = same
     if len(hits) == 1:

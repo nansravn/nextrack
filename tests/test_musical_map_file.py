@@ -154,3 +154,24 @@ def test_find_audio_nfc_nfd_and_case(tmp_path):
     name = unicodedata.normalize("NFD", "Baianá.flac")
     want = _touch(tmp_path, "g", name)
     assert mm.find_audio(tmp_path, "C:/M/g/" + unicodedata.normalize("NFC", "BAIANÁ.FLAC")) == want
+
+
+def test_find_audio_same_folder_name_twice_is_ambiguous(tmp_path):
+    _touch(tmp_path, "a", "g", "X.flac")
+    _touch(tmp_path, "b", "g", "X.flac")
+    with pytest.raises(LookupError):
+        mm.find_audio(tmp_path, "C:/M/g/X.flac")
+
+
+def test_find_audio_nfd_folder_still_matches(tmp_path):
+    import unicodedata
+
+    _touch(tmp_path, "z", "X.flac")
+    want = _touch(tmp_path, unicodedata.normalize("NFD", "Pé"), "X.flac")
+    assert mm.find_audio(tmp_path, "C:/M/Pé/X.flac") == want
+
+
+@pytest.mark.parametrize("path", ["", "/", "\\\\"])
+def test_find_audio_empty_path(tmp_path, path):
+    with pytest.raises(LookupError):
+        mm.find_audio(tmp_path, path)

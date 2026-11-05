@@ -10,10 +10,11 @@ import importlib.util
 import re
 import shutil
 import tempfile
-import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Iterator, Protocol
+
+from musical_map import fold_name
 
 ANALYSIS_HINT = "the analysis tools are not installed: run uv sync --group analysis"
 
@@ -50,8 +51,10 @@ def cues_from_rows(rows: Iterable[tuple[int, int]]) -> dict[str, int]:
 
 def pick_playlist(names: list[str], want: str) -> str:
     """The exact name, else the only name containing `want` (case-insensitive)."""
-    if want in names:
+    if names.count(want) == 1:
         return want
+    if names.count(want) > 1:
+        raise LookupError(f"{names.count(want)} playlists are named {want!r}: " + ", ".join(names))
     hits = [n for n in names if want.casefold() in n.casefold()]
     if len(hits) == 1:
         return hits[0]
@@ -60,13 +63,26 @@ def pick_playlist(names: list[str], want: str) -> str:
     raise LookupError(f"{len(hits)} playlists match {want!r}: " + ", ".join(hits))
 
 
-def _fold(text: str) -> str:
-    return unicodedata.normalize("NFC", text).casefold()
-
-
 def _base_name(path: str) -> str:
     parts = [p for p in re.split(r"[\\/]", path) if p]
     return parts[-1] if parts else ""
+
+
+def pick_playlist_row(rows: list, want: str):
+    """The playlist row for `want`: folders (`Attribute == 1` without songs) are skipped, and
+    a name shared by two playlists is a `LookupError`."""
+    lists = [r for r in rows if not (getattr(r, "Attribute", 0) == 1 and not r.Songs)]
+    names = [r.Name for r in lists]
+    return lists[names.index(pick_playlist(names, want))]
+
+
+def pick_content_row(rows: Iterable, file_name: str):
+    """The only content row whose path ends in `file_name`, or None; several are a `LookupError`."""
+    want = fold_name(file_name)
+    hits = [c for c in rows if fold_name(_base_name(c.FolderPath or "")) == want]
+    if len(hits) > 1:
+        raise LookupError(f"{len(hits)} tracks named {file_name!r}: " + ", ".join(c.FolderPath for c in hits))
+    return hits[0] if hits else None
 
 
 class _PyrekordboxReader:
@@ -85,24 +101,22 @@ class _PyrekordboxReader:
         )
 
     def playlist(self, name: str) -> list[RbTrack]:
-        lists = {p.Name: p for p in self._db.get_playlist().all()}
-        chosen = lists[pick_playlist(list(lists), name)]
+        chosen = pick_playlist_row(list(self._db.get_playlist().all()), name)
         songs = sorted(chosen.Songs, key=lambda s: s.TrackNo)
         return [self._track(s.Content) for s in songs]
 
     def track_for_file(self, file_name: str) -> RbTrack | None:
-        want = _fold(file_name)
-        for c in self._db.get_content().all():
-            if _fold(_base_name(c.FolderPath or "")) == want:
-                return self._track(c)
-        return None
+        row = pick_content_row(self._db.get_content().all(), file_name)
+        return None if row is None else self._track(row)
 
 
 @contextlib.contextmanager
 def _open(folder: Path) -> Iterator[RekordboxReader]:
-    try:
+    if not (Path(folder) / "master.db").exists():
+        raise LookupError(f"no master.db in {folder}")
+    if importlib.util.find_spec("pyrekordbox.masterdb") is not None:
         from pyrekordbox.masterdb import MasterDatabase as Database
-    except ImportError:
+    else:
         from pyrekordbox import Rekordbox6Database as Database
     with tempfile.TemporaryDirectory() as tmp:
         for name in ("master.db", "master.db-wal", "master.db-shm"):

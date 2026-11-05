@@ -43,3 +43,44 @@ def test_open_rekordbox_without_the_analysis_group(monkeypatch, tmp_path):
         with rc.open_rekordbox(tmp_path):
             pass
     assert str(e.value) == "the analysis tools are not installed: run uv sync --group analysis"
+
+
+class Row:
+    def __init__(self, **kw):
+        self.__dict__.update(kw)
+
+
+def test_pick_playlist_row_skips_a_folder_with_the_same_name():
+    folder = Row(Name="Set", Attribute=1, Songs=[])
+    playlist = Row(Name="Set", Attribute=0, Songs=[object()])
+    assert rc.pick_playlist_row([folder, playlist], "Set") is playlist
+    assert rc.pick_playlist_row([playlist, folder], "Set") is playlist
+
+
+def test_pick_playlist_row_refuses_two_playlists_with_one_name():
+    rows = [Row(Name="Set", Attribute=0, Songs=[1]), Row(Name="Set", Attribute=0, Songs=[2])]
+    with pytest.raises(LookupError) as e:
+        rc.pick_playlist_row(rows, "Set")
+    assert str(e.value).count("Set") >= 3
+
+
+def test_pick_content_row():
+    a = Row(FolderPath="C:/M/g/A.flac")
+    b = Row(FolderPath="C:\\M\\g\\B.flac")
+    assert rc.pick_content_row([a, b], "b.FLAC") is b
+    assert rc.pick_content_row([a, b], "z.flac") is None
+
+
+def test_pick_content_row_refuses_duplicates():
+    rows = [Row(FolderPath="C:/M/one/A.flac"), Row(FolderPath="C:/M/two/A.flac")]
+    with pytest.raises(LookupError) as e:
+        rc.pick_content_row(rows, "A.flac")
+    assert "one" in str(e.value) and "two" in str(e.value)
+
+
+def test_open_rekordbox_needs_a_master_db(monkeypatch, tmp_path):
+    real = importlib.util.find_spec
+    monkeypatch.setattr(importlib.util, "find_spec", lambda n, *a: object() if n == "pyrekordbox" else real(n, *a))
+    with pytest.raises(LookupError, match="no master.db"):
+        with rc.open_rekordbox(tmp_path):
+            pass
