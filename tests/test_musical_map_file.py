@@ -115,3 +115,42 @@ def test_dump_chunks_whole_step_strings_itself(tmp_path):
     loaded = mm.load_map(path)
     assert [len(s) for s in loaded["steps"]["vocals"]] == [128, 32]
     assert mm.problems_map(loaded) == []
+
+
+def _touch(root, *parts):
+    p = root.joinpath(*parts)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_bytes(b"")
+    return p
+
+
+def test_find_audio_one_match(tmp_path):
+    want = _touch(tmp_path, "afro-house", "X.flac")
+    assert mm.find_audio(tmp_path, "C:/Music/afro-house/X.flac") == want
+
+
+def test_find_audio_prefers_the_same_folder(tmp_path):
+    _touch(tmp_path, "other", "X.flac")
+    want = _touch(tmp_path, "afro-house", "X.flac")
+    assert mm.find_audio(tmp_path, "C:\\Music\\afro-house\\X.flac") == want
+
+
+def test_find_audio_refuses_ambiguous(tmp_path):
+    a = _touch(tmp_path, "one", "X.flac")
+    b = _touch(tmp_path, "two", "X.flac")
+    with pytest.raises(LookupError) as e:
+        mm.find_audio(tmp_path, "C:/Music/afro-house/X.flac")
+    assert str(a) in str(e.value) and str(b) in str(e.value)
+
+
+def test_find_audio_none(tmp_path):
+    with pytest.raises(LookupError):
+        mm.find_audio(tmp_path, "C:/Music/afro-house/X.flac")
+
+
+def test_find_audio_nfc_nfd_and_case(tmp_path):
+    import unicodedata
+
+    name = unicodedata.normalize("NFD", "Baianá.flac")
+    want = _touch(tmp_path, "g", name)
+    assert mm.find_audio(tmp_path, "C:/M/g/" + unicodedata.normalize("NFC", "BAIANÁ.FLAC")) == want

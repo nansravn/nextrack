@@ -866,3 +866,28 @@ def build_map(*, track: str, guid: str, audio_sha: str, audio_ms: int, anchors, 
         "silences": silences(mix_bar),
     })
     return data
+
+
+def _fold(text: str) -> str:
+    return unicodedata.normalize("NFC", text).casefold()
+
+
+def find_audio(root: Path, windows_path: str) -> Path:
+    """The audio file under `root` that a rekordbox (Windows) path names.
+
+    Base names are compared NFC-normalised and case-folded; several hits are narrowed to those
+    whose parent folder has the same name. Anything but exactly one file is a `LookupError`.
+    """
+    parts = [p for p in re.split(r"[\\/]", windows_path) if p]
+    base = _fold(parts[-1])
+    folder = _fold(parts[-2]) if len(parts) > 1 else None
+    hits = sorted(p for p in Path(root).rglob("*") if p.is_file() and _fold(p.name) == base)
+    if len(hits) > 1:
+        same = [p for p in hits if _fold(p.parent.name) == folder]
+        if same:
+            hits = same
+    if len(hits) == 1:
+        return hits[0]
+    if not hits:
+        raise LookupError(f"no audio file named {parts[-1]!r} under {root}")
+    raise LookupError(f"{len(hits)} audio files match {windows_path!r}: " + ", ".join(str(p) for p in hits))
