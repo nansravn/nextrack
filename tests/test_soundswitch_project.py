@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from soundswitch_format import (
-    MAGIC, Project, read_trackmap, read_trackmap_with_warnings, read_venues, read_venues_with_warnings,
+    MAGIC, Project, read_trackmap, read_trackmap_with_warnings, read_venues_with_warnings,
 )
 
 REAL = os.environ.get("NEXTRACK_SOUNDSWITCH_REAL")
@@ -77,7 +77,7 @@ def _tree():
 
 
 def test_venues_nodes_and_presets(venues_bytes):
-    venues, presets = read_venues(venues_bytes(_tree(), ["Stage Left", "Cake"]))
+    venues, presets, _ = read_venues_with_warnings(venues_bytes(_tree(), ["Stage Left", "Cake"]))
     assert [v.name for v in venues] == ["DJ Renan", "Casa"]
     assert venues[0].guid == "0122adb8-e4b9-46c9-96c8-98a7e8f6a5a9"
     nodes = {n.id: n for n in venues[0].nodes}
@@ -123,12 +123,12 @@ def test_venues_without_any_preset_warns(venues_bytes):
 
 
 def test_venues_without_presets(venues_bytes):
-    assert read_venues(venues_bytes(_tree(), []))[1] == []
+    assert read_venues_with_warnings(venues_bytes(_tree(), []))[1] == []
 
 
 def test_venues_rejects_a_wrong_header():
     with pytest.raises(ValueError):
-        read_venues(b"nope" + bytes(20))
+        read_venues_with_warnings(b"nope" + bytes(20))
 
 
 # ------------------------------------------------------------------- Project ----

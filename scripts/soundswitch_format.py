@@ -1148,10 +1148,6 @@ def _presets_at(b: bytes, o: int) -> tuple[list[Preset], int | None]:
     return out, None if clean else stop
 
 
-def read_venues(data: bytes) -> tuple[list[VenueInfo], list[Preset]]:
-    return read_venues_with_warnings(data)[:2]
-
-
 def read_venues_with_warnings(data: bytes) -> tuple[list[VenueInfo], list[Preset], list[str]]:
     """Venues, position presets and a warning for each part that did not parse: a venue
     with node heads but no tree (returned with no nodes), a preset list that stops early,

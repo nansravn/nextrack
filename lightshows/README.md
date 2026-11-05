@@ -31,7 +31,10 @@ Prose in the files (`story`, `intent`, plan text) is pt-BR; keys and values are 
    that prints what would change, then `--apply` writes it (backup first).
    [scripts/README.md](../scripts/README.md#nextrack_lightspy) has the safety model.
 5. Open SoundSwitch, play the bars, add the **manual cues** the tool printed, and run
-   `uv run scripts/check_repo.py`.
+   `uv run scripts/check_repo.py`. Then run `status` (or `status --block <block-id>`) to see
+   whether the track is compliant; edits made in SoundSwitch after an apply are settled with
+   `restore` or `accept` (see
+   [scripts/README.md](../scripts/README.md#compliance-status)).
 
 ## `rig.yml`
 
@@ -238,7 +241,8 @@ Checked by `check_repo.py` (rules `lightshow-rig`, `lightshow-track`, `lightshow
 the checks live in `scripts/lightshow.py`.
 
 **`rig.yml`** (optional): exactly `room`, `fixtures` and `matrix`, with the keys above;
-`kind` and `corner` from their lists; `matrix.white_max` a number in (0, 1].
+`kind` and `corner` from their lists; `matrix.white_max` a number in (0, 1]; a fixture of
+kind `haze` has a `level` in (0, 1], and no other kind has one.
 
 **`tracks/<artist-title-slug>.yml`**: `track` matches a pool track (same matcher as block
 tracklists), `soundswitch` is a GUID, `grid` has `bpm` and `downbeat` (`m:ss.mmm`),
