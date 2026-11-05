@@ -65,12 +65,16 @@ MUTATIONS = [
     ("register", _set(["register"], ["x" * 64])),
     ("balance", _set(["voices", "bass", "balance"], "cccc")),
     ("sections[0].kind", _set(["sections", 0, "kind"], "chorus")),
-    ("sections", _set(["sections"], [{"bars": [1, 3], "kind": "groove"}, {"bars": [3, 4], "kind": "drop"}])),
-    ("sections", _set(["sections"], [{"bars": [1, 1], "kind": "groove"}, {"bars": [3, 4], "kind": "drop"}])),
-    ("sections", _set(["sections"], [{"bars": [1, 3], "kind": "groove"}])),
+    ("sections are not sorted or overlap",
+     _set(["sections"], [{"bars": [1, 3], "kind": "groove"}, {"bars": [3, 4], "kind": "drop"}])),
+    ("sections leave bars 2..2 uncovered",
+     _set(["sections"], [{"bars": [1, 1], "kind": "groove"}, {"bars": [3, 4], "kind": "drop"}])),
+    ("sections do not reach bar 4", _set(["sections"], [{"bars": [1, 3], "kind": "groove"}])),
     ("drops[0].bar", _set(["drops", 0, "bar"], 5)),
     ("phrases[0].to", _set(["phrases", 0, "to"], "5.1")),
     ("hot_cues", _set(["hot_cues"], {"I": "1.1"})),
+    ("hot_cues", _set(["hot_cues"], {1: "1.1"})),
+    ("hot_cues", _set(["hot_cues"], {None: "1.1"})),
     ("hot_cues_note", _set(["hot_cues"], None)),
     ("hot_cues_note", _set(["hot_cues_note"], "none set")),
     ("grid.anchors", _set(["grid", "anchors"], [])),
@@ -98,3 +102,16 @@ def test_a_map_that_is_not_a_mapping_is_one_problem():
 def test_dump_keeps_unicode_readable():
     assert "Dançarina" in mm.dump_map(good_map())
     assert yaml.safe_load(mm.dump_map(good_map()))["track"] == "Pedro Sampaio — Dançarina"
+
+
+def test_dump_chunks_whole_step_strings_itself(tmp_path):
+    data = good_map(10)
+    whole = {v: "".join(s) for v, s in data["steps"].items()}
+    data["steps"] = whole
+    data["onsets"] = {v: "".join(s) for v, s in data["onsets"].items()}
+    data["register"] = "".join(data["register"])
+    path = tmp_path / "m.yml"
+    path.write_text(mm.dump_map(data), encoding="utf-8")
+    loaded = mm.load_map(path)
+    assert [len(s) for s in loaded["steps"]["vocals"]] == [128, 32]
+    assert mm.problems_map(loaded) == []
