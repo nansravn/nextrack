@@ -7,7 +7,7 @@ SCRIPTS_README = Path(__file__).resolve().parent.parent / "scripts" / "README.md
 
 
 def test_dependencies_and_scripts_import():
-    import mutagen, yaml, nextrack_tags
+    import mutagen, numpy, soundfile, yaml, nextrack_tags
     assert mutagen.version >= (1, 47)
     assert tuple(int(p) for p in yaml.__version__.split(".")[:2]) >= (6, 0)
     assert callable(nextrack_tags.main)
