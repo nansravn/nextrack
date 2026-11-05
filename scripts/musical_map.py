@@ -374,14 +374,13 @@ LOUD_PERCENTILE = 95  # "loud level" of a voice: this percentile of its per-bar 
 
 def step_edges_ms(grid, audio_ms: int):
     """Step boundaries (1/16 notes) from bar 1 beat 1 to the end of the audio: `bars*16 + 1`
-    values, the last clipped to `audio_ms`."""
+    values, every one clipped to `audio_ms` (so they never decrease)."""
     import numpy as np
 
     bars = grid.bar_at(audio_ms - 1)
     edges = [grid.ms(1 + i // STEPS_PER_BAR, 1 + (i % STEPS_PER_BAR) / 4)
              for i in range(bars * STEPS_PER_BAR + 1)]
-    edges[-1] = min(edges[-1], audio_ms)
-    return np.array(edges, dtype=np.int64)
+    return np.minimum(np.array(edges, dtype=np.int64), audio_ms)
 
 
 def _stereo(x):
@@ -397,23 +396,25 @@ def voices_from_stems(stems: dict, sr: int) -> dict:
     import numpy as np
 
     drums = _stereo(stems["drums"])
-    spec = np.fft.rfft(drums, axis=0)
-    low = (np.fft.rfftfreq(len(drums), 1 / sr) < KICK_HZ)[:, None]
-    kick = np.fft.irfft(spec * low, n=len(drums), axis=0)
-    perc = np.fft.irfft(spec * ~low, n=len(drums), axis=0)
-    out = {"vocals": _stereo(stems["vocals"]), "kick": kick, "perc": perc,
-           "bass": _stereo(stems["bass"]), "other": _stereo(stems["other"])}
-    return {v: out[v].astype(np.float32) for v in VOICES}
+    n = len(drums)
+    low = np.fft.rfftfreq(n, 1 / sr) < KICK_HZ
+    kick = np.empty(drums.shape, dtype=np.float32)
+    perc = np.empty(drums.shape, dtype=np.float32)
+    for ch in range(drums.shape[1]):  # one channel at a time keeps the float64 spectra small
+        spec = np.fft.rfft(drums[:, ch])
+        kick[:, ch] = np.fft.irfft(spec * low, n=n)
+        perc[:, ch] = np.fft.irfft(spec * ~low, n=n)
+    return {"vocals": _stereo(stems["vocals"]), "kick": kick, "perc": perc,
+            "bass": _stereo(stems["bass"]), "other": _stereo(stems["other"])}
 
 
 def rms_db(x, sr: int, edges_ms):
-    """Mono RMS in dB per interval between consecutive `edges_ms`; `SILENT_DB` for silence
-    or an empty interval."""
+    """RMS in dB per interval between consecutive `edges_ms`, the power averaged over the
+    channels (so out-of-phase material does not cancel); `SILENT_DB` for silence or an empty
+    interval."""
     import numpy as np
 
     x = np.asarray(x, dtype=np.float64)
-    if x.ndim == 2:
-        x = x.mean(axis=1)
     idx = np.clip(np.round(np.asarray(edges_ms) * sr / 1000).astype(np.int64), 0, len(x))
     out = np.full(len(idx) - 1, SILENT_DB)
     for i, (a, b) in enumerate(zip(idx[:-1], idx[1:])):
@@ -422,6 +423,16 @@ def rms_db(x, sr: int, edges_ms):
             if rms > 0:
                 out[i] = max(SILENT_DB, 20 * np.log10(rms))
     return out
+
+
+def loud_db(db) -> float:
+    """The loud level of a voice: the `LOUD_PERCENTILE` of its per-bar dB, ignoring silent
+    bars; `SILENT_DB` when all are silent."""
+    import numpy as np
+
+    db = np.asarray(db, dtype=np.float64)
+    live = db[db > SILENT_DB]
+    return float(np.percentile(live, LOUD_PERCENTILE)) if len(live) else SILENT_DB
 
 
 def level_digits(db, voice_loud_db: float, mix_loud_db: float) -> str:
@@ -434,20 +445,28 @@ def level_digits(db, voice_loud_db: float, mix_loud_db: float) -> str:
 
 def entries_exits(bar_digits: str) -> tuple[list[int], list[int]]:
     """1-based bars where a voice comes in and goes out. Entry: the first bar >= 5 after at
-    least two bars <= 2 (bar 1 counts when >= 5). Exit: the last bar >= 5 before at least two
-    bars <= 2, or before the end (only quiet bars left)."""
-    d = [int(c) for c in bar_digits]
+    least two quiet bars (<= 2), or at the start of the track. Exit: the last bar >= 5 before
+    two quiet bars, or before the end. Bars of 3-4 neither arm an entry nor count as quiet."""
     entries, exits = [], []
-    quiet = 2  # the start of the track counts as quiet
-    for i, v in enumerate(d):
+    armed, quiet, last = True, 0, None
+    for i, c in enumerate(bar_digits, 1):
+        v = int(c)
         if v >= 5:
-            if quiet >= 2:
-                entries.append(i + 1)
-            quiet = 0
-            if all(r <= 2 for r in d[i + 1:i + 3]):
-                exits.append(i + 1)
+            if armed:
+                entries.append(i)
+                armed = False
+            last, quiet = i, 0
+        elif v <= 2:
+            quiet += 1
+            if quiet == 2:
+                armed = True
+                if last is not None:
+                    exits.append(last)
+                    last = None
         else:
-            quiet = quiet + 1 if v <= 2 else 0
+            quiet = 0
+    if last is not None:
+        exits.append(last)
     return entries, exits
 
 
