@@ -131,6 +131,56 @@ def test_analyze_keeps_an_up_to_date_map_and_redoes_a_stale_one(env, capsys):
     assert len(env.calls) == 3
 
 
+def _edit_map(path, edit):
+    data = mm.load_map(path)
+    edit(data)
+    path.write_text(mm.dump_map(data), encoding="utf-8")
+
+
+@pytest.mark.parametrize("edit", [
+    lambda d: d.update(soundswitch="11111111-2222-3333-4444-555555555555"),
+    lambda d: d["grid"].update(anchors=[[0, 120.0], [8000, 121.0]]),
+], ids=["guid", "anchors"])
+def test_analyze_redoes_a_map_stale_by_guid_or_anchors(env, capsys, edit):
+    path = env.repo.path(MAP_REL)
+    env.run("analyze", "Dançarina")
+    _edit_map(path, edit)
+    assert mm.problems_map(mm.load_map(path)) == []
+    capsys.readouterr()
+    assert env.run("analyze", "Dançarina") == 0
+    assert f"redone (stale) {path}" in capsys.readouterr().out
+    assert mm.load_map(path)["soundswitch"] == PROJECT_GUIDS[0].upper()
+
+
+def test_analyze_playlist_survives_a_corrupt_audio_file(env, capsys):
+    (env.root / "Music" / "b.mp3").write_bytes(b"not audio at all" * 50)
+    (env.project / "SoundSwitchTrackMap.bin").write_bytes(trackmap([
+        (5, PROJECT_GUIDS[0], "Dançarina", "Pedro Sampaio", r"C:\Music\a.mp3", 120, 16000),
+        (5, PROJECT_GUIDS[1], "Voa Voa", "Chiclete com Banana", r"C:\Music\b.mp3", 120, 16000)]))
+    env.reader.tracks = [rb(r"C:\Music\b.mp3", title="Voa Voa"), rb(r"C:\Music\a.mp3")]
+    env.repo.write("tracks/alpha.yml", env.repo.read("tracks/alpha.yml").replace("Voa Voa (Ao Vivo)", "Voa Voa"))
+    assert env.run("analyze", "--playlist", "Warm") == 1
+    out = capsys.readouterr().out
+    assert out.count("refused") == 1 and "refused Pedro Sampaio — Voa Voa" in out
+    assert f"written {env.repo.path(MAP_REL)}" in out
+
+
+def test_cues_refuses_a_map_without_a_hot_cues_line(env, capsys):
+    env.run("analyze", "Dançarina", rekordbox=False)
+    path = env.repo.path(MAP_REL)
+    lines = [x for x in path.read_text(encoding="utf-8").splitlines()
+             if not x.startswith(("hot_cues:", "hot_cues_note:"))]
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    assert env.run("cues", "Dançarina") == 1
+    assert "no hot_cues line" in capsys.readouterr().out
+
+
+def test_show_skips_a_map_that_does_not_parse(env, capsys):
+    env.run("analyze", "Dançarina", rekordbox=False)
+    env.repo.write("lightshows/maps/broken.yml", "a: [unclosed\n")
+    assert nm.main(["show", "sampaio", "--repo", str(env.repo.root)]) == 0
+
+
 def test_analyze_refuses_a_track_not_in_a_pool(env, capsys):
     pool = env.repo.read("tracks/alpha.yml").replace('title: "Dançarina"', 'title: "Outra"')
     env.repo.write("tracks/alpha.yml", pool)
