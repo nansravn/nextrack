@@ -41,6 +41,7 @@ except ImportError:
     )
 
 import lightshow
+import musical_map
 
 GRAPH_PATH = "genres/graph.yml"
 RIG_PATH = "lightshows/rig.yml"
@@ -116,6 +117,7 @@ class Repo:
     rig: tuple[str, object] | None = None  # (path, parsed YAML) of lightshows/rig.yml, if any
     choreos: list[tuple[str, object]] = field(default_factory=list)  # lightshows/tracks/*.yml
     plans: list[Block] = field(default_factory=list)  # lightshows/sets/*.md
+    maps: list[tuple[str, object]] = field(default_factory=list)  # lightshows/maps/*.yml
 
     def node_ids(self) -> set[str]:
         return {n["id"] for n in self.nodes if isinstance(n.get("id"), str)}
@@ -337,8 +339,8 @@ def _load_yaml_file(root: Path, rel: str, errors: list[Finding]) -> tuple[str, o
 
 
 def _load_lightshows(root: Path, errors: list[Finding]):
-    """The rig (None when absent), the choreographies and the show plans. A file that
-    fails to parse is reported in `errors` and left out."""
+    """The rig (None when absent), the choreographies, the show plans and the musical
+    maps. A file that fails to parse is reported in `errors` and left out."""
     rig = _load_yaml_file(root, RIG_PATH, errors) if (root / RIG_PATH).is_file() else None
     choreos = []
     for path in sorted((root / "lightshows/tracks").glob("*.yml")):
@@ -354,7 +356,12 @@ def _load_lightshows(root: Path, errors: list[Finding]):
             plans.append(_split_block(rel, _read(root, rel), errors))
         except _LoadError as exc:
             errors.append(exc.finding)
-    return rig, choreos, plans
+    maps = []
+    for path in sorted((root / "lightshows/maps").glob("*.yml")):
+        loaded = _load_yaml_file(root, path.relative_to(root).as_posix(), errors)
+        if loaded is not None:
+            maps.append(loaded)
+    return rig, choreos, plans, maps
 
 
 def load_repo(root: Path) -> Repo:
@@ -364,8 +371,8 @@ def load_repo(root: Path) -> Repo:
     nodes, graph_ok = _load_graph(root, errors)
     pools = _load_pools(root, errors)
     blocks = _load_blocks(root, errors)
-    rig, choreos, plans = _load_lightshows(root, errors)
-    return Repo(root, nodes, pools, blocks, errors, graph_ok, rig, choreos, plans)
+    rig, choreos, plans, maps = _load_lightshows(root, errors)
+    return Repo(root, nodes, pools, blocks, errors, graph_ok, rig, choreos, plans, maps)
 
 
 # ---------------------------------------------------------------------- rules --
@@ -1261,8 +1268,8 @@ def lightshow_rig(repo: Repo) -> Iterable[Finding]:
         yield Finding(path, 0, "lightshow-rig", problem)
 
 
-def _choreo_track_problem(repo: Repo, track: str) -> str | None:
-    """Why the `track` of a choreography does not name a pool track, or None."""
+def _pool_track_problem(repo: Repo, track: str) -> str | None:
+    """Why the `track` of a choreography or map does not name a pool track, or None."""
     artist, dash, title = track.partition(" — ")
     if not (dash and artist.strip() and title.strip()):
         return f"track {track!r} is not `Artist — Title` (em dash)"
@@ -1279,9 +1286,23 @@ def lightshow_track(repo: Repo) -> Iterable[Finding]:
         for problem in lightshow.problems_choreography(data, None):
             yield Finding(path, 0, "lightshow-track", problem)
         if isinstance(data, dict) and isinstance(data.get("track"), str):
-            problem = _choreo_track_problem(repo, data["track"])
+            problem = _pool_track_problem(repo, data["track"])
             if problem is not None:
                 yield Finding(path, 0, "lightshow-track", problem)
+
+
+@rule("musical-map")
+def musical_map_rule(repo: Repo) -> Iterable[Finding]:
+    for path, data in repo.maps:
+        for problem in musical_map.problems_map(data):
+            yield Finding(path, 0, "musical-map", problem)
+        if isinstance(data, dict) and isinstance(data.get("track"), str):
+            problem = _pool_track_problem(repo, data["track"])
+            if problem is not None:
+                yield Finding(path, 0, "musical-map", problem)
+            if Path(path).name != f"{musical_map.slug(data['track'])}.yml":
+                yield Finding(path, 0, "musical-map",
+                              f"file name is not {musical_map.slug(data['track'])}.yml, the slug of its track")
 
 
 @rule("lightshow-plan")

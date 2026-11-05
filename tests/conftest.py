@@ -22,6 +22,12 @@ def no_owner_soundswitch(monkeypatch):
     monkeypatch.delenv("NEXTRACK_SOUNDSWITCH_PROJECT", raising=False)
 
 
+@pytest.fixture(autouse=True)
+def no_owner_rekordbox(monkeypatch):
+    """Likewise hide the owner's rekordbox folder."""
+    monkeypatch.delenv("NEXTRACK_REKORDBOX_DIR", raising=False)
+
+
 # ------------------------------------------------------ SoundSwitch scripts ----
 
 
