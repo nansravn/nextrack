@@ -359,3 +359,106 @@ def dump_map(data: dict) -> str:
 
 def load_map(path: Path) -> dict:
     return yaml.safe_load(Path(path).read_text(encoding="utf-8"))
+
+
+# ------------------------------------------------------------ audio features ----
+# Pure functions: arrays in, values out. numpy is imported inside them so that importing
+# this module (the validator does) stays light.
+
+BLEED_DB = 30.0       # a voice this far under the mix is separation bleed, not a voice
+SILENT_DB = -120.0
+DB_PER_DIGIT = 3.0
+KICK_HZ = 150.0       # the drums stem below this is `kick`, the rest `perc`
+LOUD_PERCENTILE = 95  # "loud level" of a voice: this percentile of its per-bar dB
+
+
+def step_edges_ms(grid, audio_ms: int):
+    """Step boundaries (1/16 notes) from bar 1 beat 1 to the end of the audio: `bars*16 + 1`
+    values, the last clipped to `audio_ms`."""
+    import numpy as np
+
+    bars = grid.bar_at(audio_ms - 1)
+    edges = [grid.ms(1 + i // STEPS_PER_BAR, 1 + (i % STEPS_PER_BAR) / 4)
+             for i in range(bars * STEPS_PER_BAR + 1)]
+    edges[-1] = min(edges[-1], audio_ms)
+    return np.array(edges, dtype=np.int64)
+
+
+def _stereo(x):
+    import numpy as np
+
+    x = np.asarray(x, dtype=np.float32)
+    return np.stack([x, x], axis=1) if x.ndim == 1 else x
+
+
+def voices_from_stems(stems: dict, sr: int) -> dict:
+    """The five `VOICES` as `(n, 2)` float32 from the stems `vocals, drums, bass, other`:
+    the drums are split by an FFT mask at `KICK_HZ` into `kick` (below) and `perc`."""
+    import numpy as np
+
+    drums = _stereo(stems["drums"])
+    spec = np.fft.rfft(drums, axis=0)
+    low = (np.fft.rfftfreq(len(drums), 1 / sr) < KICK_HZ)[:, None]
+    kick = np.fft.irfft(spec * low, n=len(drums), axis=0)
+    perc = np.fft.irfft(spec * ~low, n=len(drums), axis=0)
+    out = {"vocals": _stereo(stems["vocals"]), "kick": kick, "perc": perc,
+           "bass": _stereo(stems["bass"]), "other": _stereo(stems["other"])}
+    return {v: out[v].astype(np.float32) for v in VOICES}
+
+
+def rms_db(x, sr: int, edges_ms):
+    """Mono RMS in dB per interval between consecutive `edges_ms`; `SILENT_DB` for silence
+    or an empty interval."""
+    import numpy as np
+
+    x = np.asarray(x, dtype=np.float64)
+    if x.ndim == 2:
+        x = x.mean(axis=1)
+    idx = np.clip(np.round(np.asarray(edges_ms) * sr / 1000).astype(np.int64), 0, len(x))
+    out = np.full(len(idx) - 1, SILENT_DB)
+    for i, (a, b) in enumerate(zip(idx[:-1], idx[1:])):
+        if b > a:
+            rms = float(np.sqrt(np.mean(x[a:b] ** 2)))
+            if rms > 0:
+                out[i] = max(SILENT_DB, 20 * np.log10(rms))
+    return out
+
+
+def level_digits(db, voice_loud_db: float, mix_loud_db: float) -> str:
+    """One digit per interval: 9 at `voice_loud_db`, one less per 3 dB below, 0 at 27 dB below
+    or more. All 0 when the voice is `BLEED_DB` under the mix."""
+    if voice_loud_db < mix_loud_db - BLEED_DB:
+        return "0" * len(db)
+    return "".join(str(max(0, min(9, 9 - int((voice_loud_db - d) // DB_PER_DIGIT)))) for d in db)
+
+
+def entries_exits(bar_digits: str) -> tuple[list[int], list[int]]:
+    """1-based bars where a voice comes in and goes out. Entry: the first bar >= 5 after at
+    least two bars <= 2 (bar 1 counts when >= 5). Exit: the last bar >= 5 before at least two
+    bars <= 2, or before the end (only quiet bars left)."""
+    d = [int(c) for c in bar_digits]
+    entries, exits = [], []
+    quiet = 2  # the start of the track counts as quiet
+    for i, v in enumerate(d):
+        if v >= 5:
+            if quiet >= 2:
+                entries.append(i + 1)
+            quiet = 0
+            if all(r <= 2 for r in d[i + 1:i + 3]):
+                exits.append(i + 1)
+        else:
+            quiet = quiet + 1 if v <= 2 else 0
+    return entries, exits
+
+
+def balance_letters(x, sr: int, bar_edges_ms) -> str:
+    """Per bar, the left-minus-right level: >= 6 dB `L`, >= 2 `l`, <= -6 `R`, <= -2 `r`, else
+    `c` (silent bars are `c`)."""
+    x = _stereo(x)
+    left = rms_db(x[:, 0], sr, bar_edges_ms)
+    right = rms_db(x[:, 1], sr, bar_edges_ms)
+    letters = []
+    for diff in left - right:
+        letters.append("L" if diff >= 6 else "l" if diff >= 2 else "R" if diff <= -6
+                       else "r" if diff <= -2 else "c")
+    return "".join(letters)
