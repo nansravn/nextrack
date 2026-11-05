@@ -651,3 +651,217 @@ def phrases(step_levels: str, register: str) -> list[dict]:
                     "register": "low" if med < 3.5 else "mid" if med < 6.5 else "high",
                     "level": max(int(c) for c in step_levels[a:b + 1])})
     return out
+
+
+# ------------------------------------------------- sections, drops, grid, the map ----
+
+FULL_DIGIT = 6          # a kick and a bass at this digit or more: the track is "full"
+WELL_BELOW_DIGIT = 4    # a kick and a bass both at this digit or less: well below full
+BREAK_MIN_BARS = 2
+BUILD_MIN_BARS = 2
+BUILD_MAX_BARS = 16
+BUILD_RISE_DB = 1.0     # a build bar is this much louder (perc + other) than the bar before
+DROP_FLOOR_DB = 60.0    # kick + bass levels are floored this far under the loudest bar
+SILENCE_DB = 40.0       # a bar this far under the mix's loud level is a silence
+ATTACK_GAP_MS = 80      # onsets closer than this to the one before are a kick's ripple
+CUE_NEAR_MS = 30        # a hot cue farther than this from a beat gets its offset written
+
+
+def _power_sum_db(*dbs):
+    import numpy as np
+
+    return 10 * np.log10(sum(10 ** (np.asarray(d, dtype=np.float64) / 10) for d in dbs))
+
+
+def sections_and_drops(bar_digits: dict, bar_db: dict) -> tuple[list[dict], list[dict]]:
+    """Sections (`intro`, `groove`, `break`, `build`, `drop`, `outro`) and drops from the bar
+    digits and bar dB of the voices. A bar is full when `min(kick, bass) >= 6` and well below
+    full when `max(kick, bass) <= 4`. A break is >= 2 well-below-full bars between full bars;
+    the track's last full bar ends its groove/drop and the rest is the outro; before the first
+    full bar is the intro (none when bar 1 is full: a groove). A break's trailing bars where
+    perc + other rise bar over bar (2 to 16, never its first bar) are the build. A drop starts
+    at the first full bar after the intro and after each break; its size is the kick + bass dB
+    of that bar minus the mean of the (up to) two bars before, to one decimal; the levels are
+    floored `DROP_FLOOR_DB` under the loudest bar, so a silent break is a bounded jump."""
+    import numpy as np
+
+    kick = [int(c) for c in bar_digits["kick"]]
+    bass = [int(c) for c in bar_digits["bass"]]
+    n = len(kick)
+    full = [min(k, b) >= FULL_DIGIT for k, b in zip(kick, bass)]
+    low = [max(k, b) <= WELL_BELOW_DIGIT for k, b in zip(kick, bass)]
+    if not any(full):
+        return [{"bars": [1, n], "kind": "intro"}], []
+    first, last = full.index(True), n - 1 - full[::-1].index(True)
+    breaks = []
+    i = first
+    while i <= last:
+        if low[i]:
+            j = i
+            while j + 1 <= last and low[j + 1]:
+                j += 1
+            if j - i + 1 >= BREAK_MIN_BARS:
+                breaks.append((i, j))
+            i = j + 1
+        else:
+            i += 1
+    rise = _power_sum_db(bar_db["perc"], bar_db["other"])
+    sections, drops = [], []
+
+    def add(kind, a, b):  # 0-based inclusive
+        sections.append({"bars": [a + 1, b + 1], "kind": kind})
+
+    start, kind = 0, "groove"
+    if first > 0:
+        add("intro", 0, first - 1)
+        start, kind = first, "drop"
+    for a, b in breaks:
+        if kind == "drop":
+            drops.append(start)
+        add(kind, start, a - 1)
+        # walk back from the end over the rising bars
+        k = b
+        while k > a and rise[k] > rise[k - 1] + BUILD_RISE_DB and b - k + 1 <= BUILD_MAX_BARS:
+            k -= 1
+        build_from = k + 1
+        if b - build_from + 1 >= BUILD_MIN_BARS and build_from > a:
+            add("break", a, build_from - 1)
+            add("build", build_from, b)
+        else:
+            add("break", a, b)
+        start, kind = b + 1, "drop"
+    if kind == "drop":
+        drops.append(start)
+    add(kind, start, last)
+    if last < n - 1:
+        add("outro", last + 1, n - 1)
+    kb = _power_sum_db(bar_db["kick"], bar_db["bass"])
+    kb = np.maximum(kb, kb.max() - DROP_FLOOR_DB)  # a silent bar before is a jump of at most this
+    out = []
+    for bar in drops:
+        before = kb[max(0, bar - 2):bar]
+        out.append({"bar": bar + 1, "db": round(float(kb[bar] - np.mean(before)), 1)})
+    return sections, out
+
+
+def silences(mix_bar_db) -> list[list[int]]:
+    """Runs of bars more than `SILENCE_DB` under the mix's loud level, as 1-based `[first, last]`."""
+    import numpy as np
+
+    db = np.asarray(mix_bar_db, dtype=np.float64)
+    gone = db < loud_db(db) - SILENCE_DB
+    out: list[list[int]] = []
+    for i, g in enumerate(gone, 1):
+        if g:
+            if out and out[-1][1] == i - 1:
+                out[-1][1] = i
+            else:
+                out.append([i, i])
+    return out
+
+
+def _nearest_beat(ms: float, grid) -> tuple[int, int, float]:
+    """`(bar, beat, ms - beat time)` of the grid beat nearest to `ms`."""
+    bar = max(1, grid.bar_at(int(ms)))
+    cands = [(bar, beat) for beat in (1, 2, 3, 4)] + [(bar + 1, 1)]
+    return min(((b, k, ms - grid.ms(b, k)) for b, k in cands), key=lambda c: abs(c[2]))
+
+
+def grid_offset_ms(onset_ms, grid) -> float:
+    """Median signed distance from each attack to the nearest beat; 0 when there are none.
+    Onsets before the first anchor are left out, and so is an onset less than
+    `ATTACK_GAP_MS` after the one before it (the ripple of a decaying kick, not a new hit)."""
+    import numpy as np
+
+    first = grid.anchors[0][0]
+    offs, prev = [], None
+    for t in sorted(onset_ms):
+        if t >= first and (prev is None or t - prev >= ATTACK_GAP_MS):
+            offs.append(_nearest_beat(t, grid)[2])
+        prev = t
+    return float(np.median(offs)) if offs else 0.0
+
+
+def cue_text(ms: int, grid) -> str:
+    """`bar.beat` of the beat nearest to `ms`; more than `CUE_NEAR_MS` from it, the signed
+    offset follows (`9.1+500ms`)."""
+    bar, beat, off = _nearest_beat(ms, grid)
+    text = f"{bar}.{beat}"
+    return text + (f"{round(off):+d}ms" if abs(off) > CUE_NEAR_MS else "")
+
+
+def is_stale(existing: dict, *, audio_sha: str, guid: str, anchors) -> bool:
+    """True when the audio hash, the script's GUID or the tempo anchors differ from the map's."""
+    stored = [(a[0], float(a[1])) for a in existing["grid"]["anchors"]]
+    return (existing["audio"]["sha256"] != audio_sha or existing["soundswitch"] != guid
+            or stored != [(int(ms), float(bpm)) for ms, bpm in anchors])
+
+
+def _downbeat(ms: int) -> str:
+    return f"{ms // 60000}:{ms // 1000 % 60:02d}.{ms % 1000:03d}"
+
+
+def build_map(*, track: str, guid: str, audio_sha: str, audio_ms: int, anchors, stems: dict,
+              sr: int, hot_cues, hot_cues_note, separator: str) -> dict:
+    """The musical map (a dict that passes `problems_map` and dumps as is) of a track from its
+    four stems `vocals, drums, bass, other` at `sr`. `anchors` are the script's `(ms, bpm)`;
+    bar 1 is the first one, audio before it is not in the map. The mix, for the bleed rule and
+    the silences, is the sum of the stems."""
+    from soundswitch_format import Grid
+
+    grid = Grid([(int(ms), float(bpm)) for ms, bpm in anchors])
+    edges = step_edges_ms(grid, audio_ms)
+    bar_edges = edges[::STEPS_PER_BAR]
+    bars = len(bar_edges) - 1
+    voices = voices_from_stems(stems, sr)
+    mix = sum(_stereo(stems[k]) for k in ("vocals", "drums", "bass", "other"))
+    mix_step, mix_bar = rms_db(mix, sr, edges), rms_db(mix, sr, bar_edges)
+    del mix
+    step_db = {v: rms_db(voices[v], sr, edges) for v in VOICES}
+    bar_db = {v: rms_db(voices[v], sr, bar_edges) for v in VOICES}
+    steps = {v: level_digits(step_db[v], loud_db(step_db[v]), loud_db(mix_step)) for v in VOICES}
+    bar_digits = {v: level_digits(bar_db[v], loud_db(bar_db[v]), loud_db(mix_bar)) for v in VOICES}
+    out_voices = {}
+    for v in VOICES:
+        entries, exits = entries_exits(bar_digits[v])
+        entry = {"bars": bar_digits[v], "entries": entries, "exits": exits}
+        if v in BALANCE_VOICES:
+            entry["balance"] = balance_letters(voices[v], sr, bar_edges)
+        out_voices[v] = entry
+    onsets, onset_ms = {}, {}
+    for v in ONSET_VOICES:
+        onsets[v], onset_ms[v] = onset_digits(voices[v], sr, edges)
+    register = register_digits(voices["vocals"], sr, edges, steps["vocals"])
+    offset = grid_offset_ms(onset_ms["kick"], grid)
+    sections, drops = sections_and_drops(bar_digits, bar_db)
+    first_ms, first_bpm = grid.anchors[0]
+    data = {
+        "map_version": MAP_VERSION,
+        "track": track,
+        "soundswitch": guid,
+        "audio": {"sha256": audio_sha, "ms": int(audio_ms)},
+        "grid": {"bpm": first_bpm, "downbeat": _downbeat(first_ms),
+                 "anchors": [[ms, bpm] for ms, bpm in grid.anchors], "offset_ms": round(offset)},
+    }
+    step_ms = 60000 / first_bpm / 4
+    if abs(offset) > step_ms / 4:
+        data["grid_warning"] = (f"kick onsets sit {offset:+.0f} ms from the beat, more than a "
+                                f"quarter of a step ({step_ms / 4:.0f} ms): check the grid")
+    data.update({
+        "separator": separator,
+        "bars": bars,
+        "hot_cues": hot_cues,
+    })
+    if hot_cues is None:
+        data["hot_cues_note"] = hot_cues_note
+    data.update({
+        "voices": out_voices,
+        "steps": {v: _chunked(steps[v]) for v in VOICES},
+        "onsets": {v: _chunked(onsets[v]) for v in ONSET_VOICES},
+        "register": _chunked(register),
+        "phrases": phrases(steps["vocals"], register),
+        "sections": sections,
+        "drops": drops,
+        "silences": silences(mix_bar),
+    })
+    return data

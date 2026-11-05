@@ -1,3 +1,4 @@
+import yaml
 import numpy as np
 
 import musical_map as mm
@@ -213,3 +214,179 @@ def test_offgrid_onset_lands_on_the_nearest_step():
     assert d.index("9") == 1 and abs(times[0] - 165) <= 5
     d, _ = mm.onset_digits(clicks([125 + 80], 2000), SR, edges)
     assert d.index("9") == 2
+
+
+# ---------------------------------------------------- sections, drops and build_map ----
+
+BAR_MS = 2000  # 120 BPM
+
+
+def kick_hit(sr, amp=0.5):
+    """A 60 Hz thump with a decaying envelope: a sharp attack, as a kick has."""
+    t = tone(60, 100, sr, amp)
+    return t * np.exp(-np.arange(len(t)) / sr / 0.03).astype(np.float32)
+
+
+def render(sr=SR, bars=24, kick=(), bass=(), bass_db=None, perc=None, shift=0.0, first_ms=0,
+           tail_ms=0):
+    """Synthetic stems at 120 BPM: a kick on every beat of the `kick` bars, a bass tone in the
+    `bass` bars (`bass_db[bar]` dB down), and 4-8 kHz percussion at `perc[bar]` amplitude."""
+    total = first_ms + bars * BAR_MS + tail_ms
+    drums, low = [], []
+    for bar in kick:
+        for beat in range(4):
+            drums.append((first_ms + (bar - 1) * BAR_MS + beat * 500 + shift, kick_hit(sr)))
+    for bar, amp in (perc or {}).items():
+        for beat in range(4):
+            drums.append((first_ms + (bar - 1) * BAR_MS + beat * 500 + 250,
+                          noise_burst(100, sr, amp, seed=bar * 4 + beat, low_hz=4000, high_hz=8000)))
+    for bar in bass:
+        gain = db(-(bass_db or {}).get(bar, 0))
+        low.append((first_ms + (bar - 1) * BAR_MS, tone(80, BAR_MS, sr, 0.6 * gain)))
+    z = silence(total, sr)
+    return {"vocals": z, "drums": place(total, drums, sr), "bass": place(total, low, sr),
+            "other": z.copy()}
+
+
+def make(stems, sr=SR, anchors=((0, 120.0),), audio_ms=None, hot_cues=None,
+         note="not in rekordbox"):
+    audio_ms = audio_ms or len(stems["drums"]) * 1000 // sr
+    return mm.build_map(track="Pedro Sampaio — Dançarina",
+                        guid="0123ABCD-0123-4567-89AB-0123456789AB",
+                        audio_sha="3f9c1a2b4d5e", audio_ms=audio_ms, anchors=list(anchors),
+                        stems=stems, sr=sr, hot_cues=hot_cues,
+                        hot_cues_note=None if hot_cues else note, separator="htdemucs")
+
+
+def arrangement(sr=SR):
+    full = list(range(5, 13)) + list(range(17, 25))
+    perc = {b: 0.3 for b in (*range(5, 13), 17, 18)}
+    perc.update({15: 0.1, 16: 0.2})
+    return render(sr, kick=list(range(1, 13)) + list(range(17, 25)), bass=full, perc=perc)
+
+
+def spans(m):
+    return [(s["kind"], *s["bars"]) for s in m["sections"]]
+
+
+def test_arrangement_sections_and_drops():
+    m = make(arrangement())
+    assert spans(m) == [("intro", 1, 4), ("drop", 5, 12), ("break", 13, 14), ("build", 15, 16),
+                        ("drop", 17, 24)]
+    assert [d["bar"] for d in m["drops"]] == [5, 17]
+    assert all(d["db"] > 6 for d in m["drops"])
+
+
+def test_one_bar_dip_is_not_a_break():
+    allbars = list(range(1, 25))
+    m = make(render(kick=[b for b in allbars if b != 9], bass=[b for b in allbars if b != 9]))
+    assert spans(m) == [("groove", 1, 24)]
+    assert m["drops"] == []
+
+
+def test_filtered_bass_break():
+    allbars = list(range(1, 25))
+    kick = [b for b in allbars if not 9 <= b <= 12]
+    m = make(render(kick=kick, bass=allbars, bass_db={b: 18 for b in range(9, 13)}))
+    assert ("break", 9, 12) in spans(m)
+    assert [d["bar"] for d in m["drops"]] == [13]
+
+
+def test_filtered_bass_counts_as_well_below_full_by_digits():
+    d = {"kick": "9" * 4 + "0" * 3 + "9" * 4, "bass": "9" * 4 + "4" * 3 + "9" * 4}
+    z = np.full(11, -120.0)
+    sections, drops = mm.sections_and_drops(d, {v: z for v in mm.VOICES})
+    assert [(s["kind"], *s["bars"]) for s in sections] == [("groove", 1, 4), ("break", 5, 7),
+                                                           ("drop", 8, 11)]
+    assert [x["bar"] for x in drops] == [8]
+
+
+def test_track_full_from_bar_one_starts_with_groove():
+    allbars = list(range(1, 25))
+    m = make(render(kick=allbars, bass=allbars))
+    assert spans(m) == [("groove", 1, 24)]
+
+
+def test_outro_after_last_full_bar():
+    m = make(render(kick=range(1, 21), bass=range(1, 21)))
+    assert spans(m) == [("groove", 1, 20), ("outro", 21, 24)]
+
+
+def test_silences():
+    db_ = np.array([-20.0] * 4 + [-120.0] * 2 + [-20.0] * 3 + [-70.0])
+    assert mm.silences(db_) == [[5, 6], [10, 10]]
+    assert mm.silences(np.full(4, -120.0)) == []
+
+
+def test_grid_warning_when_kicks_are_off_grid():
+    allbars = list(range(1, 25))
+    off = make(render(kick=allbars, bass=allbars, shift=62.5))
+    assert "grid_warning" in off and abs(off["grid"]["offset_ms"]) > 31
+    on = make(render(kick=allbars, bass=allbars))
+    assert "grid_warning" not in on and abs(on["grid"]["offset_ms"]) <= 5
+
+
+def test_grid_offset_ms():
+    g = Grid([(0, 120.0)])
+    assert mm.grid_offset_ms([10.0, 510.0, 1020.0], g) == 10.0
+    assert mm.grid_offset_ms([-20.0, 480.0, 1980.0], g) == -20.0
+    assert mm.grid_offset_ms([], g) == 0.0
+
+
+def test_build_map_passes_its_own_validation():
+    allbars = list(range(1, 25))
+    stems = render(kick=allbars, bass=allbars)
+    for m in (make(stems, hot_cues={"A": "1.1", "B": "5.1"}), make(stems)):
+        assert mm.problems_map(m) == []
+        assert mm.problems_map(yaml.safe_load(mm.dump_map(m))) == []
+    assert make(stems, hot_cues={"A": "1.1"})["hot_cues"] == {"A": "1.1"}
+    assert make(stems)["hot_cues_note"] == "not in rekordbox"
+    m = make(stems)
+    assert m["grid"] == {"bpm": 120.0, "downbeat": "0:00.000", "anchors": [[0, 120.0]],
+                         "offset_ms": m["grid"]["offset_ms"]}
+    assert m["audio"] == {"sha256": "3f9c1a2b4d5e", "ms": 48000} and m["bars"] == 24
+
+
+def test_same_bars_at_48k():
+    a, b = make(arrangement(44100), 44100), make(arrangement(48000), 48000)
+    assert ({v: a["voices"][v]["bars"] for v in mm.VOICES}
+            == {v: b["voices"][v]["bars"] for v in mm.VOICES})
+    assert a["sections"] == b["sections"]
+    assert [d["bar"] for d in a["drops"]] == [d["bar"] for d in b["drops"]]
+    assert all(abs(x["db"] - y["db"]) < 0.5 for x, y in zip(a["drops"], b["drops"]))
+
+
+def test_pickup_before_first_anchor_and_partial_last_bar():
+    first = 3998
+    stems = render(bars=10, kick=range(1, 11), bass=range(1, 11), first_ms=first, tail_ms=1000)
+    stems["other"] = place(len(stems["other"]) * 1000 / SR, [(0, tone(440, first, amp=0.5))])
+    m = make(stems, anchors=[(first, 120.0)], audio_ms=first + int(10.5 * BAR_MS))
+    assert m["bars"] == 11
+    assert sum(len(s) for s in m["steps"]["kick"]) == 176
+    assert m["voices"]["other"]["bars"] == "0" * 11
+    assert m["grid"]["downbeat"] == "0:03.998"
+
+
+def test_cue_text():
+    g = Grid([(0, 120.0)])
+    assert mm.cue_text(g.ms(57), g) == "57.1"
+    assert mm.cue_text(g.ms(9) + 500, g) == "9.2"
+    assert mm.cue_text(g.ms(9) + 100, g) == "9.1+100ms"
+    assert mm.cue_text(g.ms(9) + 400, g) == "9.2-100ms"
+    assert mm.cue_text(g.ms(9) + 20, g) == "9.1"
+
+
+def test_is_stale():
+    m = make(render(kick=[1], bass=[1], bars=2))
+    same = dict(audio_sha="3f9c1a2b4d5e", guid="0123ABCD-0123-4567-89AB-0123456789AB",
+                anchors=[(0, 120.0)])
+    assert mm.is_stale(m, **same) is False
+    assert mm.is_stale(m, **{**same, "audio_sha": "000000000000"}) is True
+    assert mm.is_stale(m, **{**same, "guid": "0123ABCD-0123-4567-89AB-0123456789AC"}) is True
+    assert mm.is_stale(m, **{**same, "anchors": [(0, 121.0)]}) is True
+    assert mm.is_stale(m, **{**same, "anchors": [(0, 120.0), (4000, 120.0)]}) is True
+
+
+def test_grid_offset_ignores_ripple_after_an_attack():
+    g = Grid([(0, 120.0)])
+    assert mm.grid_offset_ms([10.0, 50.0, 70.0, 510.0, 540.0, 1010.0], g) == 10.0
