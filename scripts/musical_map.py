@@ -655,8 +655,8 @@ def phrases(step_levels: str, register: str) -> list[dict]:
 
 # ------------------------------------------------- sections, drops, grid, the map ----
 
-FULL_DIGIT = 6          # a kick and a bass at this digit or more: the track is "full"
-WELL_BELOW_DIGIT = 4    # a kick and a bass both at this digit or less: well below full
+FULL_DB = 6.0           # the low end (kick + bass) within this of its loud level: "full"
+WELL_BELOW_DB = 9.0     # the low end at least this far under its loud level: well below full
 BREAK_MIN_BARS = 2
 BUILD_MIN_BARS = 2
 BUILD_MAX_BARS = 16
@@ -673,10 +673,11 @@ def _power_sum_db(*dbs):
     return 10 * np.log10(sum(10 ** (np.asarray(d, dtype=np.float64) / 10) for d in dbs))
 
 
-def sections_and_drops(bar_digits: dict, bar_db: dict) -> tuple[list[dict], list[dict]]:
+def sections_and_drops(bar_db: dict) -> tuple[list[dict], list[dict]]:
     """Sections (`intro`, `groove`, `break`, `build`, `drop`, `outro`) and drops from the bar
-    digits and bar dB of the voices. A bar is full when `min(kick, bass) >= 6` and well below
-    full when `max(kick, bass) <= 4`. A break is >= 2 well-below-full bars between full bars;
+    dB of the voices. The low end is the power sum of kick and bass; a bar is full when it is
+    within `FULL_DB` of the low end's loud level and well below full when it is at least
+    `WELL_BELOW_DB` under it (a filtered bass and kick count). A break is >= 2 well-below-full bars between full bars;
     the track's last full bar ends its groove/drop and the rest is the outro; before the first
     full bar is the intro (none when bar 1 is full: a groove). A break's trailing bars where
     perc + other rise bar over bar (2 to 16, never its first bar) are the build. A drop starts
@@ -685,11 +686,12 @@ def sections_and_drops(bar_digits: dict, bar_db: dict) -> tuple[list[dict], list
     floored `DROP_FLOOR_DB` under the loudest bar, so a silent break is a bounded jump."""
     import numpy as np
 
-    kick = [int(c) for c in bar_digits["kick"]]
-    bass = [int(c) for c in bar_digits["bass"]]
-    n = len(kick)
-    full = [min(k, b) >= FULL_DIGIT for k, b in zip(kick, bass)]
-    low = [max(k, b) <= WELL_BELOW_DIGIT for k, b in zip(kick, bass)]
+    kb = _power_sum_db(bar_db["kick"], bar_db["bass"])
+    n = len(kb)
+    loud = loud_db(kb)
+    live = loud > SILENT_DB + 10
+    full = [bool(live and d >= loud - FULL_DB) for d in kb]
+    low = [bool(live and d <= loud - WELL_BELOW_DB) for d in kb]
     if not any(full):
         return [{"bars": [1, n], "kind": "intro"}], []
     first, last = full.index(True), n - 1 - full[::-1].index(True)
@@ -735,7 +737,6 @@ def sections_and_drops(bar_digits: dict, bar_db: dict) -> tuple[list[dict], list
     add(kind, start, last)
     if last < n - 1:
         add("outro", last + 1, n - 1)
-    kb = _power_sum_db(bar_db["kick"], bar_db["bass"])
     kb = np.maximum(kb, kb.max() - DROP_FLOOR_DB)  # a silent bar before is a jump of at most this
     out = []
     for bar in drops:
@@ -833,7 +834,7 @@ def build_map(*, track: str, guid: str, audio_sha: str, audio_ms: int, anchors, 
         onsets[v], onset_ms[v] = onset_digits(voices[v], sr, edges)
     register = register_digits(voices["vocals"], sr, edges, steps["vocals"])
     offset = grid_offset_ms(onset_ms["kick"], grid)
-    sections, drops = sections_and_drops(bar_digits, bar_db)
+    sections, drops = sections_and_drops(bar_db)
     first_ms, first_bpm = grid.anchors[0]
     data = {
         "map_version": MAP_VERSION,

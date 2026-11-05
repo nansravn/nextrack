@@ -227,7 +227,7 @@ def kick_hit(sr, amp=0.5):
     return t * np.exp(-np.arange(len(t)) / sr / 0.03).astype(np.float32)
 
 
-def render(sr=SR, bars=24, kick=(), bass=(), bass_db=None, perc=None, shift=0.0, first_ms=0,
+def render(sr=SR, bars=24, kick=(), bass=(), bass_db=None, kick_db=None, perc=None, shift=0.0, first_ms=0,
            tail_ms=0):
     """Synthetic stems at 120 BPM: a kick on every beat of the `kick` bars, a bass tone in the
     `bass` bars (`bass_db[bar]` dB down), and 4-8 kHz percussion at `perc[bar]` amplitude."""
@@ -235,7 +235,7 @@ def render(sr=SR, bars=24, kick=(), bass=(), bass_db=None, perc=None, shift=0.0,
     drums, low = [], []
     for bar in kick:
         for beat in range(4):
-            drums.append((first_ms + (bar - 1) * BAR_MS + beat * 500 + shift, kick_hit(sr)))
+            drums.append((first_ms + (bar - 1) * BAR_MS + beat * 500 + shift, kick_hit(sr, 0.5 * db(-(kick_db or {}).get(bar, 0)))))
     for bar, amp in (perc or {}).items():
         for beat in range(4):
             drums.append((first_ms + (bar - 1) * BAR_MS + beat * 500 + 250,
@@ -286,19 +286,18 @@ def test_one_bar_dip_is_not_a_break():
 
 def test_filtered_bass_break():
     allbars = list(range(1, 25))
-    kick = [b for b in allbars if not 9 <= b <= 12]
-    m = make(render(kick=kick, bass=allbars, bass_db={b: 18 for b in range(9, 13)}))
+    down = {b: 12 for b in range(9, 13)}
+    m = make(render(kick=allbars, bass=allbars, bass_db=down, kick_db=down))
     assert ("break", 9, 12) in spans(m)
     assert [d["bar"] for d in m["drops"]] == [13]
 
 
-def test_filtered_bass_counts_as_well_below_full_by_digits():
-    d = {"kick": "9" * 4 + "0" * 3 + "9" * 4, "bass": "9" * 4 + "4" * 3 + "9" * 4}
-    z = np.full(11, -120.0)
-    sections, drops = mm.sections_and_drops(d, {v: z for v in mm.VOICES})
-    assert [(s["kind"], *s["bars"]) for s in sections] == [("groove", 1, 4), ("break", 5, 7),
-                                                           ("drop", 8, 11)]
-    assert [x["bar"] for x in drops] == [8]
+def test_bass_alone_filtered_with_full_kick_is_not_a_break():
+    allbars = list(range(1, 25))
+    loud_kick = {b: -18 for b in allbars}  # a kick that carries the low end, as in a club mix
+    m = make(render(kick=allbars, bass=allbars, kick_db=loud_kick,
+                    bass_db={b: 12 for b in range(9, 13)}))
+    assert spans(m) == [("groove", 1, 24)]
 
 
 def test_track_full_from_bar_one_starts_with_groove():
