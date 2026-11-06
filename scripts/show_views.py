@@ -272,6 +272,18 @@ def _section_at(track: CompiledTrack, bar: int) -> CompiledSection | None:
     return next((s for s in track.sections if s.bars[0] <= bar <= s.bars[1]), None)
 
 
+def _section_before(show: CompiledShow, clock: ShowClock, i: int,
+                    bar: int) -> tuple[CompiledSection | None, CompiledTrack]:
+    """The section that plays just before `bar` of track `i`, and the track that holds it: the
+    section holding bar - 1 of the same track; but when bar - 1 is before the track's leg (its
+    B, the bar it enters on) and a track comes before it, the previous track's section at the
+    last bar of that track's leg (G - 1), which is what plays then."""
+    if i > 0 and bar - 1 < clock.tracks[i].leg[0]:
+        prev = show.tracks[i - 1]
+        return _section_at(prev, clock.tracks[i - 1].leg[1]), prev
+    return _section_at(show.tracks[i], bar - 1), show.tracks[i]
+
+
 def _level(section: CompiledSection | None) -> int | None:
     return light_level(section.layers) if section is not None else None
 
@@ -549,9 +561,12 @@ def peaks(show: CompiledShow, clock: ShowClock) -> list[dict]:
     window (the outgoing music's drops during a mix included), sorted by clock. A row:
     `clock_s` (`ShowClock.at`), `index` and `track`, `bar`, `db` (the map's drop against the
     two bars before it, so a drop after a musical silence reads huge), `music`
-    (`music_level`), `before` and `at` (`light_level` of the section holding bar - 1 and of the
-    one holding the bar; None for `auto` or the autoscript), `accents` (`_accents` at the bar)
-    and `moment` (of the section holding the bar)."""
+    (`music_level`), `before` and `at` (`light_level` of the section that plays just before
+    the bar and of the one holding it; None for `auto` or the autoscript), `accents`
+    (`_accents` at the bar) and `moment` (of the section holding the bar; None for a bridge,
+    whose moment is the copied handover's). The section before is the one holding bar - 1,
+    except on the track's first leg bar (its B): there it is the previous track's section at
+    the last bar of its leg (`_section_before`)."""
     rows = []
     for track, tc in zip(show.tracks, clock.tracks):
         for drop in track.map.get("drops") or []:
@@ -559,10 +574,12 @@ def peaks(show: CompiledShow, clock: ShowClock) -> list[dict]:
             if not isinstance(bar, int) or isinstance(bar, bool) or not tc.sounds(bar):
                 continue
             at = _section_at(track, bar)
+            before, _ = _section_before(show, clock, tc.index, bar)
+            moment = at.origin.moment if at is not None and at.origin.kind != "bridge" else None
             rows.append({"clock_s": tc.at(bar), "index": tc.index, "track": track.track, "bar": bar,
                          "db": drop.get("db"), "music": music_level(track.map, bar),
-                         "before": _level(_section_at(track, bar - 1)), "at": _level(at),
-                         "accents": _accents(at, bar), "moment": at.origin.moment if at else None})
+                         "before": _level(before), "at": _level(at),
+                         "accents": _accents(at, bar), "moment": moment})
     return sorted(rows, key=lambda r: r["clock_s"])
 
 
@@ -572,9 +589,13 @@ def hit_checks(show: CompiledShow, clock: ShowClock) -> list[dict]:
     one), inside the sounding window, in set order. A row: `clock_s`, `index`, `track`, `bar`
     (the section's first), `arrival` (bool), `moment` (or None), `kick` (the kick onset
     strength on the hit's first 1/16 step, `onsets.kick`, `.` = none), `before` and `at`
-    (`light_level` of the section holding bar - 1 and of the hit's section), `accents`
-    (`_accents` on the hit's first beat) and `dark`: when the section just before is total
-    dark, `{bars, voices}` with the voices' levels over its bars (`voices`), else None."""
+    (`light_level` of the section that plays just before the hit and of the hit's section),
+    `accents` (`_accents` on the hit's first beat) and `dark`: when the section just before is
+    total dark, `{track, bars, voices}`, the track that holds it, its bars and the voices'
+    levels over them in that track's map (`voices`), else None. The section before is the one
+    holding bar - 1, except on the track's first leg bar (its B, as with `bridge: false`):
+    there it is the previous track's section at the last bar of its leg, and the voices are
+    that track's, the music that plays then (`_section_before`)."""
     rows = []
     for track, tc in zip(show.tracks, clock.tracks):
         previous = None
@@ -588,10 +609,10 @@ def hit_checks(show: CompiledShow, clock: ShowClock) -> list[dict]:
             bar = section.bars[0]
             if not (arrival or moment) or not tc.sounds(bar):
                 continue
-            before = _section_at(track, bar - 1)
+            before, holder = _section_before(show, clock, tc.index, bar)
             dark = None
             if before is not None and show_rules._total_dark(before.layers):
-                dark = {"bars": tuple(before.bars), "voices": voices(track.map, *before.bars)}
+                dark = {"track": holder.track, "bars": tuple(before.bars), "voices": voices(holder.map, *before.bars)}
             rows.append({"clock_s": tc.at(bar), "index": tc.index, "track": track.track, "bar": bar,
                          "arrival": arrival, "moment": moment, "kick": _kick(track.map, bar),
                          "before": _level(before), "at": light_level(section.layers),

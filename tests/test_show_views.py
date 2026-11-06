@@ -313,7 +313,7 @@ def test_hit_checks_report_voices_in_a_dark_bar_before():
     assert got == [
         (16.0, 0, 9, True, None, ".", None, 4, [], None),
         (40.0, 0, 21, False, "virada", "7", 0, 5, ["white", "strobe"],
-         {"bars": (17, 20), "voices": {"kick": 0, "bass": 0, "vocals": 9, "perc": 0, "other": 3}}),
+         {"track": TRACK_1, "bars": (17, 20), "voices": {"kick": 0, "bass": 0, "vocals": 9, "perc": 0, "other": 3}}),
         (48.0, 0, 25, False, "passagem", "9", 5, 3, ["white"], None),   # the handover, at its own clock
         (56.0, 1, 9, True, None, "9", 3, 2, [], None),                  # the bridge's copied moment is no hit
         (80.0, 1, 21, False, "final", "9", 3, 3, ["roll"], None),
@@ -335,9 +335,57 @@ def test_strips_wrap_nothing_and_use_tilde_for_unknown():
     assert light == "3" * 4 + "2" * 8 + "~" * 4 + "3" * 12                   # subida's matrix is auto
 
 
+def test_before_b_is_the_outgoing_tracks_last_leg_section():
+    # a drop on Voa Voa's B (5): before it plays Dançarina's virada (its bar 24, the last of its leg)
+    src, inp = two_track_show()
+    inp.maps[KEY_2]["drops"] = [{"bar": 5, "db": 20.0}]
+    show = compiled(src, inp)
+    (row,) = [r for r in sv.peaks(show, sv.build_clock(show, {})) if r["index"] == 1]
+    assert (row["clock_s"], row["bar"], row["before"], row["at"]) == (48.0, 5, 5, 3)
+    assert row["moment"] is None              # the bridge copies the handover's moment; it is not this one's
+
+    # bridge: false and an arrival at B: before it is Dançarina's last leg section, here total dark,
+    # and the dark voices come from Dançarina's map, the music that plays then
+    src, inp = two_track_show()
+    src.track_files[FILE_1]["cues"][2] = {"at": "drop.2", "name": "breu", "look": BREU}      # 21-24
+    src.track_files[FILE_2]["bridge"] = False
+    src.track_files[FILE_2]["cues"][0]["at"] = "B"
+    for voice, level in {"kick": "0", "bass": "0", "vocals": "9", "perc": "0", "other": "2"}.items():
+        inp.maps[KEY_1]["voices"][voice]["bars"] = bar_string(32, {b: level for b in range(21, 25)})
+    show = compiled(src, inp)
+    (row,) = [r for r in sv.hit_checks(show, sv.build_clock(show, {})) if r["index"] == 1 and r["bar"] == 5]
+    assert (row["clock_s"], row["arrival"], row["before"], row["at"]) == (48.0, True, 0, 2)
+    assert row["dark"] == {"track": TRACK_1, "bars": (21, 24),
+                           "voices": {"kick": 0, "bass": 0, "vocals": 9, "perc": 0, "other": 2}}
+
+
 def test_views_take_bad_maps_without_raising():
+    def views(show, tempos=None):
+        clock = sv.build_clock(show, tempos or {})
+        night = sv.night_summary(show, clock, ROOM)
+        sv.peaks(show, clock), sv.hit_checks(show, clock)
+        return clock, night, [sv.strips(t, c) for t, c in zip(show.tracks, clock.tracks)]
+
     show = base()
     show.tracks[1].map["hot_cues"] = {"A": "1.1", "B": "x"}                  # an unreadable B: from bar 1
-    clock = sv.build_clock(show, {})
+    clock, night, _ = views(show)
     assert clock.tracks[1].leg == (1, 32)
-    assert sv.night_summary(show, clock, ROOM)["total_s"] == pytest.approx(48.0 + 64.0)
+    assert night["total_s"] == pytest.approx(48.0 + 64.0)
+
+    show = compiled(*three_track_show())
+    show.tracks[1].map["hot_cues"] = {"A": "1.1", "B": "9.1", "G": "9.1"}    # G <= B: a 0-bar leg
+    clock, night, strips = views(show)
+    assert (clock.tracks[1].leg, clock.tracks[1].played) == ((9, 8), 0) and strips[1] == ("", "")
+    assert clock.tracks[2].start_s == pytest.approx(48.0) and night["total_s"] == pytest.approx(48.0 + 56.0)
+
+    show = base()
+    for bad in ((float("nan"), 120.0), (float("inf"), 128.0), (0.0, 0.0), (-120.0, 120.0), ("x", 1)):
+        clock, night, _ = views(show, {TRACK_1: bad, TRACK_2: bad})
+        assert [c.tempo for c in clock.tracks] == [(120.0, 120.0)] * 2, bad   # the map's bpm instead
+        assert night["total_s"] == pytest.approx(104.0)
+
+    show = base()
+    show.tracks[1].sections = []                                              # no section: the autoscript
+    clock, night, strips = views(show)
+    assert clock.tracks[1].sounding == (5, 32) and strips[1][1] == "~" * 28
+    assert night["autoscript_s"] == pytest.approx(16.0 + 56.0)
