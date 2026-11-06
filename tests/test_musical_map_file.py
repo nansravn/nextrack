@@ -124,6 +124,15 @@ def _touch(root, *parts):
     return p
 
 
+@pytest.mark.parametrize("path, name", [
+    (r"C:\Music\afro-house\X.flac", "X.flac"), ("C:/Music/afro-house/X.flac", "X.flac"),
+    ("/music/X.flac", "X.flac"), ("X.flac", "X.flac"), ("C:\\Music\\", "Music"),
+    ("", ""), ("\\\\", ""),
+])
+def test_base_name_of_windows_and_posix_paths(path, name):
+    assert mm.base_name(path) == name
+
+
 def test_find_audio_one_match(tmp_path):
     want = _touch(tmp_path, "afro-house", "X.flac")
     assert mm.find_audio(tmp_path, "C:/Music/afro-house/X.flac") == want

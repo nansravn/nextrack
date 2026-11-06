@@ -1019,17 +1019,25 @@ def fold_name(text: str) -> str:
     return unicodedata.normalize("NFC", unicodedata.normalize("NFC", text).casefold())
 
 
+def base_name(path: str) -> str:
+    """The last name of a Windows or POSIX path (either separator; '' when there is none).
+    Compare base names through `fold_name`."""
+    parts = [p for p in re.split(r"[\\/]", path) if p]
+    return parts[-1] if parts else ""
+
+
 def find_audio(root: Path, windows_path: str) -> Path:
     """The audio file under `root` that a rekordbox (Windows) path names.
 
     Base names are compared NFC-normalised and case-folded; several hits are narrowed to those
     whose parent folder has the same name. Anything but exactly one file is a `LookupError`.
     """
-    parts = [p for p in re.split(r"[\\/]", windows_path) if p]
-    if not parts:
+    name = base_name(windows_path)
+    if not name:
         raise LookupError(f"no file name in the path {windows_path!r}")
-    base = fold_name(parts[-1])
-    folder = fold_name(parts[-2]) if len(parts) > 1 else None
+    parent = base_name(windows_path.rstrip("\\/")[:-len(name)])  # the folder that holds it
+    folder = fold_name(parent) if parent else None
+    base = fold_name(name)
     hits = sorted(p for p in Path(root).rglob("*") if p.is_file() and fold_name(p.name) == base)
     if len(hits) > 1:
         same = [p for p in hits if fold_name(p.parent.name) == folder]
@@ -1038,5 +1046,5 @@ def find_audio(root: Path, windows_path: str) -> Path:
     if len(hits) == 1:
         return hits[0]
     if not hits:
-        raise LookupError(f"no audio file named {parts[-1]!r} under {root}")
+        raise LookupError(f"no audio file named {name!r} under {root}")
     raise LookupError(f"{len(hits)} audio files match {windows_path!r}: " + ", ".join(str(p) for p in hits))
