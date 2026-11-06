@@ -2,6 +2,7 @@
 import copy
 from pathlib import Path
 
+import pytest
 import yaml
 
 from show_room import Aim, Room, load_room, preset_aims, problems_room, resolve_aim
@@ -76,9 +77,9 @@ def test_room_schema_problems():
     data = good(); data["aims"]["a"]["targets"]["matrix-nw"] = [1, 1, 1]
     assert any("not a mover" in m for m in msgs(data))
     data = good(); data["size"]["x"] = 0
-    assert any("three positive numbers" in m for m in msgs(data))
+    assert any("three positive finite numbers" in m for m in msgs(data))
     data = good(); data["fixtures"]["hue"] = [True, 1, 1]
-    assert any("three numbers" in m for m in msgs(data))
+    assert any("three finite numbers" in m for m in msgs(data))
     data = good(); data["aims"]["Bad_Id"] = copy.deepcopy(data["aims"]["a"])
     assert any("kebab-case" in m for m in msgs(data))
     assert msgs([]) == ["room must be a mapping with size, assumed, fixtures, booth and aims"]
@@ -119,3 +120,45 @@ def test_preset_aims_reverse_map():
     assert "Apex" not in mapping  # pending
     room.aims["twin"] = Aim("twin", "f", "Up", "configured", None, {})
     assert "Up" not in preset_aims(room)
+
+
+def _odd_cases():
+    def mutate(fn):
+        data = good()
+        fn(data)
+        return data
+    inf, nan = float("inf"), float("nan")
+    return [
+        None, "room", [], 3,
+        mutate(lambda d: d.update(size={1: 2, "x": 3})),
+        mutate(lambda d: d.update(size={"x": inf, "y": 1, "z": 1})),
+        mutate(lambda d: d.update(size=[1, 2, 3])),
+        mutate(lambda d: d.update(fixtures=[1])),
+        mutate(lambda d: d.update(fixtures={1: [0, 0, 0], "hue": "x"})),
+        mutate(lambda d: d.update(aims=[1])),
+        mutate(lambda d: d["aims"].update(b="not a mapping")),
+        mutate(lambda d: d["aims"].update({7: d["aims"]["a"], 8: pending(7)})),
+        mutate(lambda d: d["aims"].update({7: pending(8), 8: pending(7)})),
+        mutate(lambda d: d["aims"].update(b=pending(["a"]))),
+        mutate(lambda d: d["aims"]["a"].update(targets=[1, 2])),
+        mutate(lambda d: d["aims"]["a"].update(targets={"mover-ne": [True, 1, 1]})),
+        mutate(lambda d: d["aims"]["a"].update(targets={"mover-ne": ["a", 1, 1]})),
+        mutate(lambda d: d["aims"]["a"].update(targets={"mover-ne": [nan, 1, 1]})),
+        mutate(lambda d: d["aims"]["a"].update(status=["x"], figure=5, preset=None)),
+        mutate(lambda d: d.update(booth="x", assumed=[1])),
+    ]
+
+
+@pytest.mark.parametrize("data", _odd_cases(), ids=lambda d: repr(d)[:40])
+def test_odd_inputs_never_raise(data):
+    for rig in (RIG, None, {1: "mover", "x": 2}):
+        problems_room(data, rig)
+
+
+def test_non_finite_numbers_name_the_value():
+    data = good()
+    data["size"]["x"] = float("inf")
+    assert any("inf" in m and "finite" in m for m in msgs(data))
+    data = good()
+    data["fixtures"]["hue"] = [float("nan"), 1, 1]
+    assert any("nan" in m and "finite" in m for m in msgs(data))
