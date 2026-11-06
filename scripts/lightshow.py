@@ -849,6 +849,7 @@ class _Job:
     tracks: list[Track]           # the script's tracks of the venue's nodes
     fixtures: list[_Fixture]
     presets: list[Preset]
+    aimed: list[tuple[int, int]] = field(default_factory=list)  # spans where sections own the movers
     cues: list[ManualCue] = field(default_factory=list)
 
     def cue(self, bar: int, t: int, fixture: str, what: str) -> None:
@@ -909,6 +910,7 @@ def compile_choreography(
     venue, trks = _venue_of(out, venues)
     fixtures = _resolve(rig, venue, {t.node: t for t in trks})
     job = _Job(out, grid(out) if choreo.sections else None, rig, venue, trks, fixtures, presets)
+    job.aimed = [_span(job, s) for s in choreo.sections if _owns_movers(job, section_layers(s)["movers"])]
     for section in choreo.sections:
         _compile_section(job, section)
     _compile_haze_whole(job, haze_level(rig), ssf.script_end(out, duration_ms))
@@ -1008,9 +1010,38 @@ def _resolve(rig: Rig, venue: VenueInfo, by_node: dict[int, Track]) -> list[_Fix
     return out
 
 
+def _span(job: _Job, section: Section) -> tuple[int, int]:
+    """A section's span in ms, both ends inclusive."""
+    first, last = section.bars
+    return job.grid.ms(first), job.grid.ms(last + 1) - 1
+
+
+def _owns_movers(job: _Job, value) -> bool:
+    """Whether a movers layer replaces the autoscript's movement in its section: the movers
+    are dark (`off`), or it aims them at a preset the venue has."""
+    if value == "off":
+        return True
+    if not isinstance(value, dict):
+        return False
+    names = value.get("positions") or ([value["position"]] if "position" in value else [])
+    return any(p.name in names for p in job.presets)
+
+
+def _covered(spans: list[tuple[int, int]], start: int, end: int) -> bool:
+    """Whether the inclusive ms range `start..end` lies inside the union of `spans`."""
+    t = start
+    for a, b in sorted(spans):
+        if a > t:
+            break
+        t = max(t, b + 1)
+        if t > end:
+            return True
+    return t > end
+
+
 def _compile_section(job: _Job, section: Section) -> None:
     first, last = section.bars
-    start, end = job.grid.ms(first), job.grid.ms(last + 1) - 1
+    start, end = _span(job, section)
     w = _Window(first, last, start, end, job.grid.beat_ms(start))
     layers = section_layers(section)
     edits = (_compile_movers(job, w, layers["movers"]) + _compile_matrix(job, w, layers["matrix"])
@@ -1073,10 +1104,14 @@ def _compile_movers(job: _Job, w: _Window, value) -> list[_Edit]:
 
 def _cue_cut_shapes(job: _Job, w: _Window, trk: Track, who: str) -> None:
     """`set_positions` removes every shape block (G) that overlaps the span whole, so a
-    block reaching outside the section loses its outer part too: say so."""
+    block reaching outside the section loses its outer part too: say so, unless every outer
+    part falls where another section owns the movers (aims them, or keeps them dark), so
+    the lost movement would not have shown."""
     for g in trk.shapes.items if trk.shapes else []:
         overlaps = g.end > w.start and g.start < w.end
-        if overlaps and (g.start < w.start or g.end > w.end):
+        outer = ([(g.start, w.start - 1)] if g.start < w.start else []) + (
+            [(w.end + 1, g.end)] if g.end > w.end else [])
+        if overlaps and any(not _covered(job.aimed, a, b) for a, b in outer):
             bars = f"bars {job.grid.bar_at(g.start)}–{job.grid.bar_at(g.end)}"
             job.cue(w.first, w.start, who,
                     f"shape block {g.start}–{g.end} ms ({bars}) extends outside {w.bars} of its "

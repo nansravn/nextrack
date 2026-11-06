@@ -298,6 +298,33 @@ def test_shape_block_straddling_the_section_is_a_cue(room):
     assert ssf.track(out, 1167).shapes.items == []        # both removed: the cue says so
 
 
+@pytest.mark.parametrize("neighbour, cue", [
+    ({"move": "hold", "position": "Up"}, False),           # the next section aims the movers itself
+    ({"move": "pingpong", "every": "1/4", "position": "Crossed Over"}, False),
+    ("off", False),                                       # the movers are dark there: no movement shows
+    ({"move": "pingpong", "every": "1/4"}, True),         # no aim: the autoscript's movement is lost there
+    ("auto", True),
+])
+def test_a_cut_shape_block_is_a_cue_only_where_its_movement_is_lost(room, neighbour, cue):
+    script = room()
+    border = ms(4)                                        # bars 2-3 | bars 4-5
+    ssf.track(script, 1167).shapes = ssf.Shapes(1, 1, [shape(border - 1000, border + 1000)])
+    out, cues = compile_(script, section(2, 3, movers={"move": "hold", "position": "DJ Booth"}),
+                         section(4, 5, movers=neighbour))
+    shape_cues = [c for c in section_cues(cues) if "shape block" in c.what]
+    assert bool(shape_cues) == cue
+    assert ssf.track(out, 1167).shapes.items == []        # removed whole either way
+
+
+def test_a_cut_shape_block_reaching_a_gap_between_aimed_sections_is_a_cue(room):
+    script = room()
+    border = ms(4)                                        # bars 2-3 | bar 4 unchoreographed | bars 5-6
+    ssf.track(script, 1167).shapes = ssf.Shapes(1, 1, [shape(border - 1000, border + BAR + 1000)])
+    out, cues = compile_(script, section(2, 3, movers={"move": "hold", "position": "DJ Booth"}),
+                         section(5, 6, movers={"move": "hold", "position": "Up"}))
+    assert any("shape block" in c.what for c in section_cues(cues))
+
+
 def test_mover_sweep_steps_through_its_positions(room):
     out, _ = compile_(room(), section(1, 4, movers={"move": "sweep", "every": "1bar",
                                                     "positions": ["Up", "Cake"]}))

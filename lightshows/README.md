@@ -188,14 +188,18 @@ room), `pingpong` (the first Vorlane gets the even steps and the second the odd 
   and decays to dark over that one step, like the autoscript. That holds for `solid` and
   for the full rows of `fill-up` too: they pulse every step, they are not steady light.
   A Vorlane's master is held at full under a draw.
-- **Positions.** A mover section replaces the autoscript's position flags inside it; when
-  the autoscript's position block goes on past the section, the preset it had in force
-  there comes back at the first moment after the section.
+- **Positions.** A mover section that names a `position` or `positions` replaces the
+  autoscript's position flags inside it and removes, whole, every autoscript shape block
+  (movement) that overlaps it; a mover section without a position keeps the autoscript's
+  positions and movement, which change preset every two bars. When the autoscript's position
+  block goes on past the section, the preset it had in force there comes back at the first
+  moment after the section.
 - **Manual cues.** What the compiler cannot write is printed as `manual cue, bar N: ...`
   by `render`, `compile` and `apply`: `uv`, `move: uv`, the whole-track haze (one per
   compile, to confirm the machine reacts; or why it was skipped), a position preset the
-  venue or script does not have, a shape block cut by a position change, a strobe `off`
-  over SoundSwitch's own strobe blocks. Add these in SoundSwitch by hand.
+  venue or script does not have, a shape block cut by a position change where the removed
+  part would have shown (not where another section aims the movers or keeps them dark), a
+  strobe `off` over SoundSwitch's own strobe blocks. Add these in SoundSwitch by hand.
 - **Nothing outside the sections changes.** `apply` refuses unless everything outside the
   rig's tracks and Main equals the base, and outside the sections every venue track and
   Main shows the base's intensity, colour and position. The one exception is the haze
