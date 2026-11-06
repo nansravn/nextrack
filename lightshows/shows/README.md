@@ -527,7 +527,7 @@ read nothing else. Every number below comes from a function in
 
 | layer | value |
 |---|---|
-| `movers` | `off` 0; `hold`, `sweep`: `level` (default 0.85); `pingpong`, `blink`: `level` x 0.5; `uv`: 0.3 |
+| `movers` | `off` 0; `hold`, `sweep`: `level` (default 0.85); `pingpong`, `blink`: 0.5 flat (the compiler lights them at full, so their `level` does not count); `uv`: 0.3 |
 | `matrix` | `off` 0; per draw the lit share of the colour cells: `solid` 1, `fill-up` 0.6, `rows-up`/`rows-down` 1/6, `columns` 1/8, `centre-out` 0.25, `arrow-up` 0.15, `zigzag` 1/48; x 0.5 with `pingpong`; then x 0.6 (draws pulse and decay) |
 | `hue` | `dark`, `off` 0; `pulse` 0.5; `bright` 0.85 |
 

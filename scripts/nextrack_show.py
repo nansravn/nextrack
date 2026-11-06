@@ -265,6 +265,8 @@ def _music(section, data: dict) -> str:
 
 
 def _share(seconds: float, total: float) -> str:
+    """The share of the night: `round(100 x seconds / total)` as a whole percent, `0%` when the
+    night has no length."""
     return f"{round(100 * seconds / total)}%" if total > 0 else "0%"
 
 

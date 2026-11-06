@@ -37,7 +37,8 @@ STEPS_PER_BAR = 16
 
 # The light-level table (spec section 4): each layer's value in 0-1.
 DEFAULT_LEVEL = 0.85                            # a movers mapping without `level`
-MOVER_FACTORS = {"hold": 1.0, "sweep": 1.0, "pingpong": 0.5, "blink": 0.5}   # x level
+MOVER_LEVELLED = ("hold", "sweep")              # the moves that read `level`
+MOVER_FLAT = {"pingpong": 0.5, "blink": 0.5}    # lit at full by the compiler, one of two movers or pulses
 MOVER_UV = 0.3
 DRAW_SHARES = {"solid": 1.0, "fill-up": 0.6, "rows-down": 1 / 6, "rows-up": 1 / 6, "columns": 1 / 8,
                "centre-out": 0.25, "arrow-up": 0.15, "zigzag": 1 / 48}      # lit share of the colour cells
@@ -71,9 +72,11 @@ def _mover_value(value: object) -> float | None:
     if move == "uv":
         return MOVER_UV
     level = value.get("level", DEFAULT_LEVEL)
-    if move not in MOVER_FACTORS or not _num(level):
+    if move in MOVER_FLAT:
+        return MOVER_FLAT[move]                 # the compiler ignores `level` for these
+    if move not in MOVER_LEVELLED or not _num(level):
         return None
-    return level * MOVER_FACTORS[move]
+    return level
 
 
 def _matrix_value(value: object) -> float | None:
@@ -108,7 +111,8 @@ def light_level(layers: dict) -> int | None:
     4): `round(9 x (0.4 x movers + 0.4 x matrix + 0.2 x hue))`, rounded half up, each layer's
     value in 0-1 being (`light_values`):
 
-        movers  off 0; hold, sweep: level (default 0.85); pingpong, blink: level x 0.5; uv: 0.3
+        movers  off 0; hold, sweep: level (default 0.85); pingpong, blink: 0.5 (the compiler lights them
+                at full, so their `level` does not count); uv: 0.3
         matrix  off 0; per draw, the lit share of the colour cells: solid 1, fill-up 0.6,
                 rows-* 1/6, columns 1/8, centre-out 0.25, arrow-up 0.15, zigzag 1/48;
                 x 0.5 with pingpong; then x 0.6 (draws pulse and decay)
