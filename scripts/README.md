@@ -441,7 +441,10 @@ and writes only choreographies.
 Nothing beyond `uv sync`: no audio, rekordbox, SoundSwitch or `--group analysis`. `--repo PATH`
 (default: this repo) is where the maps, the set, the blocks and `lightshows/tracks/` are read
 and written. A *show* argument is a folder path or the id of a folder under
-`lightshows/shows/`.
+`lightshows/shows/`. A relative one is looked up under `--repo` first (`<repo>/<show>`, then
+`<repo>/lightshows/shows/<show>`), then from the current folder, so
+`build lightshows/shows/<id> --repo <copy>` builds the copy's show. The usage error names the
+folders it tried, or the folder it found outside `lightshows/shows/`.
 
 ### Commands
 
@@ -457,16 +460,22 @@ uv run scripts/nextrack_show.py vocab [<show>]                # anchors, layer w
 - `build` prints `wrote <path>` or `unchanged <path>` per track, then the rule findings. With
   a `show-source` finding it writes nothing. With only rule findings it writes the files, so a
   draft can be rendered and critiqued, and it exits 1.
+- `build` and `build --check` also print
+  `stale <path>: owned by this show, which no longer compiles it; delete it` for each
+  choreography with this show's header whose track the show no longer compiles (a track that
+  left the set). They never delete it, and exit 1 while it is there.
 - `report` prints, per track, one line per compiled section (bars, name, source, layers,
   accents, role, moment, the music under it), then the budget tally, the arrivals, what the
   compiler decided on its own (bridges, default ends) and the findings.
-- `vocab` prints what an agent needs to write a show without reading the docs; with a show it
-  adds its palette and looks.
+- `vocab` prints what an agent needs to write a show without reading the docs (the anchors,
+  each layer's words and mapping keys, the gestures, the rules); with a show it adds its
+  palette and looks.
 
 **Output and exit status.** Findings are `path:line: rule-id: message` (`show-source`,
 `show-rules`), like `check_repo.py`, followed by `N finding(s)`. `0` no findings, `1` findings
-(for `report`, any finding printed; for `build --check`, a file that would change), `2` usage
-(unknown show, a show outside `lightshows/shows/` without `--out`).
+(for `report`, any finding printed; for `build --check`, a file that would change; for both
+`build` and `build --check`, a stale file), `2` usage (unknown show, a show outside
+`lightshows/shows/` without `--out`).
 
 ### Safety model
 
@@ -552,9 +561,9 @@ if a rule contradicts one of them, the README wins.
 | `lightshow-track` | Each `lightshows/tracks/*.yml` has the choreography keys with valid values: `track` is `Artist — Title` and matches a pool track (same matcher as block tracklists), `soundswitch` is a GUID, `sections` are sorted and do not overlap, layer names, moves, draws, rates and `#RRGGBB` colours are from the vocabulary, and unknown option keys are findings. |
 | `musical-map` | A musical map's schema, its pool track and its file name: each `lightshows/maps/*.yml` has exactly the map keys with valid values (per-bar strings of `bars` characters, step lists adding up to `bars × 16`, sections that cover every bar, bar numbers inside `1..bars`), its `track` matches a pool track, and the file is named `slug(track).yml`. The checks live in `scripts/musical_map.py`. |
 | `lightshow-plan` | Each `lightshows/sets/*.md` (but `README.md`) has front matter whose `set` is an existing path relative to the repo root and whose `budget` keys are layers or `white-accent`. |
-| `show-source` | A show in `lightshows/shows/<id>/` does not compile: schema of `show.yml` or a track file, the set path, track files against the set's tracks, a missing map, an anchor, a span, a look, a palette name, a gesture and its parameters, an unknown rule id or bad rule parameters, a problem in the generated choreography. |
+| `show-source` | A show in `lightshows/shows/<id>/` does not compile: schema of `show.yml` or a track file, the set path (repo-relative), track files against the set's tracks, a missing or invalid map, an anchor, a span, a look, a palette name, a gesture and its parameters (a problem from `gesture_defaults` once, at `show.yml`), an unknown rule id or bad rule parameters, a problem in the generated choreography. |
 | `show-rules` | The show's own rules (`rules:` in `show.yml`) fail; only for shows with no `show-source` finding. |
-| `show-compiled` | A track's `lightshows/tracks/<slug>.yml` is missing or differs from what its show compiles to (run `nextrack_show.py build <id>`); a choreography whose ownership header names a show that does not exist or does not compile that track; two shows that own the same track. |
+| `show-compiled` | A track's `lightshows/tracks/<slug>.yml` is missing or differs from what its show compiles to (run `nextrack_show.py build <id>`, or `build <id> --adopt` for a hand-written file); a choreography whose ownership header names a show that does not exist or does not compile that track; two shows that own the same track. |
 
 A new rule is one function registered with `@rule("<rule-id>")` in
 `check_repo.py`. Add its row to this table in the same change:

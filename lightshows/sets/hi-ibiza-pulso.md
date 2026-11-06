@@ -12,8 +12,10 @@ O guia para coreografar o [set Hï Ibiza](../../sets/hi-ibiza-pulso.md) faixa a 
 faixas estão no bloco [Hï Ibiza — Pulso](../../blocks/hi-ibiza-pulso.md). Os compassos vêm dos
 mapas musicais (`uv run scripts/nextrack_map.py show "<faixa>"`) e as passagens, de
 `nextrack_map.py timeline --playlist 1-hi-ibiza-lightshow --block blocks/hi-ibiza-pulso.md`.
-As 15 coreografias deste plano são o **rascunho v1**: escritas com o vocabulário de hoje, para o
-dono ver no simulador e revisar.
+As 15 coreografias deste plano são o **rascunho v1**, para o dono ver no simulador e revisar, e
+são **geradas** pelo show [`lightshows/shows/hi-ibiza-pulso/`](../shows/hi-ibiza-pulso/show.yml)
+com `uv run scripts/nextrack_show.py build hi-ibiza-pulso`: muda-se o show, nunca a coreografia
+gerada.
 
 ## A história da noite: Pulso
 A noite é um corpo. O azul é o espaço: a noite funda e os feixes das movings cortando a neblina
@@ -183,9 +185,6 @@ O set dura cerca de 44 minutos.
 10. **Sem UV:** a noite não é de Halloween.
 
 ## O que fica para a próxima versão
-- **A linguagem do show** (próximo projeto): paleta e looks com nome, tempo ancorado nos mapas e
-  nos cues B/G, gestos (breu, espiral, contraluz, ponte, chegada) e o orçamento checados pela
-  ferramenta, gerando as coreografias deste plano em vez de escrevê-las à mão.
 - **Espiral de verdade**, **coração com decaimento** (um "tum-tum" duplo, o pulso que some antes
   do próximo), **feixe que respira com a voz**, **Vorlanes como equalizador** (uma faixa de
   linhas por instrumento) e **estéreo vira sala**: vocabulário novo, projeto B, com os dados que

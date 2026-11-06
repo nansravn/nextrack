@@ -12,14 +12,16 @@ anchors on the musical map  ->  cues  ->  looks / gestures  ->  sections  ->  li
 ```
 
 If you have just arrived, run `uv run scripts/nextrack_show.py vocab [<show-id>]`. It prints the
-anchor grammar, the layer words, every gesture and rule with its parameters, and the show's
-palette and looks, always in step with the code.
+anchor grammar, each layer's words and mapping keys, every gesture and rule with its
+parameters, and the show's palette and looks, always in step with the code.
 
 ## The loop
 
 1. **Read the music.** `uv run scripts/nextrack_map.py show "<Artist — Title>"` gives the
    sections, the drops and the owner's hot cues. A track needs its
-   [musical map](../README.md#musical-maps) (`lightshows/maps/<slug>.yml`) first. `show`
+   [musical map](../README.md#musical-maps) (`lightshows/maps/<slug>.yml`) first; a map that
+   fails its `musical-map` check counts as none, and the finding says
+   `lightshows/maps/<slug>.yml is not a valid map: fix its musical-map finding`. `show`
    draws the sections as a strip of letters, one per bar; to write `<kind>.<i>` anchors, read
    the numbered list instead: `grep -E '^(bars|hot_cues|sections):' lightshows/maps/<slug>.yml`
    prints the bar count, the hot cues and the sections in order, and `break.3` is the third
@@ -116,14 +118,14 @@ handover:
 | key | |
 |---|---|
 | `show_version` | required: `1` |
-| `set` | required: repo-relative path of the set (`sets/<set>.md`); the track order comes from it |
+| `set` | required: repo-relative path of the set (`sets/<set>.md`); the track order comes from it. An absolute path or one with a `..` part is a finding |
 | `story` | required, pt-BR: the idea of the night |
 | `palette` | required: name -> `#RRGGBB`. A `colour` in movers, matrix and hue may be a palette name |
-| `plan` | optional: repo-relative path of the prose light plan |
+| `plan` | optional: repo-relative path of the prose light plan (`lightshows/sets/<show-id>.md`), with the same check as `set` |
 | `looks` | optional: name -> [look](#looks) |
-| `gesture_defaults` | optional: gesture name -> parameters merged under every call of that gesture (the cue's `with` wins; `null` removes a default) |
-| `bridge` | optional: `{name, intent}` (both required). Without it no bridges are made |
-| `handover` | `{name, intent}` (both required). The default `name`/`intent` of the handover sections of the track files; needed when a track's handover does not write its own |
+| `gesture_defaults` | optional: gesture name -> parameters merged under every call of that gesture (the cue's `with` wins; `null` removes a default). Its problems land in `show.yml`: see [Gestures](#gestures) |
+| `bridge` | optional: `{name, intent}`, both required when `bridge` is present. Without it no bridges are made |
+| `handover` | optional: `{name, intent}`, both required when `handover` is present. The default `name`/`intent` of the handover sections of the track files; needed when a track's handover does not write its own |
 | `rules` | optional: rule id -> parameters (or `true`). Chooses which [rules](#show-rules) run; none written, none run |
 
 ## A track file
@@ -279,8 +281,8 @@ hatch; prefer `accents:`.
 
 A layer value is exactly the choreography vocabulary of
 [lightshows/README.md](../README.md#layers): `movers`, `matrix`, `white`, `uv`, `strobe`, `hue`,
-each `auto`, `off` or a mapping. `vocab` lists the moves, draws, hue states and rates. Three
-differences in a show:
+each `auto`, `off` or a mapping. `vocab` lists each layer's words and keys, the moves, draws,
+hue states and rates. Three differences in a show:
 
 - a `colour` (movers, matrix, hue) may be a palette name; `#RRGGBB` is still accepted;
 - `faster_from` may be an anchor;
@@ -309,6 +311,14 @@ that fills the bars of one cue with sections. A cue invokes it with `gesture: <n
 parameters in `with`; the show's `gesture_defaults` are merged underneath. The sections it
 returns are named from the cue (`<cue name>-...`) and cover exactly the cue's span; bad
 parameters are `show-source` findings at the cue, with the fix in the message.
+
+A problem in `gesture_defaults` lands in `show.yml`, where the fix goes. A key the gesture does
+not take is a finding there (with a close match), even for a gesture no cue calls. A bad value
+that a cue takes from the defaults, because its own `with` does not set that parameter (a rate,
+a palette name), is reported once at `show.yml`, ending `(from gesture_defaults.<gesture> in
+show.yml)`, not in every track file that calls the gesture. A cue that sets the parameter
+itself does not see the default's problem. A problem that depends on the cue (the bars do not
+add up to its span) stays at the cue.
 
 | gesture | parameters | what it does |
 |---|---|---|
@@ -353,7 +363,7 @@ rules:
 | rule | parameters | finding when |
 |---|---|---|
 | `budget` | key -> `{max?, moments?, from?}`. A key is a look name, a gesture name, `white-accent`, `white-flash`, `strobe` or `uv` | a key has more than `max` occurrences (one finding at the first one past the max; the message lists them all, track and bar); an occurrence whose cue has no `moment` in `moments`; an occurrence in a track before `from` (the `Artist — Title` of a show track) in set order. An unknown key is a parameter problem |
-| `total-dark` | `{only: [look or gesture names]}` | a compiled section (a bridge too) with movers `off`, matrix `off`, hue `dark` and no lit white, strobe or uv has neither its look nor its gesture in `only` |
+| `total-dark` | `{only: [look or gesture names]}` | a compiled section (a bridge too) with movers `off`, matrix `off`, hue `dark` or `off` (or `{state: dark}`), and white, strobe and uv each unwritten, `auto` or `off`, has neither its look nor its gesture in `only` |
 | `arrivals` | `true` or `{draw_differs?: bool}` | a track has no cue with `role: arrival`, or more than one; with `draw_differs`, two consecutive tracks' arrival sections have the same matrix draw |
 | `movers-aim` | `true` | a compiled section's movers is a mapping without `position` or `positions` (the autoscript would pick a random preset every two bars) |
 | `matrix-not-cloned` | `true` or `{except_moments?: [names]}` | a compiled section's matrix is a mapping with neither `mirror` nor `pingpong` (both Vorlanes would draw the same), and its cue's moment is not excepted |
@@ -393,7 +403,10 @@ produces a `white-accent` or `strobe` occurrence like the raw form does.
 
 ## Reading `build` and `report`
 
-`build` prints `wrote <path>` or `unchanged <path>` per choreography, then the findings and
+`build` prints `wrote <path>` or `unchanged <path>` per choreography, then a
+`stale <path>: owned by this show, which no longer compiles it; delete it` line per
+choreography that has this show's header but whose track the show no longer compiles (a track
+that left the set: `build` never deletes it, and exits 1 until you do), then the findings and
 `N finding(s)`. With any `show-source` finding it writes nothing. The compiler stops a track at the first step
 that finds something (anchors, then spans, looks and gestures, accents, colours), so fix the
 findings you see and build again: later ones may appear. Exit status: `0` clean, `1` findings, `2` usage. `report` prints the night and exits 1
@@ -429,6 +442,8 @@ pedro-sampaio-dancarina.yml:5: show-source: cue 'chegada': drop.4: the map has 2
 pedro-sampaio-dancarina.yml:10: show-source: cue 'espiral': look 'nada' is not defined; defined: pulso, respiracao
 pedro-sampaio-dancarina.yml:18: show-source: cue 'virada': spiral: bars add up to 1, the cue spans 4 bars (21-24)
 show.yml:57: show-source: unknown rule 'nope'; rules: arrivals, budget, exclusive, matrix-not-cloned, movers-aim, total-dark
+show.yml:20: show-source: spiral: rates[0] '1/3' is not a rate (1/16, 1/8, 1/4, 1/2, <n>bar) (from gesture_defaults.spiral in show.yml)
+chiclete-com-banana-voa-voa-ao-vivo.yml:1: show-source: lightshows/maps/chiclete-com-banana-voa-voa-ao-vivo.yml is not a valid map: fix its musical-map finding (or redo it with uv run scripts/nextrack_map.py analyze)
 pedro-sampaio-dancarina.yml:1: show-source: the map has hot cue G (25.1) and the next track, Voa Voa (Ao Vivo), opens with a bridge: add a handover here (its look plays from G to the end and the bridge copies it), or write bridge: false in chiclete-com-banana-voa-voa-ao-vivo.yml
 pedro-sampaio-dancarina.yml:39: show-source: handover: movers.faster_from 30 would be copied by the bridge into Voa Voa (Ao Vivo), where the bars of this track mean nothing: move it to a cue before the handover, or write bridge: false in chiclete-com-banana-voa-voa-ao-vivo.yml
 chiclete-com-banana-voa-voa-ao-vivo.yml:5: show-rules: budget: pulso is used 3 times, max 1: Dançarina 25, Voa Voa (Ao Vivo) 9, Voa Voa (Ao Vivo) 21
@@ -454,11 +469,15 @@ of ownership:
 - With any refusal, nothing is written.
 - `build --check` writes nothing and prints `would change <path>` per file that differs; exit
   1 if any does.
+- `build` and `build --check` print `stale <path>: owned by this show, which no longer compiles
+  it; delete it` for a file with this show's header whose track the show no longer compiles.
+  Neither deletes it; both exit 1 until it is gone.
 - `build --out DIR` writes elsewhere with no ownership check (variants, above).
 
 The emitted text is deterministic (layers in a fixed order and key order, flow style), so the
 same show gives the same bytes. `show-compiled` fails when a committed choreography is missing
-or differs from what its show compiles to; the message says to run `build <id>`.
+or differs from what its show compiles to; the message says to run `build <id>`, or, for a
+hand-written file, `build <id> --adopt` to take it over.
 
 **Porting hand-written choreographies.** Copy the stories, budgets and intents verbatim, build
 with `--out <scratch>/out` first and compare each generated file with today's one, parsed
