@@ -1,0 +1,47 @@
+# Coreografia de luz — rascunho v1 do set Hï Ibiza (Pulso), para o dono revisar.
+# Compassos do mapa musical (lightshows/maps/); B e G são os hot cues do rekordbox.
+track: "Black Coffee, Nakhana — We Dance Again"
+soundswitch: 27E498F9-89B7-4E04-A687-C72D646DEC0E
+grid: {bpm: 122, downbeat: "0:00.123"}
+story: >-
+  We Dance Again não tem drop: o kick nunca para. A chegada é o grave entrando no c. 56, e a luz
+  responde com o batimento: as Vorlanes batem em azul, um lado de cada vez, como um coração.
+  Quando a voz volta, os feixes sobem com ela.
+budget: >-
+  Nenhum efeito raro. O desenho `solid` alternando lados é o batimento da noite em azul.
+base: autoscript
+sections:
+  - bars: [21, 55]
+    name: ponte
+    intent: "Ponte: a mesma luz da música anterior, copiada camada por camada, até a chegada."
+    movers: {move: sweep, every: "2bar", positions: [Dance Floor Centre, Crossed Over], colour: "#3A6BFF", level: 0.7}
+    matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [56, 71]
+    name: chegada-o-grave
+    intent: "O grave entra: as Vorlanes batem a cada tempo, NW e SW alternando, como um coração."
+    movers: {move: hold, position: Dance Floor Centre, colour: "#3A6BFF", level: 0.8}
+    matrix: {draw: solid, rate: "1/4", colour: "#0A2CFF", pingpong: true}
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [72, 103]
+    name: a-voz
+    intent: "A voz volta e os feixes sobem com ela; as filas sobem no tempo."
+    movers: {move: sweep, every: "2bar", positions: [Up, Dance Floor Centre], colour: "#3A6BFF", level: 0.7}
+    matrix: {draw: rows-up, rate: "1/4", colour: "#0A2CFF", mirror: true}
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [104, 120]
+    name: brilho
+    intent: "Ciano nas colunas, as movings revezando: a água brilha antes da entrega."
+    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF"}
+    matrix: {draw: columns, rate: "1/4", colour: "#00B8FF", mirror: true}
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [121, 143]
+    name: entrega
+    intent: "Entrega: do G até o fim, o look que a próxima música copia na ponte."
+    movers: {move: sweep, every: "2bar", positions: [Dance Floor Centre, Crossed Over], colour: "#3A6BFF", level: 0.7}
+    matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
+    hue: {state: pulse, colour: "#B0001E"}

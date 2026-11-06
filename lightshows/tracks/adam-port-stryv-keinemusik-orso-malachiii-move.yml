@@ -1,0 +1,68 @@
+# Coreografia de luz — rascunho v1 do set Hï Ibiza (Pulso), para o dono revisar.
+# Compassos do mapa musical (lightshows/maps/); B e G são os hot cues do rekordbox.
+track: "Adam Port, Stryv, Keinemusik, oRSo, Malachiii — Move"
+soundswitch: A589A0A5-D351-4154-80D2-FBF9156C6D3C
+grid: {bpm: 120, downbeat: "0:00.093"}
+story: >-
+  Move é a aceleração: o pitch sobe de 122 a 125 e a luz acelera junto. Quando o Yamore sai, a
+  primeira espiral da noite: os dois lados da sala revezando cada vez mais rápido, do violeta ao
+  vermelho. A chegada tem colunas violetas e o coração já bate em vermelho vivo.
+budget: >-
+  Espiral 1 de 3 (c. 25-28). Sem breu, sem fita branca, sem estrobo.
+base: autoscript
+sections:
+  - bars: [1, 24]
+    name: ponte
+    intent: "Ponte: a mesma luz da música anterior, copiada camada por camada, até a chegada."
+    movers: {move: pingpong, every: "1/2", colour: "#6A1CFF"}
+    matrix: {draw: rows-up, rate: "1/2", colour: "#0A2CFF", mirror: true}
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [25, 25]
+    name: espiral-1-2
+    intent: "Espiral: os lados da sala revezam, a cada compasso mais rápido, do violeta ao vermelho."
+    movers: {move: pingpong, every: "1/2", colour: "#6A1CFF"}
+    matrix: {draw: columns, rate: "1/2", colour: "#6A1CFF", pingpong: true}
+    hue: dark
+
+  - bars: [26, 26]
+    name: espiral-1-4
+    intent: "Espiral: os lados da sala revezam, a cada compasso mais rápido, do violeta ao vermelho."
+    movers: {move: pingpong, every: "1/4", colour: "#6A1CFF"}
+    matrix: {draw: columns, rate: "1/4", colour: "#6A1CFF", pingpong: true}
+    hue: dark
+
+  - bars: [27, 27]
+    name: espiral-1-8
+    intent: "Espiral: os lados da sala revezam, a cada compasso mais rápido, do violeta ao vermelho."
+    movers: {move: pingpong, every: "1/8", colour: "#6A1CFF"}
+    matrix: {draw: columns, rate: "1/8", colour: "#6A1CFF", pingpong: true}
+    hue: dark
+
+  - bars: [28, 28]
+    name: espiral-1-16
+    intent: "Espiral: os lados da sala revezam, a cada compasso mais rápido, do violeta ao vermelho."
+    movers: {move: pingpong, every: "1/16", colour: "#FF0A2A"}
+    matrix: {draw: columns, rate: "1/16", colour: "#FF0A2A", pingpong: true}
+    hue: dark
+
+  - bars: [29, 52]
+    name: chegada
+    intent: "A chegada: colunas violetas espelhadas; o coração em vermelho; as movings aceleram com o pitch."
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF", faster_from: 45, faster_every: "1/8"}
+    matrix: {draw: columns, rate: "1/8", colour: "#6A1CFF", mirror: true}
+    hue: {state: pulse, colour: "#FF0A2A"}
+
+  - bars: [53, 75]
+    name: a-voz
+    intent: "A voz volta: colunas alternando NW e SW, feixes varrendo."
+    movers: {move: sweep, every: "2bar", positions: [Dance Floor Centre, Crossed Over], colour: "#6A1CFF", level: 0.8}
+    matrix: {draw: columns, rate: "1/8", colour: "#0A2CFF", pingpong: true}
+    hue: {state: pulse, colour: "#FF0A2A"}
+
+  - bars: [76, 87]
+    name: entrega
+    intent: "Entrega: do G até o fim, o look que a próxima música copia na ponte."
+    movers: {move: pingpong, every: "1/2", colour: "#6A1CFF"}
+    matrix: {draw: rows-up, rate: "1/2", colour: "#0A2CFF", mirror: true}
+    hue: {state: pulse, colour: "#B0001E"}

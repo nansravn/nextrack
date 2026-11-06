@@ -92,6 +92,7 @@ graph LR
   FUNK -.-> BBASS
   FUNK -.-> AFRO
   AFRO -.-> MELO
+  AFRO -.-> TECH
   AMA -.-> AFROBR
   AMA -.-> ORG
   TECH -.-> TEKNO
