@@ -253,8 +253,8 @@ def test_report_has_a_line_per_section_and_the_tally(mini_repo, capsys):
     code, out = run(mini_repo, capsys, "report", "teste")
     assert code == 0, out
     lines = out.splitlines()
-    assert lines[0].startswith("1. Pedro Sampaio — Dançarina")
-    assert "32 bars" in lines[0] and "B 5" in lines[0] and "G 25" in lines[0]
+    head = next(line for line in lines if line.startswith("1. Pedro Sampaio — Dançarina"))
+    assert "32 bars" in head and "B 5" in head and "G 25" in head
     repo = check_repo.load_repo(mini_repo.root)
     _, compiled, _, _ = check_repo.show_results(repo)[0]
     for track in compiled.tracks:
@@ -262,9 +262,9 @@ def test_report_has_a_line_per_section_and_the_tally(mini_repo, capsys):
             a, b = sec.bars
             assert any(f"{a}-{b} {sec.name}" in line for line in lines), (a, b, sec.name)
     assert show_rules.occurrences(compiled, "spiral")
-    assert ("  9-16 chegada | look respiracao | movers sweep every=2bar positions=[Dance Floor Centre, "
+    assert ("  0:16 9-16 chegada | look respiracao | movers sweep every=2bar positions=[Dance Floor Centre, "
             "Crossed Over] colour=azul level=0.7; matrix rows-up rate=1bar colour=azul mirror; "
-            "hue pulse colour=vermelho | arrival | music: drop 9-16, drop +12.5 dB") in lines
+            "hue pulse colour=vermelho | arrival | music: drop 9-16, drop +12.5 dB, k5 b5 v5 p5 o5") in lines
     assert "bridge" in out and "handover" in out and "gesture spiral" in out and "look respiracao" in out
     assert "look (inline)" in out
     assert "azul" in out and "vermelho" in out and "#0A2CFF" not in out
@@ -275,6 +275,72 @@ def test_report_has_a_line_per_section_and_the_tally(mini_repo, capsys):
     for decision in compiled.decisions:
         assert decision in out
     assert "moment virada" in out
+
+
+def _report_out(mini_repo, capsys):
+    put_show(mini_repo)
+    code, out = run(mini_repo, capsys, "report", "teste")
+    assert code == 0, out
+    return out.splitlines()
+
+
+def test_report_has_the_night_summary(mini_repo, capsys):
+    lines = _report_out(mini_repo, capsys)
+    night = lines[:lines.index("")]
+    assert night[0].startswith("night ")
+    labels = [line.split(":")[0].strip() for line in night[1:]]
+    assert labels == ["looks", "colours movers", "colours matrix", "colours hue", "aims", "zones lit",
+                      "centre dark", "total dark", "events", "light level"]
+    assert "respiracao" in night[1] and "azul" in night[2]
+    assert "(" in next(l for l in night if "centre dark" in l) and "%" in next(l for l in night if "centre dark" in l)
+    assert "section(s)" in next(l for l in night if "total dark" in l)
+    assert "strobe" in next(l for l in night if l.strip().startswith("events"))
+    assert "an index" in night[-1] and "rounded half up" in night[-1] and "README" in night[-1]
+
+
+def test_report_track_header_has_clock_and_arrival(mini_repo, capsys):
+    lines = _report_out(mini_repo, capsys)
+    first = next(l for l in lines if l.startswith("1. "))
+    second = next(l for l in lines if l.startswith("2. "))
+    assert " · enters 0:00 · arrival 9 at 0:" in first
+    assert " · enters " in second and " · arrival 9 at " in second
+    assert second.split("enters ")[1].split(" ·")[0] != "0:00"
+
+
+def test_report_section_line_has_clock_and_voices(mini_repo, capsys):
+    lines = _report_out(mini_repo, capsys)
+    line = next(l for l in lines if " 9-16 chegada | look respiracao" in l)
+    assert line.startswith("  0:16 9-16 chegada | ")
+    assert line.endswith("| arrival | music: drop 9-16, drop +12.5 dB, " + line.rsplit(", ", 1)[1])
+    import re
+    assert re.fullmatch(r"k\d b\d v\d p\d o\d", line.rsplit(", ", 1)[1])
+    handover = next(l for l in lines if " entrega | handover" in l)
+    assert re.match(r"  \d+:\d\d 25-32 entrega", handover)
+
+
+def test_report_has_strips_peaks_and_hits(mini_repo, capsys):
+    lines = _report_out(mini_repo, capsys)
+    at = next(i for i, l in enumerate(lines) if l.startswith("1. "))
+    assert lines[at + 1].startswith("  music |") and lines[at + 2].startswith("  light |")
+    assert max(len(l) for l in lines if l.startswith(("  music |", "  light |"))) <= len("  music |") + 64 + 1
+    peaks = lines.index("peaks")
+    assert lines[peaks + 1].startswith("  clock ·")
+    row = lines[peaks + 2]
+    assert " · drop " not in row and "+12.5 dB" in row and " · light " in row and ">" in row
+    hits = lines.index("hit checks")
+    assert peaks < hits < lines.index("budget") if "budget" in lines else peaks < hits
+    assert any(" · arrival" in l and "kick" in l for l in lines[hits + 2:])
+    assert any("moment virada" in l and "kick" in l for l in lines[hits + 2:])
+
+
+def test_report_names_aims(mini_repo, capsys):
+    mini_repo.write("lightshows/rig.yml", RIG)
+    mini_repo.write("lightshows/room.yml", ROOM_YML)
+    lines = _report_out(mini_repo, capsys)
+    line = next(l for l in lines if " 9-16 chegada | look respiracao" in l)
+    assert "positions=[centro, Crossed Over]" in line and "Dance Floor Centre" not in line
+    aims = next(l for l in lines if l.startswith("  aims:"))
+    assert "centro" in aims
 
 
 def test_report_lists_advice(mini_repo, capsys):
@@ -299,7 +365,7 @@ def test_report_exits_one_on_rule_findings(mini_repo, capsys):
     _edit_yaml(mini_repo, f"{SHOW}/show.yml", _budget_zero)
     code, out = run(mini_repo, capsys, "report", "teste")
     assert code == 1
-    assert "show-rules: budget:" in out and out.splitlines()[0].startswith("1. ")
+    assert "show-rules: budget:" in out and out.splitlines()[0].startswith("night ")
 
 
 def test_report_prints_findings_and_exits_one_on_source_findings(mini_repo, capsys):
