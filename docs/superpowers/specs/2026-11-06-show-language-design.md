@@ -379,7 +379,7 @@ never from bridges:
 
 | key | an occurrence is |
 |---|---|
-| a look name | a cue, a handover or a gesture step whose `look` is that name (only the name used, not the looks it extends); a cue counts once even when its look spans several sections |
+| a look name | a compiled section (not a bridge) whose `look` is that name: a cue or a handover with `look: <name>`, or a gesture step that reports it (only the name used, not the looks it extends) |
 | a gesture name | a cue that invokes it |
 | `white-accent` | one beat of a `white.accent` list in a compiled section |
 | `white-flash` | a compiled section with `white: {flash: ...}` |
@@ -441,8 +441,9 @@ Their keys come in a fixed canonical order (the vocabulary's key order), so the 
 always gives the same bytes. A string that YAML would read as something else (`off`, `on`,
 `1/2`, `#…`, anything with `: `) is quoted. A test asserts that the emitted text parses back to
 the compiled data. The first line is the **ownership header**. `build` refuses to overwrite a
-choreography without it, or one owned by another show, unless `--adopt` is given (used once,
-when a set is ported).
+choreography without it unless `--adopt` is given (used once, when a set is ported). It
+always refuses one owned by another show: that conflict is resolved in the shows, not by
+a flag.
 
 ## The CLI: `scripts/nextrack_show.py`
 
