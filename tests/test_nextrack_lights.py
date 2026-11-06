@@ -9,8 +9,10 @@ from pathlib import Path
 import pytest
 import yaml
 
+import musical_map as mm
 import nextrack_lights as nl
 import soundswitch_format as ssf
+from mapdata import timeline_map
 from conftest import HAPPIER, PROJECT_GUIDS, REPO_ROOT, _choreo_for_project, _happier_project
 
 
@@ -154,6 +156,77 @@ def test_render_writes_a_self_contained_page(make_project, tmp_path, capsys):
     assert data["before"]["Mover 1"]["k"][:3] == [[0, 0.0], [1, 1.0], [500, 0.0]]
     assert data["before"]["Mover 1"]["B"] == [[0, 16000]]
     assert data["rig"]["mover-ne"] == {"corner": "NE", "kind": "mover", "node": "Mover 1"}
+
+
+# --------------------------------------------------------- the musical map ----
+
+
+def map_repo(tmp_path, data, name="dancarina.yml"):
+    folder = tmp_path / "repo" / "lightshows" / "maps"
+    folder.mkdir(parents=True)
+    (folder / name).write_text(mm.dump_map(data), encoding="utf-8")
+    return tmp_path / "repo"
+
+
+def a_map(**kw):
+    d = timeline_map(8, sections=[{"bars": [1, 4], "kind": "groove"}, {"bars": [5, 8], "kind": "build"}],
+                     drops=[(5, 9.0)], hot={"A": "1.1", "B": "5.1", "C": "3.2+100ms"}, **kw)
+    d["soundswitch"] = PROJECT_GUIDS[0].upper()
+    d["audio"]["ms"] = 16000
+    d["grid"]["downbeat"] = "0:00.000"
+    return d
+
+
+def test_map_sim_data_times():
+    out = mm.map_sim_data(a_map())
+    assert set(out["voices"]) == set(mm.VOICES)
+    kick = out["voices"]["kick"]
+    assert len(kick) == 8 * 16 and kick[0] == [0, 5] and kick[1] == [125, 5] and kick[16] == [2000, 5]
+    assert out["sections"] == [{"kind": "groove", "start": 0, "end": 8000},
+                               {"kind": "build", "start": 8000, "end": 16000}]
+    assert out["drops"] == [{"bar": 5, "t": 8000}]
+    assert out["cues"] == [{"name": "A", "t": 0}, {"name": "B", "t": 8000}, {"name": "C", "t": 4600}]
+
+
+def test_map_sim_data_without_hot_cues():
+    d = a_map()
+    d["hot_cues"] = None
+    assert mm.map_sim_data(d)["cues"] == []
+
+
+def test_render_includes_the_map_when_one_exists(make_project, tmp_path, capsys):
+    repo = map_repo(tmp_path, a_map())
+    code, err, out = render(capsys, make_project(), tmp_path, "--repo", str(repo))
+    assert code == 0, err
+    m = blob(out.read_text(encoding="utf-8"))["map"]
+    assert list(m["voices"]) == list(mm.VOICES)
+    assert [s["kind"] for s in m["sections"]] == ["groove", "build"]
+
+
+def test_render_without_a_map_has_none(make_project, tmp_path, capsys):
+    code, err, out = render(capsys, make_project(), tmp_path, "--repo", str(tmp_path / "nothing"))
+    assert code == 0, err
+    assert blob(out.read_text(encoding="utf-8"))["map"] is None
+
+
+def test_render_skips_a_map_that_does_not_parse_or_is_for_another_track(make_project, tmp_path, capsys):
+    repo = map_repo(tmp_path, a_map(), name="a.yml")
+    (repo / "lightshows" / "maps" / "bad.yml").write_text(": : [", encoding="utf-8")
+    other = a_map()
+    other["soundswitch"] = PROJECT_GUIDS[1].upper()
+    (repo / "lightshows" / "maps" / "other.yml").write_text(mm.dump_map(other), encoding="utf-8")
+    code, err, out = render(capsys, make_project(), tmp_path, "--repo", str(repo), track="Voa Voa")
+    assert code == 0, err
+    assert blob(out.read_text(encoding="utf-8"))["map"]["drops"] == [{"bar": 5, "t": 8000}]
+
+
+def test_render_warns_on_a_stale_map(make_project, tmp_path, capsys):
+    d = a_map()
+    d["grid"]["anchors"] = [[0, 121.0]]
+    code, err, out = render(capsys, make_project(), tmp_path, "--repo", str(map_repo(tmp_path, d)))
+    assert code == 0, err
+    assert "warning: the musical map is stale (grid changed); run nextrack_map.py analyze" in err
+    assert blob(out.read_text(encoding="utf-8"))["map"] is None
 
 
 def test_render_with_choreo_adds_the_compiled_after(make_project, make_script, tmp_path, capsys):
