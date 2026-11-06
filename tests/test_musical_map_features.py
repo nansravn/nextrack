@@ -207,6 +207,30 @@ def test_phrase_gap_boundary():
     assert len(mm.phrases("7" * 4 + "0" * 4 + "7" * 4, "5" * 12)) == 2
 
 
+def test_onsets_before_bar_one_are_left_out():
+    g = Grid([(2000, 120.0)])  # bar 1 starts at 2000 ms; half a step is 62.5 ms
+    edges = mm.step_edges_ms(g, 6000)
+    early = clicks([500, 1000, 1500, 1930], 6000)  # loud, and all before 2000 - 62.5
+    on_grid = clicks([2000 + i * 500 for i in range(8)], 6000, amp=0.9 * db(-12))
+    digits, times = mm.onset_digits(early + on_grid, SR, edges)
+    assert digits == "9...9...9...9..." * 2
+    assert len(times) == 8 and min(times) >= 2000 - 62.5
+
+
+def test_kicks_before_bar_one_are_left_out():
+    beat = 60000 / 130
+    first = round(4 * beat)  # bar 1 is the fifth beat; half a step is 58 ms
+    loud, quiet = real_kick(SR, 300), real_kick(SR, 300) * db(-6)
+    # three loud kicks well before bar 1, and one 80 ms before it, whose low end reads ~40 ms
+    # late (inside half a step) but whose attack is earlier
+    events = [(i * beat, loud) for i in range(3)] + [(first - 80, loud)]
+    events += [(i * beat, quiet) for i in range(5, 12)]
+    total = 12 * beat
+    digits, times = kick_string(events, total, first_ms=first)
+    assert digits == "....9...9...9..." + "9...9...9...9..."
+    assert len(times) == 7 and min(times) >= first - 58
+
+
 def test_offgrid_onset_lands_on_the_nearest_step():
     g = Grid([(0, 120.0)])  # a step is 125 ms
     edges = mm.step_edges_ms(g, 2000)
@@ -426,12 +450,12 @@ def test_one_bar_stab_inside_a_break_is_not_a_drop():
     assert [d["bar"] for d in m["drops"]] == [17]
 
 
-def kick_string(events, total_ms, bpm=130.0):
+def kick_string(events, total_ms, bpm=130.0, first_ms=0):
     z = silence(total_ms)
     drums = place(total_ms, events)
     stems = {"vocals": z, "drums": drums, "bass": z.copy(), "other": z.copy()}
     voices = mm.voices_from_stems(stems, SR)
-    edges = mm.step_edges_ms(Grid([(0, bpm)]), int(total_ms))
+    edges = mm.step_edges_ms(Grid([(first_ms, bpm)]), int(total_ms))
     return mm.kick_onsets(drums, voices["kick"], SR, edges)
 
 
