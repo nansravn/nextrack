@@ -293,9 +293,19 @@ def _night_lines(summary: dict) -> list[str]:
     return out
 
 
-def _strip_lines(label: str, text: str, width: int = 64) -> list[str]:
-    """A strip wrapped at `width` bars: `  music |...|`, one line per chunk."""
-    return [f"  {label} |{text[i:i + width]}|" for i in range(0, max(len(text), 1), width)]
+def _strip_block(music: str, light: str, first: int, width: int = 64) -> list[str]:
+    """The two strips wrapped at `width` bars, music chunk then light chunk, each row labelled
+    with the track bar of its first character: `  music   57 |...|`."""
+    out = []
+    for i in range(0, max(len(music), len(light), 1), width):
+        for label, text in (("music", music), ("light", light)):
+            out.append(f"  {label} {first + i:>4} |{text[i:i + width]}|")
+    return out
+
+
+_LEGEND = ("  legend: strips show one digit per bar, music level 0-9 (the highest of kick, bass, other) and "
+           "light level 0-9 (an index); ~ is unknown (the autoscript decides). voices: k kick, b bass, "
+           "v vocals, p perc, o other. ~ in peaks and hit checks is unknown too.")
 
 
 def _layers_named(sec, room) -> dict:
@@ -364,7 +374,7 @@ def render_report(show: CompiledShow, findings: list[ShowFinding], advice: list[
     findings. Facts only; every number comes from `show_views`."""
     palette = show.data.get("palette") or {}
     names = {str(hexa).upper(): name for name, hexa in palette.items()}
-    out: list[str] = _night_lines(show_views.night_summary(show, clock, room))
+    out: list[str] = [*_night_lines(show_views.night_summary(show, clock, room)), _LEGEND]
     for n, (track, tc) in enumerate(zip(show.tracks, clock.tracks), 1):
         cues = track.map.get("hot_cues") or {}
         marks = [f"{key} {_bar_of(cues[key])}" for key in ("B", "G") if key in cues]
@@ -374,7 +384,7 @@ def render_report(show: CompiledShow, findings: list[ShowFinding], advice: list[
         if arrival is not None:
             head.append(f"arrival {arrival.bars[0]} at {show_views.clock_text(tc.at(arrival.bars[0]))}")
         music_strip, light_strip = show_views.strips(track, tc)
-        out += ["", " · ".join(head), *_strip_lines("music", music_strip), *_strip_lines("light", light_strip)]
+        out += ["", " · ".join(head), *_strip_block(music_strip, light_strip, tc.leg[0])]
         for sec in track.sections:
             a, b = sec.bars
             named = _layers_named(sec, room)
