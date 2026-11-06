@@ -1026,7 +1026,8 @@ def _owns_movers(job: _Job, value) -> bool:
     if not isinstance(value, dict) or value["move"] == "uv":
         return False
     names = value.get("positions") or ([value["position"]] if "position" in value else [])
-    guids = {p.guid.lower() for p in job.presets if p.name in names}
+    by_name = _presets_by_name(job)
+    guids = {by_name[n].lower() for n in names if n in by_name}
     movers = [f.tracks["mover"] for f in job.fixtures if f.kind == "mover" and "mover" in f.tracks]
     main = job.script.main.positions
     for trk in movers:
@@ -1128,12 +1129,18 @@ def _cue_cut_shapes(job: _Job, w: _Window, trk: Track, who: str) -> None:
                     "section and is removed whole; restore its movement outside the section in SoundSwitch")
 
 
-def _preset_guids(job: _Job, w: _Window, move: dict) -> list[tuple[str, str]]:
-    """`(name, guid)` of the move's positions in order; an unknown name becomes a cue."""
-    names = move.get("positions") or ([move["position"]] if "position" in move else [])
+def _presets_by_name(job: _Job) -> dict[str, str]:
+    """The venue's preset GUID per name; when a name repeats, the first one wins."""
     by_name: dict[str, str] = {}
     for p in job.presets:
         by_name.setdefault(p.name, p.guid)
+    return by_name
+
+
+def _preset_guids(job: _Job, w: _Window, move: dict) -> list[tuple[str, str]]:
+    """`(name, guid)` of the move's positions in order; an unknown name becomes a cue."""
+    names = move.get("positions") or ([move["position"]] if "position" in move else [])
+    by_name = _presets_by_name(job)
     out, reported = [], set()
     for name in names:
         if name in by_name:

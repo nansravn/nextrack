@@ -304,6 +304,7 @@ def test_shape_block_straddling_the_section_is_a_cue(room):
     ("off", False),                                       # the movers are dark there: no movement shows
     ({"move": "pingpong", "every": "1/4"}, True),         # no aim: the autoscript's movement is lost there
     ("auto", True),
+    ({"move": "uv"}, True),                               # a UV wash writes nothing: a manual cue
 ])
 def test_a_cut_shape_block_is_a_cue_only_where_its_movement_is_lost(room, neighbour, cue):
     script = room()
@@ -325,6 +326,19 @@ def test_a_cut_shape_block_is_a_cue_next_to_a_preset_the_script_palette_lacks(ro
     presets = PRESETS + [ssf.Preset("Laser Wall", "aaaaaaaa-0000-0000-0000-000000000000")]
     sections = [section(2, 3, movers={"move": "hold", "position": "DJ Booth"}),
                 section(4, 5, movers={"move": "hold", "position": "Laser Wall"})]
+    _, cues = ls.compile_choreography(choreo(*sections), script, RIG, VENUES, presets)
+    assert any("shape block" in c.what for c in section_cues(cues))
+
+
+def test_a_duplicate_preset_name_resolves_like_the_compiler(room):
+    """Two venue presets named `Up`: the compiler takes the first, which this palette lacks,
+    so the neighbour writes no position and the cut is a real loss."""
+    script = room()
+    border = ms(4)
+    ssf.track(script, 1167).shapes = ssf.Shapes(1, 1, [shape(border - 1000, border + 1000)])
+    presets = [ssf.Preset("Up", "bbbbbbbb-0000-0000-0000-000000000000")] + PRESETS
+    sections = [section(2, 3, movers={"move": "hold", "position": "DJ Booth"}),
+                section(4, 5, movers={"move": "hold", "position": "Up"})]
     _, cues = ls.compile_choreography(choreo(*sections), script, RIG, VENUES, presets)
     assert any("shape block" in c.what for c in section_cues(cues))
 
