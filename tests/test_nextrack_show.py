@@ -290,12 +290,12 @@ def test_report_has_the_night_summary(mini_repo, capsys):
     assert night[0].startswith("night ")
     labels = [line.split(":")[0].strip() for line in night[1:]]
     assert labels == ["looks", "colours movers", "colours matrix", "colours hue", "aims", "zones lit",
-                      "centre dark", "total dark", "events", "light level"]
+                      "centre dark", "total dark", "events", "light level", "legend"]
     assert "respiracao" in night[1] and "azul" in night[2]
     assert "(" in next(l for l in night if "centre dark" in l) and "%" in next(l for l in night if "centre dark" in l)
     assert "section(s)" in next(l for l in night if "total dark" in l)
     assert "strobe" in next(l for l in night if l.strip().startswith("events"))
-    assert "an index" in night[-1] and "rounded half up" in night[-1] and "README" in night[-1]
+    assert "an index" in night[-2] and "rounded half up" in night[-2] and "README" in night[-2]
 
 
 def test_report_track_header_has_clock_and_arrival(mini_repo, capsys):
@@ -321,8 +321,12 @@ def test_report_section_line_has_clock_and_voices(mini_repo, capsys):
 def test_report_has_strips_peaks_and_hits(mini_repo, capsys):
     lines = _report_out(mini_repo, capsys)
     at = next(i for i, l in enumerate(lines) if l.startswith("1. "))
-    assert lines[at + 1].startswith("  music |") and lines[at + 2].startswith("  light |")
-    assert max(len(l) for l in lines if l.startswith(("  music |", "  light |"))) <= len("  music |") + 64 + 1
+    assert lines[at + 1].startswith("  music    1 |") and lines[at + 2].startswith("  light    1 |")
+    second = next(i for i, l in enumerate(lines) if l.startswith("2. "))
+    first_bar = lines[second].split("B ")[1].split(" ·")[0]
+    assert lines[second + 1].startswith(f"  music {first_bar:>4} |")
+    assert sum(l.startswith("  legend:") for l in lines) == 1
+    assert lines.index(next(l for l in lines if l.startswith("  legend:"))) < at
     peaks = lines.index("peaks")
     assert lines[peaks + 1].startswith("  clock ·")
     row = lines[peaks + 2]
@@ -424,3 +428,32 @@ def test_help_exits_zero():
     with pytest.raises(SystemExit) as caught:
         nextrack_show.main(["--help"])
     assert caught.value.code == 0
+
+
+def test_strips_interleave_and_label_chunks():
+    music, light = "9" * 70, "3" * 70
+    rows = nextrack_show._strip_block(music, light, 57)
+    assert rows == [f"  music   57 |{'9' * 64}|", f"  light   57 |{'3' * 64}|",
+                    f"  music  121 |{'9' * 6}|", f"  light  121 |{'3' * 6}|"]
+
+
+def test_hit_and_peak_rows_show_unknown_levels_and_the_other_track():
+    hit = {"clock_s": 65.0, "track": "A — B", "bar": 49, "arrival": False, "moment": "virada", "kick": "9",
+           "before": None, "at": 5, "accents": [],
+           "dark": {"track": "C — D", "bars": (48, 48),
+                    "voices": {"kick": 0, "bass": 0, "vocals": 9, "perc": 1, "other": 0}}}
+    line = nextrack_show._hit_lines([hit])[-1]
+    assert "light ~>5" in line and line.endswith("dark before: D 48-48 k0 b0 v9 p1 o0")
+    hit["dark"]["track"] = "A — B"
+    assert nextrack_show._hit_lines([hit])[-1].endswith("dark before: 48-48 k0 b0 v9 p1 o0")
+    peak = {"clock_s": 5.0, "track": "A — B", "bar": 9, "db": None, "music": 9, "before": 2, "at": None,
+            "accents": [], "moment": None}
+    assert "light 2>~" in nextrack_show._peak_lines([peak])[-1]
+
+
+def test_night_lists_pending_aims_with_their_fallback():
+    summary = {"total_s": 60.0, "looks": {}, "autoscript_s": 0.0, "colours": {g: {} for g in ("movers", "matrix", "hue")},
+               "aims": {"apice": 10.0}, "pending_aims": [("apice", "centro")],
+               "zones": {"movers": 0.0, "matrix": 0.0, "hue": 0.0}, "centre_dark_s": 0.0,
+               "total_dark": {"s": 0.0, "count": 0}, "events": {}}
+    assert any("pending, played by fallback: apice -> centro" in l for l in nextrack_show._night_lines(summary))
