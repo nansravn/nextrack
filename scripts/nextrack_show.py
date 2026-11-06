@@ -29,6 +29,7 @@ import check_repo
 import lightshow
 import show_gestures
 import show_language
+import show_room
 import show_rules
 from show_language import CompiledShow, ShowFinding, ShowSource
 
@@ -329,9 +330,29 @@ def _layer_forms(layer: str) -> str:
     return " | ".join(forms)
 
 
-def render_vocab(source: ShowSource | None) -> str:
-    """What an agent needs to write a show: anchors, layer words, gestures, rules, and with a
-    show its palette and looks."""
+def _point(p) -> str:
+    return "[" + ", ".join(repr(float(v)) for v in p) + "]"
+
+
+def _aims_text(room: show_room.Room) -> list[str]:
+    """The room's aims: the configured ones (id -> preset, figure), then the pending ones, the
+    presets still to create in SoundSwitch, with their fallback and each mover's target."""
+    configured = [a for a in room.aims.values() if a.status == "configured"]
+    pending = [a for a in room.aims.values() if a.status == "pending"]
+    out = ["", "aims (room.yml): an aim id stands wherever a preset name stands"]
+    out += [f"  {a.id} -> {a.preset} · {a.figure}" for a in configured]
+    if pending:
+        out += ["", "presets to create in SoundSwitch" + (" (geometria presumida)" if room.assumed else "")]
+        for a in pending:
+            out.append(f"  {a.id} -> {a.preset} · {a.figure}")
+            out.append(f"    fallback: {a.fallback}")
+            out.append("    targets: " + "; ".join(f"{k} at {_point(p)}" for k, p in a.targets.items()))
+    return out
+
+
+def render_vocab(source: ShowSource | None, room: show_room.Room | None = None) -> str:
+    """What an agent needs to write a show: anchors, layer words, gestures, rules, the room's
+    aims when it has a valid one, and with a show its palette and looks."""
     out = ["anchors", *(f"  {line}" for line in ANCHOR_GRAMMAR.splitlines()),
            "  example: on a map with drops at 9 and 21 and hot cue G at 25, `drop.2 - 1` is bar 20,",
            "  `G` is 25, `end` is the last bar and `break.1.end + 1` is the bar after the first break.",
@@ -355,6 +376,8 @@ def render_vocab(source: ShowSource | None) -> str:
     for name, r in show_rules.RULES.items():
         out.append(f"rule {name}: {_first_paragraph(r.doc)}")
         out.append(f"    params: {r.params}")
+    if room is not None:
+        out += _aims_text(room)
     if source is not None and isinstance(source.show, dict):
         data = show_language.clean(source.show)
         out += ["", f"palette of {source.show_id}"]
@@ -376,7 +399,9 @@ def _vocab(args) -> int:
         if errors:
             _print_findings(errors)
             return 1
-    print(render_vocab(source), end="")
+    else:
+        repo = check_repo.load_repo(Path(args.repo).resolve())
+    print(render_vocab(source, check_repo.valid_room(repo)), end="")
     return 0
 
 

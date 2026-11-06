@@ -1394,6 +1394,13 @@ def lightshow_plan(repo: Repo) -> Iterable[Finding]:
 # or edges, so none depends on `graph_ok`.
 
 
+def valid_room(repo: Repo) -> show_room.Room | None:
+    """The room of `lightshows/room.yml`, or None when it is missing or fails its check."""
+    if repo.room is None or show_room.problems_room(repo.room[1], rig_fixture_kinds(repo)):
+        return None
+    return show_room.load_room(repo.room[1])
+
+
 def show_inputs(repo: Repo, source: show_language.ShowSource) -> show_language.ShowInputs:
     """What the repo gives a show: the set's track order (set -> blocks -> tracklists), the
     valid maps by file stem, the stems of the invalid ones, and `same_track`."""
@@ -1423,10 +1430,7 @@ def show_inputs(repo: Repo, source: show_language.ShowSource) -> show_language.S
                 set_tracks, problem = None, f"set {rel!r} links block {block_id!r}, which has no blocks/{block_id}.md"
                 break
             set_tracks.extend((artist, title) for _, artist, title in tracklist_entries(block))
-    room = None
-    if repo.room is not None and not show_room.problems_room(repo.room[1], rig_fixture_kinds(repo)):
-        room = show_room.load_room(repo.room[1])
-    return show_language.ShowInputs(maps, set_tracks, problem, same_track, invalid, room)
+    return show_language.ShowInputs(maps, set_tracks, problem, same_track, invalid, valid_room(repo))
 
 
 def show_results(repo: Repo) -> list:
