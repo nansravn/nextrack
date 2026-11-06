@@ -179,6 +179,7 @@ nodes:
       - {to: amapiano,        strength: strong, via: "drop tempo, lean into log-drum"}
       - {to: melodic-house-techno, strength: medium, via: "raise the emotional melody"}
       - {to: organic-house,   strength: strong, via: "soften into a warm plateau"}
+      - {to: tech-house,      strength: medium, via: "afro-tech: ride the percussion, push the pitch from 122 to 126, swap into a driving groove on the drop"}
 
   - id: amapiano
     name: Amapiano

@@ -1,0 +1,53 @@
+# Coreografia de luz — rascunho v1 do set Hï Ibiza (Pulso), para o dono revisar.
+# Compassos do mapa musical (lightshows/maps/); B e G são os hot cues do rekordbox.
+track: "Toman — Verano En NY"
+soundswitch: 9097746F-D0C8-42A2-BAD2-631FB98F27F0
+grid: {bpm: 126, downbeat: "0:00.166"}
+story: >-
+  Verano en NY entra por baixo do drop final do TOO COOL, já no vermelho. No break longo a sala
+  apaga e espera; a chegada é um zigue-zague vermelho espelhado com a voz.
+budget: >-
+  Nenhum efeito raro: depois da virada, a sala respira antes do Pick Up.
+base: autoscript
+sections:
+  - bars: [9, 41]
+    name: ponte
+    intent: "Ponte: a mesma luz da música anterior, copiada camada por camada, até a chegada."
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    matrix: {draw: rows-up, rate: "1/4", colour: "#FF0A2A", mirror: true}
+    hue: {state: pulse, colour: "#FF0A2A"}
+
+  - bars: [42, 53]
+    name: break
+    intent: "O break: um feixe para cima, Vorlanes apagadas, centro escuro."
+    movers: {move: hold, position: Up, colour: "#3A6BFF", level: 0.4}
+    matrix: off
+    hue: dark
+
+  - bars: [54, 57]
+    name: subida
+    intent: "Quatro compassos enchendo em vermelho, as movings acelerando."
+    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF", faster_from: 56, faster_every: "1/4"}
+    matrix: {draw: fill-up, rate: "1bar", colour: "#FF0A2A", mirror: true}
+    hue: dark
+
+  - bars: [58, 73]
+    name: chegada
+    intent: "A chegada com a voz: zigue-zague vermelho espelhado, movings revezando."
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    matrix: {draw: zigzag, rate: "1/8", colour: "#FF0A2A", mirror: true}
+    hue: {state: pulse, colour: "#FF0A2A"}
+
+  - bars: [74, 89]
+    name: groove
+    intent: "Groove: zigue-zague azul, feixes varrendo de um lado ao outro."
+    movers: {move: sweep, every: "2bar", positions: [Stage Left, Stage Right], colour: "#3A6BFF", level: 0.8}
+    matrix: {draw: zigzag, rate: "1/8", colour: "#0A2CFF", mirror: true}
+    hue: {state: pulse, colour: "#FF0A2A"}
+
+  - bars: [90, 129]
+    name: entrega
+    intent: "Entrega: do G até o fim, o look que a próxima música copia na ponte."
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    matrix: {draw: rows-up, rate: "1/4", colour: "#FF0A2A", mirror: true}
+    hue: {state: pulse, colour: "#FF0A2A"}

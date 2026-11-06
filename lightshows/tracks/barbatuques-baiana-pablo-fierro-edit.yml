@@ -1,0 +1,75 @@
+# Coreografia de luz — rascunho v1 do set Hï Ibiza (Pulso), para o dono revisar.
+# Compassos do mapa musical (lightshows/maps/); B e G são os hot cues do rekordbox.
+track: "Barbatuques — Baianá (Pablo Fierro Edit)"
+soundswitch: C35EA4C8-CCB5-4B6E-A590-0CEC492E4DCE
+grid: {bpm: 120, downbeat: "0:00.526"}
+story: >-
+  Baianá é o corpo: a percussão do Barbatuques sai do centro das Vorlanes pras bordas, como
+  palmas se espalhando. No break longo a sala respira; um compasso de breu e o drop do corpo
+  explode do centro, rápido.
+budget: >-
+  Breu 3 de 5 (c. 88). Sem fita branca e sem estrobo.
+base: autoscript
+sections:
+  - bars: [25, 42]
+    name: ponte
+    intent: "Ponte: a mesma luz da música anterior, copiada camada por camada, até a chegada."
+    movers: {move: sweep, every: "2bar", positions: [Dance Floor Centre, Crossed Over], colour: "#3A6BFF", level: 0.7}
+    matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [43, 46]
+    name: break
+    intent: "Quatro compassos: o centro apaga e as Vorlanes enchem devagar."
+    movers: off
+    matrix: {draw: fill-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
+    hue: dark
+
+  - bars: [47, 77]
+    name: chegada
+    intent: "A chegada: o desenho sai do centro pras bordas em ciano, como palmas; movings revezando."
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    matrix: {draw: centre-out, rate: "1/8", colour: "#00B8FF", mirror: true}
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [78, 87]
+    name: break
+    intent: "O break: filas subindo devagar, um feixe parado na pista, centro escuro."
+    movers: {move: hold, position: Dance Floor Centre, colour: "#3A6BFF", level: 0.4}
+    matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
+    hue: dark
+
+  - bars: [88, 88]
+    name: breu
+    intent: "Um compasso de breu."
+    movers: off
+    matrix: off
+    hue: dark
+
+  - bars: [89, 122]
+    name: drop-do-corpo
+    intent: "O drop do corpo: o centro das Vorlanes explode rápido; o coração bate."
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    matrix: {draw: centre-out, rate: "1/16", colour: "#0A2CFF", mirror: true}
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [123, 133]
+    name: break-2
+    intent: "Respiro: os feixes varrem devagar, Vorlanes apagadas."
+    movers: {move: sweep, every: "2bar", positions: [Up, Crossed Over], colour: "#3A6BFF", level: 0.5}
+    matrix: off
+    hue: dark
+
+  - bars: [134, 145]
+    name: drop-final
+    intent: "Último drop antes da entrega: o centro abre de novo, em azul."
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    matrix: {draw: centre-out, rate: "1/8", colour: "#0A2CFF", mirror: true}
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [146, 182]
+    name: entrega
+    intent: "Entrega: do G até o fim, o look que a próxima música copia na ponte."
+    movers: {move: sweep, every: "2bar", positions: [Dance Floor Centre, Crossed Over], colour: "#3A6BFF", level: 0.7}
+    matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
+    hue: {state: pulse, colour: "#B0001E"}

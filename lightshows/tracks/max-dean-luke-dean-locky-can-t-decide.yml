@@ -1,0 +1,62 @@
+# Coreografia de luz — rascunho v1 do set Hï Ibiza (Pulso), para o dono revisar.
+# Compassos do mapa musical (lightshows/maps/); B e G são os hot cues do rekordbox.
+track: "Max Dean, Luke Dean, LOCKY — Can't Decide"
+soundswitch: F01BB842-973D-460E-86C2-2E2297ACB3EC
+grid: {bpm: 130, downbeat: "0:01.846"}
+story: >-
+  Can't Decide entra por baixo do drop final do Pick Up e herda o pico. A chegada abre do centro
+  em vermelho rápido; na subida as Vorlanes enchem, o último breu da noite, e o drop do c. 69
+  com estrobo é o pico que ele entrega ao Dirty Cash.
+budget: >-
+  Breu 5 de 5 (c. 68). Estrobo no drop do c. 69.
+base: autoscript
+sections:
+  - bars: [20, 27]
+    name: ponte
+    intent: "Ponte: a mesma luz da música anterior, copiada camada por camada, até a chegada."
+    movers: {move: blink, every: "1/4", colour: "#FF0A2A"}
+    matrix: {draw: rows-down, rate: "1/16", colour: "#FF0A2A", mirror: true}
+    hue: {state: pulse, colour: "#FF0A2A"}
+
+  - bars: [28, 35]
+    name: break
+    intent: "O break: um feixe vermelho para cima, Vorlanes apagadas, centro escuro."
+    movers: {move: hold, position: Up, colour: "#FF0A2A", level: 0.4}
+    matrix: off
+    hue: dark
+
+  - bars: [36, 43]
+    name: o-grave-volta
+    intent: "O grave volta antes do kick: filas vermelhas subindo, um feixe parado, o coração batendo."
+    movers: {move: hold, position: Dance Floor Centre, colour: "#FF0A2A", level: 0.6}
+    matrix: {draw: rows-up, rate: "1/4", colour: "#FF0A2A", mirror: true}
+    hue: {state: pulse, colour: "#FF0A2A"}
+
+  - bars: [44, 59]
+    name: chegada
+    intent: "A chegada com o kick: o centro das Vorlanes abre em vermelho a 1/16; movings revezando."
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    matrix: {draw: centre-out, rate: "1/16", colour: "#FF0A2A", mirror: true}
+    hue: {state: pulse, colour: "#FF0A2A"}
+
+  - bars: [60, 67]
+    name: subida
+    intent: "Oito compassos enchendo em vermelho, as movings acelerando até 1/8."
+    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF", faster_from: 66, faster_every: "1/8"}
+    matrix: {draw: fill-up, rate: "1bar", colour: "#FF0A2A", mirror: true}
+    hue: dark
+
+  - bars: [68, 68]
+    name: breu
+    intent: "O último breu da noite."
+    movers: off
+    matrix: off
+    hue: dark
+
+  - bars: [69, 91]
+    name: entrega
+    intent: "Entrega: do G até o fim, o look que a próxima música copia na ponte."
+    movers: {move: blink, every: "1/4", colour: "#FF0A2A"}
+    matrix: {draw: centre-out, rate: "1/16", colour: "#FF0A2A", mirror: true}
+    strobe: {hit: ["69.1"]}
+    hue: {state: pulse, colour: "#FF0A2A"}

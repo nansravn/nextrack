@@ -1,0 +1,108 @@
+# Coreografia de luz — rascunho v1 do set Hï Ibiza (Pulso), para o dono revisar.
+# Compassos do mapa musical (lightshows/maps/); B e G são os hot cues do rekordbox.
+track: "&ME, Black Coffee — The Rapture Pt.III"
+soundswitch: ED774046-2210-466C-B592-839020FBA634
+grid: {bpm: 120, downbeat: "0:00.061"}
+story: >-
+  A Rapture abre a noite e apresenta a linguagem toda. Começa no breu, só a neblina; um feixe
+  azul acende na pista; o coração (o lustre) dá o primeiro batimento com o kick, em carmim. O
+  groove respira em azul. No grande break o grave vai embora aos poucos e a sala fica em
+  contraluz: dois feixes frios cruzando a neblina, nada mais. O kick volta subindo, a sala
+  escurece, um compasso de breu, e no drop a primeira cor viva da noite: o vermelho no centro e
+  a fita branca uma vez. A saída entrega a respiração azul para o Akan.
+budget: >-
+  Breu 1 de 5 (c. 144). Fita branca: a abertura (145.1). Contraluz 1 de 3 (c. 113-132). Sem
+  estrobo: estrobo só do TOO COOL em diante.
+base: autoscript
+sections:
+  - bars: [1, 8]
+    name: breu-inicial
+    intent: "A noite começa no escuro: só a neblina parada na sala."
+    movers: off
+    matrix: off
+    hue: dark
+
+  - bars: [9, 16]
+    name: primeiro-feixe
+    intent: "Um feixe azul acende no centro da pista, só uma moving."
+    movers: {move: pingpong, every: "8bar", position: Dance Floor Centre, colour: "#3A6BFF", level: 0.5}
+    matrix: off
+    hue: dark
+
+  - bars: [17, 32]
+    name: o-coracao-acorda
+    intent: "O lustre começa a bater em carmim com o kick; o feixe troca de lado a cada 4 compassos."
+    movers: {move: pingpong, every: "4bar", position: Dance Floor Centre, colour: "#3A6BFF", level: 0.5}
+    matrix: off
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [33, 48]
+    name: o-grave-entra
+    intent: "O grave entra cheio: as Vorlanes começam a respirar de baixo pra cima e os feixes varrem a pista."
+    movers: {move: sweep, every: "2bar", positions: [Dance Floor Centre, Crossed Over], colour: "#3A6BFF", level: 0.7}
+    matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [49, 80]
+    name: groove
+    intent: "Groove longo: colunas azuis espelhadas, como percussão andando pelas paredes."
+    movers: {move: sweep, every: "2bar", positions: [Stage Left, Stage Right], colour: "#3A6BFF", level: 0.7}
+    matrix: {draw: columns, rate: "1/4", colour: "#0A2CFF", mirror: true}
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [81, 112]
+    name: o-grave-se-vai
+    intent: "O kick e o grave vão sumindo: as Vorlanes apagam e só o coração continua batendo."
+    movers: {move: hold, position: Crossed Over, colour: "#3A6BFF", level: 0.45}
+    matrix: off
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [113, 132]
+    name: contraluz
+    intent: "Sem kick e sem grave: contraluz. Dois feixes frios cruzando a neblina, o centro escuro."
+    movers: {move: hold, position: Crossed Over, colour: "#3A6BFF", level: 0.35}
+    matrix: off
+    hue: dark
+
+  - bars: [133, 143]
+    name: subida
+    intent: "O grave volta e o kick sobe filtrado: as Vorlanes enchem de baixo pra cima, as movings aceleram."
+    movers: {move: pingpong, every: "1bar", colour: "#3A6BFF", faster_from: 141, faster_every: "1/4"}
+    matrix: {draw: fill-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
+    hue: dark
+
+  - bars: [144, 144]
+    name: breu
+    intent: "Um compasso de breu total, o último antes do kick cheio."
+    movers: off
+    matrix: off
+    hue: dark
+
+  - bars: [145, 158]
+    name: abertura
+    intent: "O drop da abertura: o vermelho acende no centro pela primeira vez, a fita branca uma batida, o desenho sai do meio pras bordas."
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    matrix: {draw: centre-out, rate: "1/4", colour: "#0A2CFF", mirror: true}
+    white: {accent: ["145.1"]}
+    hue: {state: pulse, colour: "#FF0A2A"}
+
+  - bars: [159, 160]
+    name: respiro
+    intent: "Dois compassos de respiro: o centro apaga, as Vorlanes sobem devagar."
+    movers: off
+    matrix: {draw: rows-up, rate: "1/2", colour: "#0A2CFF", mirror: true}
+    hue: dark
+
+  - bars: [161, 168]
+    name: groove-final
+    intent: "O groove volta: filas subindo rápido e as movings revezando."
+    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF"}
+    matrix: {draw: rows-up, rate: "1/8", colour: "#0A2CFF", mirror: true}
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [169, 208]
+    name: entrega
+    intent: "Entrega: do G até o fim, o look que a próxima música copia na ponte."
+    movers: {move: sweep, every: "2bar", positions: [Dance Floor Centre, Crossed Over], colour: "#3A6BFF", level: 0.7}
+    matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
+    hue: {state: pulse, colour: "#B0001E"}

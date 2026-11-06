@@ -1,0 +1,61 @@
+# Coreografia de luz — rascunho v1 do set Hï Ibiza (Pulso), para o dono revisar.
+# Compassos do mapa musical (lightshows/maps/); B e G são os hot cues do rekordbox.
+track: "Rampa, Adam Port, &ME, chuala, Keinemusik — Say What"
+soundswitch: CCD2DC0D-3914-42D7-AC35-A38AF63ED0A0
+grid: {bpm: 120, downbeat: "0:00.061"}
+story: >-
+  Say What é pergunta e resposta: no drop as colunas pulam de uma Vorlane para a outra, NW
+  pergunta e SW responde. No break o canto fica em contraluz curto, e o último drop responde em
+  ciano.
+budget: >-
+  Nenhum efeito raro.
+base: autoscript
+sections:
+  - bars: [26, 38]
+    name: ponte
+    intent: "Ponte: a mesma luz da música anterior, copiada camada por camada, até a chegada."
+    movers: {move: sweep, every: "2bar", positions: [Dance Floor Centre, Crossed Over], colour: "#3A6BFF", level: 0.7}
+    matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [39, 40]
+    name: break
+    intent: "Dois compassos de corte: o centro apaga, um feixe sobe."
+    movers: {move: hold, position: Up, colour: "#3A6BFF", level: 0.3}
+    matrix: off
+    hue: dark
+
+  - bars: [41, 64]
+    name: chegada
+    intent: "A chegada: colunas alternando NW e SW, pergunta e resposta; movings revezando."
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    matrix: {draw: columns, rate: "1/8", colour: "#0A2CFF", pingpong: true}
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [65, 70]
+    name: break-cantado
+    intent: "O canto sozinho: feixes cruzados baixos, Vorlanes apagadas, centro escuro."
+    movers: {move: hold, position: Crossed Over, colour: "#3A6BFF", level: 0.4}
+    matrix: off
+    hue: dark
+
+  - bars: [71, 72]
+    name: subida
+    intent: "Dois compassos enchendo."
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    matrix: {draw: fill-up, rate: "1/4", colour: "#0A2CFF", mirror: true}
+    hue: dark
+
+  - bars: [73, 78]
+    name: drop-2
+    intent: "A resposta final: colunas em ciano alternando."
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    matrix: {draw: columns, rate: "1/8", colour: "#00B8FF", pingpong: true}
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [79, 90]
+    name: entrega
+    intent: "Entrega: do G até o fim, o look que a próxima música copia na ponte."
+    movers: {move: sweep, every: "2bar", positions: [Dance Floor Centre, Crossed Over], colour: "#3A6BFF", level: 0.7}
+    matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
+    hue: {state: pulse, colour: "#B0001E"}

@@ -1,0 +1,54 @@
+# Coreografia de luz — rascunho v1 do set Hï Ibiza (Pulso), para o dono revisar.
+# Compassos do mapa musical (lightshows/maps/); B e G são os hot cues do rekordbox.
+track: "Guy Gerber — What To Do (&ME Remix)"
+soundswitch: EC155008-14CD-491E-8229-FB809842AAE0
+grid: {bpm: 122, downbeat: "0:00.002"}
+story: >-
+  What To Do chega devagar por baixo do Akan. No break a voz aparece pela primeira vez e a sala
+  vira contraluz; a subida enche as Vorlanes e o drop desce em cascata, filas caindo de cima pra
+  baixo, como a melodia.
+budget: >-
+  Contraluz 2 de 3 (c. 163-172). Sem breu: o drop do c. 177 é aberto pela subida.
+base: autoscript
+sections:
+  - bars: [129, 162]
+    name: ponte
+    intent: "Ponte: a mesma luz da música anterior, copiada camada por camada, até a chegada."
+    movers: {move: sweep, every: "2bar", positions: [Dance Floor Centre, Crossed Over], colour: "#3A6BFF", level: 0.7}
+    matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [163, 172]
+    name: a-voz-no-escuro
+    intent: "A voz chega no escuro: contraluz, dois feixes frios cruzando."
+    movers: {move: hold, position: Crossed Over, colour: "#3A6BFF", level: 0.35}
+    matrix: off
+    hue: dark
+
+  - bars: [173, 176]
+    name: subida
+    intent: "As Vorlanes enchem rápido, as movings aceleram até o drop."
+    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF", faster_from: 175, faster_every: "1/4"}
+    matrix: {draw: fill-up, rate: "1/2", colour: "#0A2CFF", mirror: true}
+    hue: dark
+
+  - bars: [177, 192]
+    name: chegada
+    intent: "A chegada: filas descendo em cascata, a melodia escorrendo pelas paredes."
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    matrix: {draw: rows-down, rate: "1/8", colour: "#0A2CFF", mirror: true}
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [193, 200]
+    name: groove
+    intent: "O groove assenta: cascata mais lenta e feixes varrendo."
+    movers: {move: sweep, every: "2bar", positions: [Dance Floor Centre, Up], colour: "#3A6BFF", level: 0.7}
+    matrix: {draw: rows-down, rate: "1/4", colour: "#00B8FF", mirror: true}
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [201, 256]
+    name: entrega
+    intent: "Entrega: do G até o fim, o look que a próxima música copia na ponte."
+    movers: {move: sweep, every: "2bar", positions: [Dance Floor Centre, Crossed Over], colour: "#3A6BFF", level: 0.7}
+    matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
+    hue: {state: pulse, colour: "#B0001E"}

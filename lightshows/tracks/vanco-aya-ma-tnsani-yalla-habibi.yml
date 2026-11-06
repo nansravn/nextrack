@@ -1,0 +1,46 @@
+# Coreografia de luz — rascunho v1 do set Hï Ibiza (Pulso), para o dono revisar.
+# Compassos do mapa musical (lightshows/maps/); B e G são os hot cues do rekordbox.
+track: "Vanco, Aya — Ma Tnsani (Yalla Habibi)"
+soundswitch: DCE7D729-3240-4BC0-BFED-8A1A559137EC
+grid: {bpm: 120, downbeat: "0:01.992"}
+story: >-
+  Ma Tnsani entra cantando por baixo do Baianá. A chegada desce em filas, uma Vorlane de cada
+  vez; no break a voz de Aya fica com a sala quase escura, e o drop final cai em ciano.
+budget: >-
+  Nenhum efeito raro.
+base: autoscript
+sections:
+  - bars: [2, 32]
+    name: ponte
+    intent: "Ponte: a mesma luz da música anterior, copiada camada por camada, até a chegada."
+    movers: {move: sweep, every: "2bar", positions: [Dance Floor Centre, Crossed Over], colour: "#3A6BFF", level: 0.7}
+    matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [33, 63]
+    name: chegada
+    intent: "A chegada: filas descendo, NW e SW alternando; movings revezando."
+    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF"}
+    matrix: {draw: rows-down, rate: "1/4", colour: "#0A2CFF", pingpong: true}
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [64, 75]
+    name: break-cantado
+    intent: "A voz no break: filas subindo devagar, um feixe para cima, centro escuro."
+    movers: {move: hold, position: Up, colour: "#3A6BFF", level: 0.5}
+    matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
+    hue: dark
+
+  - bars: [76, 83]
+    name: o-grave-volta
+    intent: "O grave volta antes do kick: filas caindo rápido em ciano, o coração volta."
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    matrix: {draw: rows-down, rate: "1/8", colour: "#00B8FF", pingpong: true}
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [84, 108]
+    name: entrega
+    intent: "Entrega: do G até o fim, o look que a próxima música copia na ponte."
+    movers: {move: sweep, every: "2bar", positions: [Dance Floor Centre, Crossed Over], colour: "#3A6BFF", level: 0.7}
+    matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
+    hue: {state: pulse, colour: "#B0001E"}

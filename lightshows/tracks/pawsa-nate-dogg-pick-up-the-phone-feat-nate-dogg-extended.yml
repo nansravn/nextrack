@@ -1,0 +1,78 @@
+# Coreografia de luz — rascunho v1 do set Hï Ibiza (Pulso), para o dono revisar.
+# Compassos do mapa musical (lightshows/maps/); B e G são os hot cues do rekordbox.
+track: "PAWSA, Nate Dogg — PICK UP THE PHONE (feat. Nate Dogg) (Extended)"
+soundswitch: EF7DE35E-146A-480A-B816-B9BA3F4BC82D
+grid: {bpm: 129, downbeat: "0:00.025"}
+story: >-
+  Pick Up The Phone chega no c. 73 com filas vermelhas alternando. No break longo do Nate Dogg a
+  sala vira contraluz; depois a terceira espiral acelera até o drop final, com estrobo e a fita
+  branca, e esse drop é o que ele entrega ao Can't Decide.
+budget: >-
+  Contraluz 3 de 3 (c. 104-127). Espiral 3 de 3 (c. 128-136). Estrobo e fita branca no drop
+  final (137.1).
+base: autoscript
+sections:
+  - bars: [27, 68]
+    name: ponte
+    intent: "Ponte: a mesma luz da música anterior, copiada camada por camada, até a chegada."
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    matrix: {draw: rows-up, rate: "1/4", colour: "#FF0A2A", mirror: true}
+    hue: {state: pulse, colour: "#FF0A2A"}
+
+  - bars: [69, 72]
+    name: subida
+    intent: "Quatro compassos enchendo em vermelho, as movings acelerando."
+    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF", faster_from: 71, faster_every: "1/4"}
+    matrix: {draw: fill-up, rate: "1/2", colour: "#FF0A2A", mirror: true}
+    hue: dark
+
+  - bars: [73, 103]
+    name: chegada
+    intent: "A chegada: filas vermelhas subindo, NW e SW alternando; movings revezando."
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    matrix: {draw: rows-up, rate: "1/8", colour: "#FF0A2A", pingpong: true}
+    hue: {state: pulse, colour: "#FF0A2A"}
+
+  - bars: [104, 127]
+    name: contraluz
+    intent: "O Nate Dogg no break: contraluz, dois feixes frios cruzando a neblina."
+    movers: {move: hold, position: Crossed Over, colour: "#3A6BFF", level: 0.35}
+    matrix: off
+    hue: dark
+
+  - bars: [128, 129]
+    name: espiral-1-2
+    intent: "Espiral: os lados revezam cada vez mais rápido, do azul ao vermelho."
+    movers: {move: pingpong, every: "1/2", colour: "#0A2CFF"}
+    matrix: {draw: columns, rate: "1/2", colour: "#0A2CFF", pingpong: true}
+    hue: dark
+
+  - bars: [130, 131]
+    name: espiral-1-4
+    intent: "Espiral: os lados revezam cada vez mais rápido, do azul ao vermelho."
+    movers: {move: pingpong, every: "1/4", colour: "#6A1CFF"}
+    matrix: {draw: columns, rate: "1/4", colour: "#6A1CFF", pingpong: true}
+    hue: dark
+
+  - bars: [132, 133]
+    name: espiral-1-8
+    intent: "Espiral: os lados revezam cada vez mais rápido, do azul ao vermelho."
+    movers: {move: pingpong, every: "1/8", colour: "#6A1CFF"}
+    matrix: {draw: columns, rate: "1/8", colour: "#6A1CFF", pingpong: true}
+    hue: dark
+
+  - bars: [134, 136]
+    name: espiral-1-16
+    intent: "Espiral: os lados revezam cada vez mais rápido, do azul ao vermelho."
+    movers: {move: pingpong, every: "1/16", colour: "#FF0A2A"}
+    matrix: {draw: columns, rate: "1/16", colour: "#FF0A2A", pingpong: true}
+    hue: dark
+
+  - bars: [137, 184]
+    name: entrega
+    intent: "Entrega: do G até o fim, o look que a próxima música copia na ponte."
+    movers: {move: blink, every: "1/4", colour: "#FF0A2A"}
+    matrix: {draw: rows-down, rate: "1/16", colour: "#FF0A2A", mirror: true}
+    white: {accent: ["137.1"]}
+    strobe: {hit: ["137.1"]}
+    hue: {state: pulse, colour: "#FF0A2A"}
