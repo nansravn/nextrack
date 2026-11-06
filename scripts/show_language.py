@@ -876,7 +876,7 @@ class _TrackCompiler:
             if part.origin.kind == "bridge":
                 continue          # a copy of layers the previous track resolved
             layers, problems = resolve_colours(part.layers, self.show.palette)
-            problems += self._resolve_aims(part, layers)
+            aim_problems = self._resolve_aims(part, layers)
             movers = layers.get("movers")
             if isinstance(movers, dict) and "faster_from" in movers:
                 bar, problem = resolve_anchor(movers["faster_from"], self.map)
@@ -884,6 +884,11 @@ class _TrackCompiler:
                     problems.append(f"faster_from {problem}")
                 else:
                     movers["faster_from"] = bar
+            for p, value in aim_problems:
+                if value in _strings(part.defaults) and value not in _strings(part.own):
+                    self._find_default(part.origin.gesture, p)
+                else:
+                    self.find(part.origin.line, f"{part.label}: {p}")
             for p in problems:
                 if _names_a_colour_of(p, part.defaults) and not _names_a_colour_of(p, part.own):
                     self._find_default(part.origin.gesture, p)
@@ -891,10 +896,10 @@ class _TrackCompiler:
                     self.find(part.origin.line, f"{part.label}: {p}")
             part.layers = _ordered(layers)
 
-    def _resolve_aims(self, part: _Part, layers: dict) -> list[str]:
+    def _resolve_aims(self, part: _Part, layers: dict) -> list[tuple[str, str]]:
         """Aim ids in the movers' `position` and `positions` become the preset of the first
         configured aim along the fallback chain; anything that is not kebab-case stays a raw
-        preset. Records the ids on the section's provenance and a decision per fallback used."""
+        preset. Returns `(problem, value)` pairs. Records the ids on the section's provenance and a decision per fallback used."""
         movers = layers.get("movers")
         if not isinstance(movers, dict):
             return []
@@ -904,17 +909,17 @@ class _TrackCompiler:
             if not (isinstance(value, str) and ID_RE.fullmatch(value)):
                 return value
             if room is None:
-                problems.append(f"{key} {value!r} looks like an aim id, but there is no valid lightshows/room.yml "
-                                "to resolve it: add the room, or write a SoundSwitch preset name")
+                problems.append((f"{key} {value!r} looks like an aim id, but there is no valid lightshows/room.yml "
+                                "to resolve it: add the room, or write a SoundSwitch preset name", value))
                 return value
             if value not in room.aims:
                 close = difflib.get_close_matches(value, list(room.aims), n=1, cutoff=0.6)
                 hint = f"; did you mean {close[0]!r}?" if close else f" (aims: {', '.join(room.aims)})"
-                problems.append(f"{key} {value!r} is not an aim of lightshows/room.yml{hint}")
+                problems.append((f"{key} {value!r} is not an aim of lightshows/room.yml{hint}", value))
                 return value
             preset, chain, problem = show_room.resolve_aim(room, value)
             if preset is None:
-                problems.append(f"{key} {value!r}: {problem}")
+                problems.append((f"{key} {value!r}: {problem}", value))
                 return value
             used.append(value)
             if len(chain) > 1:
