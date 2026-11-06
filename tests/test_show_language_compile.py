@@ -616,3 +616,12 @@ def test_an_invalid_map_is_not_a_missing_one():
     assert found(findings) == [(PATH_2, 0, "show-source",
                                 f"lightshows/maps/{FILE_2} is not a valid map: fix its musical-map finding "
                                 "(or redo it with uv run scripts/nextrack_map.py analyze)")]
+
+
+def test_a_section_number_out_of_range_points_at_the_track_file(monkeypatch):
+    import show_language
+
+    for message in ("section 99 (x): matrix: boom", "section 0: matrix: boom"):
+        monkeypatch.setattr(show_language, "problems_choreography", lambda c, r, m=message: [m])
+        _, findings = compile_show(*one_track([{"at": 9, "name": "a", "look": "pulso"}], __line__=2))
+        assert found(findings) == [(PATH_1, 2, "show-source", message)]

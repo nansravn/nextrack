@@ -127,6 +127,20 @@ def test_problems_show_valid_and_bad_values():
     assert problems_show(missing) == [(1, "show.yml: missing key palette")]
 
 
+def test_set_and_plan_are_repo_relative_paths():
+    def with_(**change):
+        data = copy.deepcopy(SHOW)
+        data.update(change)
+        return problems_show(data)
+
+    for bad in ("/home/x/sets/a.md", "../outro/sets/a.md", "sets/../../a.md", "C:\\sets\\a.md", "\\sets\\a.md"):
+        assert with_(set=bad) == [(1, f"set {bad!r} must be a repo-relative path such as sets/<name>.md")]
+        assert with_(plan=bad) == [
+            (1, f"plan {bad!r} must be a repo-relative path such as lightshows/sets/<name>.md")]
+    assert with_(set="sets/a.md", plan="lightshows/sets/a.md") == []
+    assert with_(set="sets/..a.md") == []        # a dot in a name is not a parent folder
+
+
 def test_problems_track_file_valid_and_bad_values():
     assert problems_track_file(TRACK) == []
 
