@@ -1,6 +1,8 @@
 """Anchors, schema checks and looks of the show language."""
 import copy
 
+import pytest
+
 from musical_map import problems_map
 from show_language import (expand_look, flatten_looks, merge_layers, problems_show,
                            problems_track_file, resolve_anchor, resolve_colours)
@@ -114,7 +116,10 @@ def test_problems_show_valid_and_bad_values():
     assert len(bad_look) == 1 and "'laser'" in bad_look[0][1]
     assert len(with_(show_version=2)) == 1
     assert len(with_(story="")) == 1
-    assert len(with_(bridge={"name": "Ponte"})) == 1
+    assert len(with_(bridge={"name": "Ponte", "intent": "x"})) == 1
+    assert len(with_(bridge={})) == 2
+    assert len(with_(handover={"name": "entrega"})) == 1
+    assert len(with_(handover={"name": "entrega", "intent": " "})) == 1
     assert len(with_(rules=[1])) == 1
     assert len(with_(extra=1)) == 1
     missing = copy.deepcopy(SHOW)
@@ -145,3 +150,35 @@ def test_problems_track_file_valid_and_bad_values():
     nothing = copy.deepcopy(TRACK)
     nothing["cues"][0].pop("look")
     assert len(problems_track_file(nothing)) == 1
+
+
+def test_flatten_looks_and_expand_look_report_odd_looks():
+    flat, problems = flatten_looks({"a": {"extends": ["x"]}, "b": 3, "c": {"extends": {}}})
+    assert flat == {} and sorted(n for n, _ in problems) == ["a", "b", "c"]
+    assert flatten_looks([1])[1] and flatten_looks(None)[0] == {}
+    assert expand_look("breu", {"laser": "on"}, {"breu": {}})[1] == [
+        "with has 'laser', which is not a layer (movers, matrix, white, uv, strobe, hue)"]
+    assert expand_look("breu", 3, {"breu": {}})[1] == ["with 3 is not a mapping"]
+
+
+ODD = [None, "x", 3, [1], {}, {"__line__": 2}, {"a": {"__line__": 1}}, [{"__line__": 1}],
+       {"looks": 3, "palette": [1], "bridge": 1, "handover": [], "rules": None, "story": None},
+       {"cues": [None, 3, {"at": [1], "name": {}, "look": [1], "with": 2, "accents": [[1]]}],
+        "handover": {"look": 3, "at": {}}, "track": [1]}]
+
+
+@pytest.mark.parametrize("odd", ODD)
+def test_odd_inputs_never_raise(odd):
+    assert problems_show(odd) or odd == {}
+    problems_track_file(odd)
+    flatten_looks(odd)
+    flatten_looks({"x": odd, "y": {"extends": odd}})
+    for ref in (odd, "x"):
+        expand_look(ref, odd, {"x": odd})
+    resolve_colours(odd, PALETTE)
+    resolve_colours({"movers": odd, "hue": {"colour": odd}, "matrix": {"colour": "x"}}, odd)
+    for hot in (None, odd):
+        m = show_map(hot_cues=None)
+        m["hot_cues"] = hot
+        resolve_anchor("B", m)
+        resolve_anchor(odd, m)
