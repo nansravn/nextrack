@@ -127,6 +127,16 @@ def test_build_out_writes_a_variant_elsewhere(mini_repo, tmp_path, capsys):
     assert not list(out_dir.glob("*.tmp"))
 
 
+def test_a_show_outside_the_repo_builds_only_with_out(mini_repo, tmp_path, capsys):
+    put_show(mini_repo)
+    variant = tmp_path / "variant"
+    shutil.copytree(mini_repo.path(SHOW), variant)
+    before = (mini_repo.read(T1), mini_repo.read(T2))
+    assert nextrack_show.main(["build", str(variant), "--repo", str(mini_repo.root)]) == 2
+    assert "only with --out" in capsys.readouterr().err
+    assert (mini_repo.read(T1), mini_repo.read(T2)) == before
+
+
 def test_unknown_show_is_a_usage_error(mini_repo, capsys):
     put_show(mini_repo)
     assert nextrack_show.main(["report", "nope", "--repo", str(mini_repo.root)]) == 2
@@ -159,6 +169,9 @@ def test_report_has_a_line_per_section_and_the_tally(mini_repo, capsys):
             a, b = sec.bars
             assert any(f"{a}-{b} {sec.name}" in line for line in lines), (a, b, sec.name)
     assert show_rules.occurrences(compiled, "spiral")
+    assert ("  9-16 chegada | look respiracao | movers sweep every=2bar positions=[Dance Floor Centre, "
+            "Crossed Over] colour=azul level=0.7; matrix rows-up rate=1bar colour=azul mirror; "
+            "hue pulse colour=vermelho | arrival | music: drop 9-16, drop +12.5 dB") in lines
     assert "bridge" in out and "handover" in out and "gesture spiral" in out and "look respiracao" in out
     assert "look (inline)" in out
     assert "azul" in out and "vermelho" in out and "#0A2CFF" not in out
@@ -169,6 +182,14 @@ def test_report_has_a_line_per_section_and_the_tally(mini_repo, capsys):
     for decision in compiled.decisions:
         assert decision in out
     assert "moment virada" in out
+
+
+def test_report_exits_one_on_rule_findings(mini_repo, capsys):
+    put_show(mini_repo)
+    _edit_yaml(mini_repo, f"{SHOW}/show.yml", _budget_zero)
+    code, out = run(mini_repo, capsys, "report", "teste")
+    assert code == 1
+    assert "show-rules: budget:" in out and out.splitlines()[0].startswith("1. ")
 
 
 def test_report_prints_findings_and_exits_one_on_source_findings(mini_repo, capsys):

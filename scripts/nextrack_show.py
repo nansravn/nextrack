@@ -110,6 +110,9 @@ def _build(args) -> int:
     if errors or source is None or source.parse_failed:
         _print_findings(errors)
         return 1
+    if not args.out and not source.folder.startswith(check_repo.SHOWS_DIR + "/"):
+        print("usage error: a show outside lightshows/shows/ builds only with --out DIR", file=sys.stderr)
+        return 2
     compiled, found, rule_found = show_rules.evaluate_show(source, check_repo.show_inputs(repo, source))
     if found or compiled is None:
         _print_findings(found)
@@ -162,28 +165,31 @@ def _colour_name(value: object, names: dict[str, str]):
     return names.get(str(value).upper(), value) if isinstance(value, str) else value
 
 
-_PLAIN_KEYS = ("move", "draw", "state", "every", "rate", "colour", "position")
+_HEAD_KEYS = ("move", "draw", "state")  # the one bare word that opens a layer
+
+
+def _value_text(item: object) -> str:
+    if isinstance(item, list):
+        return "[" + ", ".join(str(i) for i in item) + "]"
+    text = str(item)
+    return f'"{text}"' if " " in text else text
 
 
 def _layer_text(name: str, value: object, names: dict[str, str]) -> str:
+    """`name HEAD key=value ...`: the move, draw or state as a bare word, every other field as
+    `key=value` (lists in brackets, text with spaces in quotes, true flags as the bare key)."""
     value = show_language.layer_word(value)
     if not isinstance(value, dict):
         return f"{name} {value}"
+    head = [str(value[k]) for k in _HEAD_KEYS if value.get(k) is not None]
     parts = []
     for key, item in value.items():
-        if item is None or item is False:
+        if item is None or item is False or key in _HEAD_KEYS:
             continue
         if key == "colour":
             item = _colour_name(item, names)
-        if item is True:
-            parts.append(key)
-        elif key in _PLAIN_KEYS:
-            parts.append(str(item))
-        elif isinstance(item, list):
-            parts.append(f"{key}={','.join(str(i) for i in item)}")
-        else:
-            parts.append(f"{key}={item}")
-    return f"{name} {' '.join(parts)}".rstrip()
+        parts.append(key if item is True else f"{key}={_value_text(item)}")
+    return " ".join([name, *head, *parts])
 
 
 def _source_text(origin) -> str:
@@ -262,7 +268,7 @@ def _report(args) -> int:
         _print_findings(found)
         return 1
     print(render_report(compiled, rule_found), end="")
-    return 0
+    return 1 if rule_found else 0
 
 
 # ------------------------------------------------------------------- vocab --
