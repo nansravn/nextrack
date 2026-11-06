@@ -20,6 +20,7 @@ import difflib
 import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from pathlib import PurePosixPath, PureWindowsPath
 
 import yaml
 
@@ -122,6 +123,12 @@ def _is_id(value: object) -> bool:
     return isinstance(value, str) and ID_RE.fullmatch(value) is not None
 
 
+def _repo_relative(path: str) -> bool:
+    """Neither absolute (`/x`, `\\x`, `C:...`) nor climbing out with a `..` part."""
+    posix = PurePosixPath(path.replace("\\", "/"))
+    return not (posix.is_absolute() or PureWindowsPath(path).drive or ".." in posix.parts)
+
+
 def _check_keys(node: dict, required: tuple, optional: tuple, where: str) -> list[tuple[int, str]]:
     out = [(_line(node), f"{where}: missing key {k}") for k in required if k not in node]
     allowed = required + optional
@@ -149,9 +156,11 @@ def problems_show(data: object) -> list[tuple[int, str]]:
     version = data.get("show_version")
     if "show_version" in data and (version != SHOW_VERSION or isinstance(version, bool)):
         out.append((_line(data), f"show_version {version!r} is not {SHOW_VERSION}"))
-    for key in ("set", "plan"):
+    for key, example in (("set", "sets/<name>.md"), ("plan", "lightshows/sets/<name>.md")):
         if key in data and not (isinstance(data[key], str) and data[key].strip()):
             out.append((_line(data), f"{key} {data[key]!r} is not a path string"))
+        elif key in data and not _repo_relative(data[key]):
+            out.append((_line(data), f"{key} {data[key]!r} must be a repo-relative path such as {example}"))
     if "story" in data and not (isinstance(data["story"], str) and data["story"].strip()):
         out.append((_line(data), f"story {data['story']!r} is not a non-empty string"))
     if "palette" in data:
@@ -862,10 +871,11 @@ class _TrackCompiler:
         """`lightshow`'s own check; a section's problem points at the cue that made it."""
         for message in problems_choreography(choreography, None):
             m = _SECTION_RE.fullmatch(message)
-            if m is None:
+            index = int(m["i"]) - 1 if m is not None else -1
+            if not 0 <= index < len(self.parts):   # no section, or one this track does not have
                 self.find(_line(self.data), message)
                 continue
-            part = self.parts[int(m["i"]) - 1]
+            part = self.parts[index]
             if part.origin.kind == "bridge":
                 continue          # the handover it copies reports the same problem in its own track
             where = part.label + (f" (section {part.name!r})" if part.origin.gesture is not None else "")
