@@ -162,7 +162,7 @@ def test_onset_strength_order():
 def test_register_rises_with_pitch():
     g = Grid([(0, 120.0)])
     ms = 4000
-    x = np.concatenate([glide(150, 600, ms), silence(500)])
+    x = pan(np.concatenate([glide(150, 600, ms), silence(500)]))  # stereo, as build_map passes it
     edges = mm.step_edges_ms(g, ms + 500)
     levels = "9" * 32 + "0" * (len(edges) - 1 - 32)
     reg = mm.register_digits(x, SR, edges, levels)
@@ -195,7 +195,7 @@ def test_unpitched_voiced_steps_read_dot_and_keep_the_phrase_register():
     ms = 4000
     x = glide(150, 300, ms)
     x[int(1000 * SR / 1000):int(1500 * SR / 1000)] = noise_burst(500, amp=0.5)  # steps 8-11
-    reg = mm.register_digits(x, SR, mm.step_edges_ms(g, ms), "9" * 32)
+    reg = mm.register_digits(pan(x), SR, mm.step_edges_ms(g, ms), "9" * 32)
     assert reg[8:12] == "...."
     assert "." not in reg[:7] and "." not in reg[13:]
     assert len(mm.phrases("9" * 32, reg)) == 1

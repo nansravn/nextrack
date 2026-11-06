@@ -537,10 +537,20 @@ VOICED_LEVEL = 3
 
 
 def _mono(x):
+    """`x` as one channel for measuring levels: the power averaged over the channels (so
+    out-of-phase material does not cancel). Rectified, so never for pitch: see `_mix`."""
     import numpy as np
 
     x = np.asarray(x, dtype=np.float64)
     return x if x.ndim == 1 else np.sqrt(np.mean(x ** 2, axis=1))  # power over channels
+
+
+def _mix(x):
+    """`x` as one channel for pitch: the channels averaged, so the waveform keeps its period."""
+    import numpy as np
+
+    x = np.asarray(x, dtype=np.float64)
+    return x if x.ndim == 1 else x.mean(axis=1)
 
 
 def _onset_env(x, sr: int):
@@ -683,13 +693,13 @@ def _yin_hz(frame, sr: float, tau_min: int, tau_max: int):
 
 def register_digits(x, sr: int, edges_ms, step_levels: str) -> str:
     """Per step `.` where `step_levels` is 0-2, else `0`-`9`: the median pitch of the step
-    (YIN, 70-1000 Hz, two frames per step) on a log scale within the track's own voiced range,
-    its 5th percentile 0 and its 95th 9. A voiced step with no pitch is `.` too and is left out
-    of the range."""
+    (YIN on the channels averaged, 70-1000 Hz, two frames per step) on a log scale within the
+    track's own voiced range, its 5th percentile 0 and its 95th 9. A voiced step with no pitch
+    is `.` too and is left out of the range."""
     import numpy as np
 
     edges = np.asarray(edges_ms, dtype=np.float64)
-    x = _mono(x)
+    x = _mix(x)
     dec = max(1, int(round(sr / PITCH_SR)))
     n = len(x) // dec * dec
     x = x[:n].reshape(-1, dec).mean(axis=1)
