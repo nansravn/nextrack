@@ -487,6 +487,9 @@ if a rule contradicts one of them, the README wins.
 | `lightshow-track` | Each `lightshows/tracks/*.yml` has the choreography keys with valid values: `track` is `Artist — Title` and matches a pool track (same matcher as block tracklists), `soundswitch` is a GUID, `sections` are sorted and do not overlap, layer names, moves, draws, rates and `#RRGGBB` colours are from the vocabulary, and unknown option keys are findings. |
 | `musical-map` | A musical map's schema, its pool track and its file name: each `lightshows/maps/*.yml` has exactly the map keys with valid values (per-bar strings of `bars` characters, step lists adding up to `bars × 16`, sections that cover every bar, bar numbers inside `1..bars`), its `track` matches a pool track, and the file is named `slug(track).yml`. The checks live in `scripts/musical_map.py`. |
 | `lightshow-plan` | Each `lightshows/sets/*.md` (but `README.md`) has front matter whose `set` is an existing path relative to the repo root and whose `budget` keys are layers or `white-accent`. |
+| `show-source` | A show in `lightshows/shows/<id>/` does not compile: schema of `show.yml` or a track file, the set path, track files against the set's tracks, a missing map, an anchor, a span, a look, a palette name, a gesture, an unknown rule id or bad rule parameters. |
+| `show-rules` | The show's own rules (`rules:` in `show.yml`) fail; only for shows with no `show-source` finding. |
+| `show-compiled` | A track's `lightshows/tracks/<slug>.yml` is missing or differs from what its show compiles to (run `nextrack_show.py build <id>`); a choreography whose ownership header names a show that does not exist or does not compile that track; two shows that own the same track. |
 
 A new rule is one function registered with `@rule("<rule-id>")` in
 `check_repo.py`. Add its row to this table in the same change:

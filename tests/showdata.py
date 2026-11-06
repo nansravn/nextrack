@@ -102,3 +102,29 @@ def two_track_show() -> tuple[ShowSource, ShowInputs]:
     }
     maps = {FILE_1[:-4]: show_map(), FILE_2[:-4]: show_map(track=TRACK_2, soundswitch=GUID_2)}
     return source(show, {FILE_1: first, FILE_2: second}), inputs(maps, list(SET_TRACKS))
+
+
+def put_show(repo) -> tuple[ShowSource, ShowInputs]:
+    """Write `two_track_show()` into a mini repo: the set file, the two maps, the show folder
+    and the generated choreographies. `check` on the result reports nothing."""
+    import yaml
+
+    import musical_map
+    from show_language import compile_show, emit_choreography
+
+    src, inp = two_track_show()
+    repo.write("sets/teste.md", "# Teste\n\n## Program\n1. 0:00 · [Alpha Festa](../blocks/alpha-festa.md)\n")
+    for slug_, data in inp.maps.items():
+        repo.write(f"lightshows/maps/{slug_}.yml", musical_map.dump_map(data))
+
+    def dump(data):
+        return yaml.safe_dump(data, allow_unicode=True, sort_keys=False)
+
+    repo.write("lightshows/shows/teste/show.yml", dump(src.show))
+    for name, data in src.track_files.items():
+        repo.write(f"lightshows/shows/teste/{name}", dump(data))
+    compiled, found = compile_show(src, inp)
+    assert compiled is not None, found
+    for track in compiled.tracks:
+        repo.write(f"lightshows/tracks/{track.slug}.yml", emit_choreography(track.choreography, src.folder))
+    return src, inp
