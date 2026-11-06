@@ -321,6 +321,11 @@ def test_grid_warning_when_kicks_are_off_grid():
     allbars = list(range(1, 25))
     off = make(render(kick=allbars, bass=allbars, shift=62.5))
     assert "grid_warning" in off and abs(off["grid"]["offset_ms"]) > 31
+    shift = off["grid"]["offset_ms"]
+    assert off["grid_warning"] == (
+        f"kick onsets sit {shift:+d} ms from the beat (more than a quarter of a step, 31 ms): "
+        "either the grid is off or the kick's attack is soft and onsets.kick reads late; "
+        "check the grid against the audio")
     on = make(render(kick=allbars, bass=allbars))
     assert "grid_warning" not in on and abs(on["grid"]["offset_ms"]) <= 5
 
