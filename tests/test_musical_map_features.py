@@ -3,7 +3,7 @@ import numpy as np
 
 import musical_map as mm
 from soundswitch_format import Grid
-from synth import SR, clicks, db, glide, noise_burst, pan, place, silence, tone
+from synth import SR, clicks, db, glide, noise_burst, pan, place, real_kick, silence, tone
 
 
 def test_step_edges_follow_the_grid():
@@ -386,6 +386,36 @@ def test_is_stale():
     assert mm.is_stale(m, **{**same, "anchors": [(0, 120.0), (4000, 120.0)]}) is True
 
 
-def test_grid_offset_ignores_ripple_after_an_attack():
-    g = Grid([(0, 120.0)])
-    assert mm.grid_offset_ms([10.0, 50.0, 70.0, 510.0, 540.0, 1010.0], g) == 10.0
+def real_kick_stems(bpm=130.0, bars=4, shift=0.0):
+    beat = 60000 / bpm
+    total = bars * 4 * beat
+    drums = place(total, [(i * beat + shift, real_kick(SR, 300)) for i in range(bars * 4)])
+    z = silence(total)
+    return {"vocals": z, "drums": drums, "bass": z.copy(), "other": z.copy()}, beat
+
+
+def test_kick_onsets_sit_on_the_beat():
+    stems, beat = real_kick_stems()
+    g = Grid([(0, 130.0)])
+    edges = mm.step_edges_ms(g, int(4 * 4 * beat))
+    voices = mm.voices_from_stems(stems, SR)
+    digits, times = mm.kick_onsets(stems["drums"], voices["kick"], SR, edges)
+    assert digits == "9...9...9...9..." * 4
+    assert len(times) == 16
+    assert all(abs(t - i * beat) <= 10 for i, t in enumerate(times))
+
+
+def test_no_grid_warning_for_a_real_kick_on_the_grid():
+    stems, beat = real_kick_stems()
+    m = make(stems, anchors=((0, 130.0),))
+    assert "grid_warning" not in m and abs(m["grid"]["offset_ms"]) <= 10
+    step = beat / 4
+    shifted, _ = real_kick_stems(shift=step / 2)
+    assert "grid_warning" in make(shifted, anchors=((0, 130.0),))
+
+
+def test_one_bar_stab_inside_a_break_is_not_a_drop():
+    full = [*range(1, 9), 13, *range(17, 25)]
+    m = make(render(kick=full, bass=full))
+    assert spans(m) == [("groove", 1, 8), ("break", 9, 16), ("drop", 17, 24)]
+    assert [d["bar"] for d in m["drops"]] == [17]
