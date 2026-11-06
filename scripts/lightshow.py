@@ -1017,14 +1017,24 @@ def _span(job: _Job, section: Section) -> tuple[int, int]:
 
 
 def _owns_movers(job: _Job, value) -> bool:
-    """Whether a movers layer replaces the autoscript's movement in its section: the movers
-    are dark (`off`), or it aims them at a preset the venue has."""
+    """Whether a movers layer replaces the autoscript's movement in its section, as
+    `_compile_movers` will: the movers are dark (`off`), or every mover track gets position
+    flags, i.e. a named preset of the venue is in that track's palette (else Main's), the
+    way `_position_flags` resolves it. `uv` writes nothing."""
     if value == "off":
         return True
-    if not isinstance(value, dict):
+    if not isinstance(value, dict) or value["move"] == "uv":
         return False
     names = value.get("positions") or ([value["position"]] if "position" in value else [])
-    return any(p.name in names for p in job.presets)
+    guids = {p.guid.lower() for p in job.presets if p.name in names}
+    movers = [f.tracks["mover"] for f in job.fixtures if f.kind == "mover" and "mover" in f.tracks]
+    main = job.script.main.positions
+    for trk in movers:
+        palette = (trk.positions.palette if trk.positions and trk.positions.palette
+                   else main.palette if main else [])
+        if not any(g.lower() in guids for g, _ in palette):
+            return False
+    return bool(guids and movers)
 
 
 def _covered(spans: list[tuple[int, int]], start: int, end: int) -> bool:
