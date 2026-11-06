@@ -366,7 +366,7 @@ def test_a_track_written_as_the_set_writes_it():
     _, findings = compile_show(src, inp)
     assert [f.message for f in findings] == [
         "track 'Chiclete com Banana — Voa Voa' matches 2 musical maps (lightshows/maps/"
-        f"chiclete-com-banana-voa-voa-ao-vivo.yml, lightshows/maps/chiclete-com-banana-voa-voa-remix.yml): "
+        "chiclete-com-banana-voa-voa-ao-vivo.yml, lightshows/maps/chiclete-com-banana-voa-voa-remix.yml): "
         "write it as one of them does"]
 
 
