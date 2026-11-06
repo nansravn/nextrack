@@ -114,6 +114,29 @@ def test_build_writes_despite_rule_findings(mini_repo, capsys):
     assert mini_repo.path(T1).exists() and mini_repo.path(T2).exists()
 
 
+def _advice(data):
+    data["advice"] = {"bridges": {"max": 6}}     # the handover entrega lasts 8 bars, its bridge 4
+
+
+def test_build_prints_advice_and_keeps_exit_status(mini_repo, capsys):
+    put_show(mini_repo)
+    _edit_yaml(mini_repo, f"{SHOW}/show.yml", _advice)
+    line = mini_repo.line_of(f"{SHOW}/{FILE_1}", "  look: pulso\n")
+    advice = (f"{SHOW}/{FILE_1}:{line}: show-advice: bridges: Dançarina 25-32 (entrega) lasts 8 bars, max 6; its "
+              "bridge, Voa Voa (Ao Vivo) 5-8 (ponte), lasts 4: end the handover by bar 30 (until: 31)")
+    code, out = run(mini_repo, capsys, "build", "teste")
+    assert code == 0
+    assert out.splitlines() == [f"unchanged {T1}", f"unchanged {T2}", advice, "1 advice"]
+    code, out = run(mini_repo, capsys, "build", "teste", "--check")
+    assert (code, out.splitlines()) == (0, [advice, "1 advice"])
+    # after the rule findings, which alone decide the exit status
+    _edit_yaml(mini_repo, f"{SHOW}/show.yml", _budget_zero)
+    code, out = run(mini_repo, capsys, "build", "teste", "--check")
+    lines = out.splitlines()
+    assert code == 1
+    assert ": show-rules: budget:" in lines[0] and lines[1:] == ["1 finding(s)", advice, "1 advice"]
+
+
 def test_build_out_writes_a_variant_elsewhere(mini_repo, tmp_path, capsys):
     put_show(mini_repo)
     variant = tmp_path / "variant"
@@ -220,6 +243,23 @@ def test_report_has_a_line_per_section_and_the_tally(mini_repo, capsys):
     for decision in compiled.decisions:
         assert decision in out
     assert "moment virada" in out
+
+
+def test_report_lists_advice(mini_repo, capsys):
+    put_show(mini_repo)
+    code, out = run(mini_repo, capsys, "report", "teste")
+    assert code == 0 and "advice" not in out.splitlines()
+    _edit_yaml(mini_repo, f"{SHOW}/show.yml", _advice)
+    code, out = run(mini_repo, capsys, "report", "teste")
+    assert code == 0
+    lines = out.splitlines()
+    at = lines.index("advice")
+    line = mini_repo.line_of(f"{SHOW}/{FILE_1}", "  look: pulso\n")
+    assert lines[at + 1] == (f"  {SHOW}/{FILE_1}:{line}: show-advice: bridges: Dançarina 25-32 (entrega) lasts 8 "
+                             "bars, max 6; its bridge, Voa Voa (Ao Vivo) 5-8 (ponte), lasts 4: end the handover by "
+                             "bar 30 (until: 31)")
+    assert lines.index("arrivals") < at < lines.index("decided by the compiler") == at + 3
+    assert "finding" not in out
 
 
 def test_report_exits_one_on_rule_findings(mini_repo, capsys):

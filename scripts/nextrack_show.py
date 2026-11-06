@@ -7,7 +7,7 @@ the show language. The compiler turns it into the choreographies in `lightshows/
 Subcommands:
   build   compile the show, run its rules, write the choreographies (--check: write nothing,
           --out DIR: write elsewhere, --adopt: take over hand-written files); name the stale
-          files the show owns but no longer compiles, never deleting them
+          files the show owns but no longer compiles, never deleting them; print the advice
   report  the night as text, one line per section, for a critic
   vocab   the anchors, the layer words and keys, the gestures and the rules; with a show, its
           palette and looks
@@ -47,11 +47,23 @@ kind   := intro | groove | break | build | drop | outro"""
 # ----------------------------------------------------------------- helpers --
 
 
+def _finding_line(f) -> str:
+    return f"{f.path}:{f.line}: {f.rule}: {f.message}"
+
+
 def _print_findings(findings) -> None:
     for f in findings:
-        print(f"{f.path}:{f.line}: {f.rule}: {f.message}")
+        print(_finding_line(f))
     if findings:
         print(f"{len(findings)} finding(s)")
+
+
+def _print_advice(advice) -> None:
+    """The show's design goals that do not hold yet, `show-advice` lines and `N advice`."""
+    for f in advice:
+        print(_finding_line(f))
+    if advice:
+        print(f"{len(advice)} advice")
 
 
 def _title(track: str) -> str:
@@ -129,7 +141,7 @@ def _build(args) -> int:
               f"{repo.root / check_repo.SHOWS_DIR}/; a show outside lightshows/shows/ builds only with --out DIR",
               file=sys.stderr)
         return 2
-    compiled, found, rule_found = show_rules.evaluate_show(source, check_repo.show_inputs(repo, source))
+    compiled, found, rule_found, advice = show_rules.evaluate_show(source, check_repo.show_inputs(repo, source))
     if found or compiled is None:
         _print_findings(found)
         return 1
@@ -165,6 +177,7 @@ def _build(args) -> int:
         shown = str(path) if out_dir else path.relative_to(repo.root).as_posix()
         print(f"stale {shown}: owned by this show, which no longer compiles it; delete it")
     _print_findings(rule_found)
+    _print_advice(advice)              # goals: printed, never part of the exit status
     drift = args.check and any(state == "changed" for *_, state in plan)
     return 1 if drift or stale or rule_found else 0
 
@@ -244,9 +257,10 @@ def _music(section, data: dict) -> str:
     return ", ".join(parts)
 
 
-def render_report(show: CompiledShow, findings: list[ShowFinding]) -> str:
-    """The night as text: a line per section, then the budget, the arrivals, the compiler's
-    decisions and the findings."""
+def render_report(show: CompiledShow, findings: list[ShowFinding], advice: list[ShowFinding]) -> str:
+    """The night as text: a line per section, then the budget, the arrivals, the advice (the
+    `show-advice` findings, goals that do not hold yet), the compiler's decisions and the
+    findings."""
     palette = show.data.get("palette") or {}
     names = {str(hexa).upper(): name for name, hexa in palette.items()}
     out: list[str] = []
@@ -280,10 +294,12 @@ def render_report(show: CompiledShow, findings: list[ShowFinding]) -> str:
                 arrivals.append(f"  {_title(track.track)} {sec.bars[0]}: draw {draw}, colour {colour}")
     if arrivals:
         out += ["", "arrivals", *arrivals]
+    if advice:
+        out += ["", "advice", *(f"  {_finding_line(f)}" for f in advice)]
     if show.decisions:
         out += ["", "decided by the compiler", *(f"  {d}" for d in show.decisions)]
     if findings:
-        out += ["", *(f"{f.path}:{f.line}: {f.rule}: {f.message}" for f in findings), f"{len(findings)} finding(s)"]
+        out += ["", *(_finding_line(f) for f in findings), f"{len(findings)} finding(s)"]
     return "\n".join(out) + "\n"
 
 
@@ -294,11 +310,11 @@ def _report(args) -> int:
     if errors or source is None or source.parse_failed:
         _print_findings(errors)
         return 1
-    compiled, found, rule_found = show_rules.evaluate_show(source, check_repo.show_inputs(repo, source))
+    compiled, found, rule_found, advice = show_rules.evaluate_show(source, check_repo.show_inputs(repo, source))
     if found or compiled is None:
         _print_findings(found)
         return 1
-    print(render_report(compiled, rule_found), end="")
+    print(render_report(compiled, rule_found, advice), end="")
     return 1 if rule_found else 0
 
 

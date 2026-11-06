@@ -1,18 +1,20 @@
-"""The show rules: occurrences, the six v1 rules, their parameter checks and `evaluate_show`."""
-from show_rules import EFFECT_KEYS, RULES, evaluate_show, occurrences, run_rules
+"""The show rules: occurrences, the rules, their parameter checks, advice and `evaluate_show`."""
+from show_rules import ADVICE, EFFECT_KEYS, RULES, evaluate_show, occurrences, run_rules
 from showdata import FILE_1, FILE_2, TRACK_1, TRACK_2, two_track_show
 
 FOLDER = "lightshows/shows/teste"
 PATH_1, PATH_2, SHOW_PATH = f"{FOLDER}/{FILE_1}", f"{FOLDER}/{FILE_2}", f"{FOLDER}/show.yml"
 BREU = {"movers": "off", "matrix": "off", "hue": "dark"}
 RULES_LINE = 40
+ADVICE_LINE = 50
 DARK = "leaves every fixture dark (movers off, matrix off, hue dark)"
 
 
-def show(rules=None, looks=None, edit=None):
-    """`two_track_show` with extra `looks`, track files changed by `edit(first, second)` and
-    `rules`, then lines for the findings: a track file at 1, its cue i at 10 * i, its handover at
-    90; show.yml's `rules` at 40 and its i-th rule's mapping at 40 + i.
+def show(rules=None, looks=None, edit=None, advice=None):
+    """`two_track_show` with extra `looks`, track files changed by `edit(first, second)`, `rules`
+    and `advice`, then lines for the findings: a track file at 1, its cue i at 10 * i, its
+    handover at 90; show.yml's `rules` at 40 and its i-th rule's mapping at 40 + i, its `advice`
+    at 50 and its i-th rule's mapping at 50 + i.
 
     The base show: Dançarina has chegada 9-16 (look respiracao, arrival), espiral 17-20 (spiral,
     two sections), virada 21-24 (inline, moment virada, white and strobe accents) and the handover
@@ -29,24 +31,25 @@ def show(rules=None, looks=None, edit=None):
             cue["__line__"] = 10 * i
         if "handover" in data:
             data["handover"]["__line__"] = 90
-    if rules is not None:
-        src.show["rules"] = {"__line__": RULES_LINE, **rules}
-        for i, name in enumerate(rules, 1):
-            if isinstance(rules[name], dict):
-                rules[name]["__line__"] = RULES_LINE + i
+    for key, given, line in (("rules", rules, RULES_LINE), ("advice", advice, ADVICE_LINE)):
+        if given is not None:
+            src.show[key] = {"__line__": line, **given}
+            for i, name in enumerate(given, 1):
+                if isinstance(given[name], dict):
+                    given[name]["__line__"] = line + i
     return src, inp
 
 
 def rule_findings(src, inp):
-    compiled, source_found, found = evaluate_show(src, inp)
+    compiled, source_found, found, _ = evaluate_show(src, inp)
     assert [f.message for f in source_found] == []
     assert compiled is not None and {f.rule for f in found} <= {"show-rules"}
     return [(f.path, f.line, f.message) for f in found]
 
 
 def source_findings(src, inp):
-    compiled, found, rule_found = evaluate_show(src, inp)
-    assert compiled is None and rule_found == []
+    compiled, found, rule_found, advice = evaluate_show(src, inp)
+    assert compiled is None and rule_found == [] and advice == []
     return [(f.path, f.line, f.rule, f.message) for f in found]
 
 
@@ -58,7 +61,7 @@ def table(compiled, key):
 
 
 def test_occurrences_follow_the_table():
-    compiled, _, _ = evaluate_show(*show())
+    compiled, _, _, _ = evaluate_show(*show())
     assert table(compiled, "respiracao") == [(TRACK_1, 9, "cue"), (TRACK_2, 17, "cue")]
     assert table(compiled, "pulso") == [(TRACK_1, 25, "handover"), (TRACK_2, 9, "cue"), (TRACK_2, 21, "cue")]
     assert table(compiled, "spiral") == [(TRACK_1, 17, "cue")]            # one cue, two sections
@@ -73,7 +76,7 @@ def test_occurrences_follow_the_table():
                                       "white": {"accent": ["17.1", "18.3"]}}}
         second["cues"][2]["look"] = {"movers": {"move": "uv", "position": "Up"}, "white": {"flash": "1/8"}}
 
-    compiled, _, _ = evaluate_show(*show(edit=edit))
+    compiled, _, _, _ = evaluate_show(*show(edit=edit))
     assert table(compiled, "white-accent") == [(TRACK_1, 21, "cue"), (TRACK_1, 25, "handover"),
                                                (TRACK_2, 17, "cue"), (TRACK_2, 18, "cue")]
     assert table(compiled, "white-flash") == [(TRACK_2, 21, "cue")]
@@ -96,7 +99,7 @@ def test_bridges_never_count():
         second["cues"][2]["look"] = "respiracao"
 
     src, inp = show({"budget": {"pulso": {"max": 1}}}, edit=edit)
-    compiled, _, found = evaluate_show(src, inp)
+    compiled, _, found, _ = evaluate_show(src, inp)
     assert found == []
     bridge = compiled.tracks[1].sections[0]
     assert (bridge.origin.kind, bridge.origin.look, bridge.bars) == ("bridge", "pulso", (5, 8))
@@ -173,7 +176,7 @@ def test_sequence_step_look_counts_and_passes_total_dark():
     looks = {"breu": BREU}
     src, inp = show({"budget": {"breu": {"max": 1}, "sequence": {"max": 1}}, "total-dark": {"only": ["breu"]}},
                     looks, edit)
-    compiled, _, found = evaluate_show(src, inp)
+    compiled, _, found, _ = evaluate_show(src, inp)
     assert found == []
     assert [(o.bar, o.origin.look, o.origin.gesture) for o in occurrences(compiled, "breu")] == [
         (17, "breu", "sequence")]
@@ -198,7 +201,7 @@ def test_total_dark_sees_unquoted_off():
     found = rule_findings(*show({"total-dark": {"only": ["breu"]}}, looks, edit))
     assert found == [(PATH_1, 10, f"total-dark: Dançarina 9-16 (chegada) {DARK} with look 'apagao', which is "
                                   "not in only (breu): use one of those, or light a layer")]
-    compiled, _, found = evaluate_show(*show({"total-dark": {"only": ["breu", "apagao"]}}, looks, edit))
+    compiled, _, found, _ = evaluate_show(*show({"total-dark": {"only": ["breu", "apagao"]}}, looks, edit))
     assert found == []
     # the rule itself reads a False layer as off, and a lit white is not dark
     compiled.data["rules"] = {"total-dark": {"only": ["breu"]}}
@@ -300,13 +303,121 @@ def test_exclusive():
     assert rule_findings(*show({"exclusive": {"keys": ["spiral", "uv"]}})) == []
 
 
+# ----------------------------------------------------------------- bridges --
+
+
+def test_bridges_rule_measures_bridges_and_handovers():
+    # the base show: the handover entrega Dançarina 25-32 (8 bars), its bridge ponte Voa Voa 5-8 (4 bars)
+    assert rule_findings(*show({"bridges": {"max": 8}})) == []
+
+    def long_bridge(first, second):
+        del second["cues"][0]                     # Voa Voa opens with subida at 17: the bridge runs 5-16
+
+    assert rule_findings(*show({"bridges": {"max": 8}}, edit=long_bridge)) == [
+        (PATH_1, 90, "bridges: Voa Voa (Ao Vivo) 5-16 (ponte, the bridge copying this handover) lasts 12 bars, "
+                     "max 8; the handover it copies, Dançarina 25-32 (entrega), lasts 8: start a cue of "
+                     "Voa Voa (Ao Vivo) at or before bar 13")]
+    # both too long: a finding per section, both at the handover, which owns the window
+    assert rule_findings(*show({"bridges": {"max": 4}}, edit=long_bridge)) == [
+        (PATH_1, 90, "bridges: Dançarina 25-32 (entrega) lasts 8 bars, max 4; its bridge, Voa Voa (Ao Vivo) "
+                     "5-16 (ponte), lasts 12: end the handover by bar 28 (until: 29)"),
+        (PATH_1, 90, "bridges: Voa Voa (Ao Vivo) 5-16 (ponte, the bridge copying this handover) lasts 12 bars, "
+                     "max 4; the handover it copies, Dançarina 25-32 (entrega), lasts 8: start a cue of "
+                     "Voa Voa (Ao Vivo) at or before bar 9"),
+    ]
+
+    # a handover that no bridge copies is measured alone
+    def no_bridge(first, second):
+        second["bridge"] = False
+
+    assert rule_findings(*show({"bridges": {"max": 4}}, edit=no_bridge)) == [
+        (PATH_1, 90, "bridges: Dançarina 25-32 (entrega) lasts 8 bars, max 4, and no bridge copies it: end the "
+                     "handover by bar 28 (until: 29)")]
+
+    def short_handover(first, second):
+        no_bridge(first, second)
+        first["handover"]["until"] = 29
+
+    assert rule_findings(*show({"bridges": {"max": 4}}, edit=short_handover)) == []
+    # a bridge whose handover is not in the show is measured alone too
+    compiled = evaluate_show(*show({"bridges": {"max": 8}}, edit=long_bridge))[0]
+    compiled.tracks[0].sections.pop()
+    assert [f.message for f in run_rules(compiled)] == [
+        "bridges: Voa Voa (Ao Vivo) 5-16 (ponte, the bridge copying this handover) lasts 12 bars, max 8: start a "
+        "cue of Voa Voa (Ao Vivo) at or before bar 13"]
+
+
+def test_bridges_parameters():
+    assert source_findings(*show({"bridges": True})) == [
+        (SHOW_PATH, 40, "show-source", "rules.bridges: true is not a mapping {max: 1-32}")]
+    assert source_findings(*show({"bridges": {"max": 0, "min": 2}})) == [
+        (SHOW_PATH, 41, "show-source", "rules.bridges: max 0 is not a whole number of bars from 1 to 32"),
+        (SHOW_PATH, 41, "show-source", "rules.bridges: unexpected key 'min' (allowed: max)"),
+    ]
+    for top, shown in ((33, "33"), (True, "true"), ("16", "'16'"), (16.0, "16.0")):
+        assert source_findings(*show({"bridges": {"max": top}})) == [
+            (SHOW_PATH, 41, "show-source", f"rules.bridges: max {shown} is not a whole number of bars from 1 to 32")]
+    assert source_findings(*show({"bridges": {}})) == [(SHOW_PATH, 41, "show-source", "rules.bridges: missing key max")]
+    assert rule_findings(*show({"bridges": {"max": 32}})) == []
+    assert rule_findings(*show({"bridges": {"max": 1}}))      # 1 is in bounds (and every window here is longer)
+
+
+# ------------------------------------------------------------------ advice --
+
+
+def test_advice_runs_rules_without_failing():
+    def edit(first, second):
+        first["cues"][1] = {"at": "break.1", "name": "breu", "look": "breu"}
+
+    looks = {"breu": BREU}
+    src, inp = show({"budget": {"breu": {"max": 1}}}, looks, edit, advice={"budget": {"breu": {"max": 0}}})
+    compiled, source_found, found, advice = evaluate_show(src, inp)
+    assert compiled is not None and source_found == [] and found == []
+    assert [(f.path, f.line, f.rule, f.message) for f in advice] == [
+        (PATH_1, 20, "show-advice", "budget: breu is used 1 time, max 0: Dançarina 17")]
+    assert ADVICE == "show-advice"
+    assert run_rules(compiled) == [] and run_rules(compiled, "advice") == advice
+    # one rule id in both, with other parameters: a gate and a goal, each reported as itself
+    src, inp = show({"budget": {"breu": {"max": 0}}}, looks, edit,
+                    advice={"budget": {"breu": {"max": 0}}, "bridges": {"max": 4}})
+    _, _, found, advice = evaluate_show(src, inp)
+    assert [(f.rule, f.message) for f in found] == [("show-rules", "budget: breu is used 1 time, max 0: Dançarina 17")]
+    assert [(f.path, f.line, f.rule, f.message.split(":")[0]) for f in advice] == [
+        (PATH_1, 20, "show-advice", "budget"), (PATH_1, 90, "show-advice", "bridges")]
+    # no advice, none run
+    assert evaluate_show(*show({"budget": {"breu": {"max": 1}}}, looks, edit))[3] == []
+
+
+def test_advice_parameters_are_checked():
+    assert source_findings(*show(advice={"bridgez": {}})) == [
+        (SHOW_PATH, 51, "show-source",
+         "advice.bridgez: unknown rule 'bridgez'; rules: arrivals, bridges, budget, exclusive, matrix-not-cloned, "
+         "movers-aim, total-dark; did you mean 'bridges'?")]
+    found = source_findings(*show({"bridges": {"max": 16}}, advice={"bridges": {"max": 40}, "budget": {"nada": {}}}))
+    assert found == [
+        (SHOW_PATH, 51, "show-source", "advice.bridges: max 40 is not a whole number of bars from 1 to 32"),
+        (SHOW_PATH, 52, "show-source",
+         "advice.budget: unknown key 'nada' (a look: pulso, respiracao; a gesture: sequence, spiral; "
+         "an effect: white-accent, white-flash, strobe, uv)"),
+    ]
+    found = source_findings(*show(advice={"budget": {"strobe": {"from": "Pedro Sampaio — Dancarina"}}}))
+    assert found == [(SHOW_PATH, 51, "show-source",
+                      "advice.budget: strobe.from 'Pedro Sampaio — Dancarina' is not a track of this show; "
+                      "did you mean 'Pedro Sampaio — Dançarina'?")]
+    # an advice that is not a mapping is a schema problem of show.yml
+    src, inp = show()
+    src.show["advice"] = ["bridges"]
+    assert source_findings(src, inp) == [(SHOW_PATH, 0, "show-source", "advice ['bridges'] is not a mapping")]
+
+
 # ------------------------------------------------------------- parameters --
 
 
 def test_unknown_rule_id_and_bad_params():
     assert source_findings(*show({"budjet": True})) == [
         (SHOW_PATH, 40, "show-source",
-         "unknown rule 'budjet'; rules: arrivals, budget, exclusive, matrix-not-cloned, movers-aim, total-dark")]
+         "rules.budjet: unknown rule 'budjet'; rules: arrivals, bridges, budget, exclusive, matrix-not-cloned, "
+         "movers-aim, total-dark; did you mean 'budget'?")]
     found = source_findings(*show({
         "total-dark": {"only": ["breu"]},
         "arrivals": {"draw_differs": "sim"},
@@ -340,7 +451,8 @@ def test_unknown_rule_id_and_bad_params():
 
 
 def test_every_rule_documents_itself():
-    assert sorted(RULES) == ["arrivals", "budget", "exclusive", "matrix-not-cloned", "movers-aim", "total-dark"]
+    assert sorted(RULES) == ["arrivals", "bridges", "budget", "exclusive", "matrix-not-cloned", "movers-aim",
+                             "total-dark"]
     for name, rule in RULES.items():
         assert rule.name == name and rule.doc and rule.params and "\n" not in rule.params
         assert callable(rule.check) and callable(rule.fn)
@@ -354,7 +466,7 @@ def test_evaluate_show_skips_rules_on_source_findings():
     def rules():
         return {"matrix-not-cloned": True, "exclusive": {"keys": ["spiral", "strobe"]}}
 
-    compiled, source_found, found = evaluate_show(*show(rules()))
+    compiled, source_found, found, _ = evaluate_show(*show(rules()))
     assert compiled is not None and source_found == []
     assert [(f.path, f.line, f.rule, f.message.split(":")[0]) for f in found] == [
         (PATH_1, 30, "show-rules", "exclusive"), (PATH_1, 30, "show-rules", "matrix-not-cloned")]
@@ -362,11 +474,11 @@ def test_evaluate_show_skips_rules_on_source_findings():
     def bad_anchor(first, second):
         first["cues"][0]["at"] = "drop.9"
 
-    compiled, source_found, found = evaluate_show(*show(rules(), edit=bad_anchor))
+    compiled, source_found, found, _ = evaluate_show(*show(rules(), edit=bad_anchor))
     assert compiled is None and found == []
     assert [(f.path, f.line, f.rule) for f in source_found] == [(PATH_1, 10, "show-source")]
     # a rule parameter problem alone stops the rules too
-    compiled, source_found, found = evaluate_show(*show({**rules(), "budget": {"nada": {}}}))
+    compiled, source_found, found, _ = evaluate_show(*show({**rules(), "budget": {"nada": {}}}))
     assert compiled is None and found == [] and [f.rule for f in source_found] == ["show-source"]
     # both kinds at once, sorted by path, line and message
     found = source_findings(*show({"budjet": True}, edit=bad_anchor))

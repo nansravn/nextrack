@@ -3,27 +3,32 @@
 A show rule is a Python function registered here with `show_rule`. It reads the compiled show
 (every section with its provenance) and its parameters from the `rules:` mapping of `show.yml`,
 and returns `show-rules` findings that point at the cue, the handover or the track file to fix.
-Each rule also checks its own parameters; a bad parameter or an unknown rule id is a
-`show-source` finding at `rules:` in `show.yml`. The budget and `exclusive` count
-**occurrences** (`occurrences`), which never come from bridges. See
-docs/superpowers/specs/2026-11-06-show-language-design.md ("Show rules").
+The `advice:` mapping takes the same rule ids and parameters as design goals: their findings
+carry the rule id `show-advice` and never fail a check. Each rule also checks its own
+parameters; a bad parameter or an unknown rule id is a `show-source` finding at `rules:` (or
+`advice:`) in `show.yml`. The budget and `exclusive` count **occurrences** (`occurrences`),
+which never come from bridges. See docs/superpowers/specs/2026-11-06-show-language-design.md
+("Show rules") and docs/superpowers/specs/2026-11-06-show-critic-design.md ("Advice").
 
-Python API: `RULES`, `EFFECT_KEYS`, `show_rule`, `ShowRule`, `Occurrence`, `occurrences`,
+Python API: `RULES`, `EFFECT_KEYS`, `ADVICE`, `show_rule`, `ShowRule`, `Occurrence`, `occurrences`,
 `rule_param_findings`, `run_rules`, `evaluate_show`.
 """
 from __future__ import annotations
 
+import dataclasses
 import difflib
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
 
 from show_gestures import GESTURES
-from show_language import (ID_RE, CompiledSection, CompiledShow, CompiledTrack, Provenance, ShowFinding,
-                           ShowInputs, ShowSource, clean, compile_show, layer_word)
+from show_language import (BRIDGE_BARS, ID_RE, CompiledSection, CompiledShow, CompiledTrack, Provenance,
+                           ShowFinding, ShowInputs, ShowSource, clean, compile_show, layer_word)
 
 SOURCE = "show-source"
 RULE_ID = "show-rules"
+ADVICE = "show-advice"
+_KEYS = {"rules": RULE_ID, "advice": ADVICE}    # the show.yml mappings that name rules -> their findings' id
 EFFECT_KEYS = ("white-accent", "white-flash", "strobe", "uv")
 _BEAT_BAR_RE = re.compile(r"([0-9]+)\.[0-9]+")
 _UNLIT = (None, "off", "auto")
@@ -284,6 +289,18 @@ def _check_moments(params: object, show: dict) -> list[str]:
     return out
 
 
+def _check_bridges(params: object, show: dict) -> list[str]:
+    low, high = BRIDGE_BARS
+    if not isinstance(params, dict):
+        return [f"{_shown(params)} is not a mapping {{max: {low}-{high}}}"]
+    out = []
+    if "max" not in params:
+        out.append("missing key max")
+    elif not (_is_int(params["max"]) and low <= params["max"] <= high):
+        out.append(f"max {_shown(params['max'])} is not a whole number of bars from {low} to {high}")
+    return out + _unexpected(params, ("max",))
+
+
 def _check_exclusive(params: object, show: dict) -> list[str]:
     if not isinstance(params, dict):
         return [f"{_shown(params)} is not a mapping {{keys: [keys], except_tracks?: [tracks]}}"]
@@ -478,40 +495,93 @@ def exclusive(show: CompiledShow, params: dict) -> list[ShowFinding]:
     return out
 
 
+def _length(section: CompiledSection) -> int:
+    """A section's length in bars: `last - first + 1` (bars 25-32 last 8)."""
+    first, last = section.bars
+    return last - first + 1
+
+
+def _plain(track: CompiledTrack, section: CompiledSection) -> str:
+    return f"{_title(track.track)} {_span(section)} ({section.name})"
+
+
+@show_rule("bridges", params="{max: 1-32}", check=_check_bridges)
+def bridges(show: CompiledShow, params: dict) -> list[ShowFinding]:
+    """No side of a mix window is longer than `max` bars.
+
+    A compiled handover section, or the bridge section that copies it into the next track, is
+    longer than `max` bars (`_length`). Both findings point at the handover's line in the
+    outgoing track's file, which owns the window, and name both lengths and both tracks: the fix
+    is in both."""
+    top = params["max"]
+    windows: dict[tuple[str, int], list] = {}   # the handover's (path, line) -> [handover, bridge]
+    for track in show.tracks:
+        for section in track.sections:
+            kind = section.origin.kind
+            if kind in ("handover", "bridge"):
+                window = windows.setdefault((section.origin.path, section.origin.line), [None, None])
+                window[kind == "bridge"] = (track, section)
+    out = []
+    for handover, bridge in windows.values():
+        if handover is not None and _length(handover[1]) > top:
+            track, section = handover
+            a = section.bars[0]
+            other = (f"; its bridge, {_plain(*bridge)}, lasts {_length(bridge[1])}" if bridge is not None
+                     else ", and no bridge copies it")
+            out.append(_finding(section.origin, f"bridges: {_where(track, section)} lasts {_length(section)} bars, "
+                                                f"max {top}{other}: end the handover by bar {a + top - 1} "
+                                                f"(until: {a + top})"))
+        if bridge is not None and _length(bridge[1]) > top:
+            track, section = bridge
+            other = (f"; the handover it copies, {_plain(*handover)}, lasts {_length(handover[1])}"
+                     if handover is not None else "")
+            out.append(_finding(section.origin, f"bridges: {_where(track, section)} lasts {_length(section)} bars, "
+                                                f"max {top}{other}: start a cue of {_title(track.track)} at or "
+                                                f"before bar {section.bars[0] + top}"))
+    return out
+
+
 # --------------------------------------------------------------- the entry --
 
 
 def rule_param_findings(source: ShowSource) -> list[ShowFinding]:
-    """`show-source` findings for the `rules:` of `show.yml`: an unknown rule id, a rule's bad
-    parameters, a budget `from` that names none of the show's track files. They point at the
-    rule's own mapping line, or at `rules:` when the rule has no mapping."""
+    """`show-source` findings for the `rules:` and the `advice:` of `show.yml`: an unknown rule
+    id, a rule's bad parameters, a budget `from` that names none of the show's track files. Each
+    message starts with `rules.<id>:` or `advice.<id>:`. They point at the rule's own mapping
+    line, or at `rules:` (`advice:`) when the rule has no mapping."""
     data = source.show
-    rules = data.get("rules") if isinstance(data, dict) and not source.parse_failed else None
-    if not isinstance(rules, dict):
-        return []                         # problems_show reports a `rules` that is not a mapping
+    if not isinstance(data, dict) or source.parse_failed:
+        return []
     path = f"{source.folder.rstrip('/')}/show.yml"
     show = clean(data)
     tracks = [d["track"] for d in source.track_files.values()
               if isinstance(d, dict) and isinstance(d.get("track"), str)]
     out = []
-    for name, params in rules.items():
-        if name == "__line__":
-            continue
-        if name not in RULES:
-            out.append(ShowFinding(path, _line(rules), SOURCE,
-                                   f"unknown rule {name!r}; rules: {', '.join(sorted(RULES))}"))
-            continue
-        problems = RULES[name].check(clean(params), show)
-        if name == "budget":
-            problems += _budget_from_problems(clean(params), tracks)
-        out += [ShowFinding(path, _line(params) or _line(rules), SOURCE, f"rules.{name}: {p}") for p in problems]
+    for key in _KEYS:
+        rules = data.get(key)
+        if not isinstance(rules, dict):
+            continue                      # problems_show reports one that is not a mapping
+        for name, params in rules.items():
+            if name == "__line__":
+                continue
+            line = _line(params) or _line(rules)
+            if name not in RULES:
+                known = ", ".join(sorted(RULES))
+                out.append(ShowFinding(path, line, SOURCE, f"{key}.{name}: unknown rule {name!r}; rules: {known}"
+                                                           f"{_hint(str(name), list(RULES))}"))
+                continue
+            problems = RULES[name].check(clean(params), show)
+            if name == "budget":
+                problems += _budget_from_problems(clean(params), tracks)
+            out += [ShowFinding(path, line, SOURCE, f"{key}.{name}: {p}") for p in problems]
     return out
 
 
-def run_rules(show: CompiledShow) -> list[ShowFinding]:
-    """The `show-rules` findings of the rules that `show.yml` names, in its order, each in track
-    order. A rule whose parameters fail its check is skipped (`rule_param_findings` says why)."""
-    rules = show.data.get("rules") if isinstance(show.data, dict) else None
+def run_rules(show: CompiledShow, key: str = "rules") -> list[ShowFinding]:
+    """The findings of the rules that `show.yml` names under `key`, in its order, each in track
+    order: `show-rules` findings for `rules`, `show-advice` (`ADVICE`) findings for `advice`. A
+    rule whose parameters fail its check is skipped (`rule_param_findings` says why)."""
+    rules = show.data.get(key) if isinstance(show.data, dict) else None
     if not isinstance(rules, dict):
         return []
     out = []
@@ -520,16 +590,19 @@ def run_rules(show: CompiledShow) -> list[ShowFinding]:
         if rule is None or rule.check(params, show.data):
             continue
         out += rule.fn(show, params)
-    return out
+    rule_id = _KEYS[key]
+    return [f if f.rule == rule_id else dataclasses.replace(f, rule=rule_id) for f in out]
 
 
 def evaluate_show(source: ShowSource, inputs: ShowInputs) -> tuple[CompiledShow | None, list[ShowFinding],
-                                                                    list[ShowFinding]]:
-    """Compile a show and run its rules: `(compiled, source findings, rule findings)`, each list
-    sorted by path, line and message. With any source finding (the compiler's or the rules'
-    parameters), `compiled` is None and no rule runs."""
+                                                                    list[ShowFinding], list[ShowFinding]]:
+    """Compile a show and run its rules and its advice: `(compiled, source findings, rule
+    findings, advice findings)`, each list sorted by path, line and message. With any source
+    finding (the compiler's, or the parameters of a rule or an advice), `compiled` is None and
+    nothing runs. `check_repo.py` and `nextrack_show.py` both call this one entry; only the CLI
+    shows the advice."""
     compiled, found = compile_show(source, inputs)
     found = found + rule_param_findings(source)
     if found or compiled is None:
-        return None, _sorted(found), []
-    return compiled, [], _sorted(run_rules(compiled))
+        return None, _sorted(found), [], []
+    return compiled, [], _sorted(run_rules(compiled)), _sorted(run_rules(compiled, "advice"))
