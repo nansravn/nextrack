@@ -16,6 +16,7 @@ Subcommands:
            map is kept unless it is stale (audio, script GUID or tempo changed) or --force
   cues     reread the hot cues from rekordbox into existing maps (no audio)
   show     print a map as text: per 64 bars, the cues, one line per voice, the sections
+  timeline print the set timeline of a rekordbox playlist: transitions, arrivals, set clock
 """
 from __future__ import annotations
 
@@ -33,6 +34,7 @@ import yaml
 
 import check_repo
 import musical_map as mm
+import set_timeline as stl
 import soundswitch_format as ssf
 from rekordbox_cues import ANALYSIS_HINT, RbTrack, open_rekordbox  # noqa: F401  (tests replace it)
 
@@ -385,6 +387,49 @@ def cmd_show(args) -> int:
     return 0
 
 
+# ----------------------------------------------------------------- timeline ----
+
+
+def cmd_timeline(args) -> int:
+    if not args.rekordbox:
+        print(f"set --rekordbox or {REKORDBOX_ENV}", file=sys.stderr)
+        return 2
+    repo = check_repo.load_repo(Path(args.repo))
+    tempos = stl.block_tempos(Path(args.block).read_text(encoding="utf-8")) if args.block else []
+    with contextlib.ExitStack() as stack:
+        tracks = stack.enter_context(open_rekordbox(Path(args.rekordbox))).playlist(args.playlist)
+    transitions, total, warnings = [], 0.0, []
+    chain: list[stl.Leg] = []
+
+    def flush() -> None:
+        nonlocal total
+        if chain:
+            t, s, w = stl.timeline(chain)
+            transitions.extend(t)
+            total += s
+            warnings.extend(w)
+            chain.clear()
+
+    for t in tracks:
+        label = _label(t.artist, t.title)
+        try:
+            name = pool_track(repo, ssf.TrackRef(guid="", title=t.title, artist=t.artist, path=t.path, bpm=None, duration_ms=None))
+            path = map_path(Path(args.repo), name)
+            if not path.is_file():
+                raise Refused(f"no map at {path}: run analyze first")
+            data = mm.load_map(path)
+        except (Refused, OSError, yaml.YAMLError) as e:
+            warnings.append(f"no map for {label}: {e}; the chain breaks here")
+            flush()
+            continue
+        tempo = next((tp for a, ti, tp in tempos if check_repo.same_track(t.artist, t.title, a, ti)), None)
+        chain.append(stl.Leg(name, data, dict(t.cues), tempo))
+    flush()
+    render = stl.render_yaml if args.yaml else stl.render_markdown
+    print(render(transitions, total, warnings))
+    return 0
+
+
 # --------------------------------------------------------------------- main ----
 
 
@@ -415,10 +460,20 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("track", help="a map file, its slug or the track's words")
     s.add_argument("--repo", default=str(DEFAULT_REPO), help="the NEXTRACK repo (default: this one)")
 
+    t = sub.add_parser("timeline", help="print the set timeline of a rekordbox playlist")
+    t.add_argument("--playlist", required=True, help="a rekordbox playlist")
+    t.add_argument("--block", metavar="FILE", help="a block whose tracklist gives the played tempos")
+    t.add_argument("--yaml", action="store_true", help="YAML instead of a Markdown table")
+    t.add_argument("--rekordbox", default=os.environ.get(REKORDBOX_ENV),
+                   help=f"folder with rekordbox's master.db (default: ${REKORDBOX_ENV})")
+    t.add_argument("--repo", default=str(DEFAULT_REPO), help="the NEXTRACK repo (default: this one)")
+
     args = ap.parse_args(argv)
     try:
         if args.cmd == "show":
             return cmd_show(args)
+        if args.cmd == "timeline":
+            return cmd_timeline(args)
         if bool(args.track) == bool(args.playlist):
             print("give a track or --playlist, not both", file=sys.stderr)
             return 2
