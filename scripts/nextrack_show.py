@@ -6,14 +6,17 @@ the show language. The compiler turns it into the choreographies in `lightshows/
 
 Subcommands:
   build   compile the show, run its rules, write the choreographies (--check: write nothing,
-          --out DIR: write elsewhere, --adopt: take over hand-written files)
+          --out DIR: write elsewhere, --adopt: take over hand-written files); name the stale
+          files the show owns but no longer compiles, never deleting them
   report  the night as text, one line per section, for a critic
-  vocab   the anchors, the layer words, the gestures and the rules; with a show, its palette
-          and looks
+  vocab   the anchors, the layer words and keys, the gestures and the rules; with a show, its
+          palette and looks
 
-SHOW is a folder path or the id of a folder under <repo>/lightshows/shows/. Findings print as
-`path:line: rule-id: message`. Exit status: 0 clean, 1 findings, 2 usage. Only `build` writes,
-and only the choreographies. See scripts/README.md.
+SHOW is a folder path or the id of a folder under <repo>/lightshows/shows/; a relative path is
+looked up under --repo first (<repo>/SHOW, then <repo>/lightshows/shows/SHOW), then from the
+current folder. Findings print as `path:line: rule-id: message`. Exit status: 0 clean,
+1 findings (or stale files), 2 usage. Only `build` writes, and only the choreographies. See
+scripts/README.md.
 """
 from __future__ import annotations
 
@@ -59,9 +62,19 @@ def _first_paragraph(text: str) -> str:
     return " ".join(text.split("\n\n", 1)[0].split())
 
 
+def show_candidates(arg: str, root: Path) -> list[Path]:
+    """Where `arg` may name a show folder, in order: an absolute path as given; a relative one
+    under the repo first (`<repo>/<arg>`, then `<repo>/lightshows/shows/<arg>` for an id), then
+    from the current folder."""
+    path = Path(arg)
+    if path.is_absolute():
+        return [path]
+    return [root / arg, root / check_repo.SHOWS_DIR / arg, path.absolute()]
+
+
 def resolve_show(arg: str, root: Path) -> Path | None:
-    """The show folder `arg` names: a path (as given, or under the repo) or a show id."""
-    for candidate in (Path(arg), root / arg, root / check_repo.SHOWS_DIR / arg):
+    """The show folder `arg` names (the first of `show_candidates` with a `show.yml`), or None."""
+    for candidate in show_candidates(arg, root):
         if (candidate / "show.yml").is_file():
             return candidate.resolve()
     return None
@@ -72,8 +85,9 @@ def _load(args) -> tuple[check_repo.Repo, ShowSource | None, list]:
     root = Path(args.repo).resolve()
     folder = resolve_show(args.show, root)
     if folder is None:
+        tried = ", ".join(str(c) for c in show_candidates(args.show, root))
         print(f"usage error: {args.show!r} is not a show folder or the id of one under "
-              f"{check_repo.SHOWS_DIR}/ (it needs a show.yml)", file=sys.stderr)
+              f"{check_repo.SHOWS_DIR}/: none of {tried} has a show.yml", file=sys.stderr)
         return None, None, []  # type: ignore[return-value]
     errors: list = []
     source = check_repo.load_show_folder(root, folder, errors)
@@ -111,7 +125,9 @@ def _build(args) -> int:
         _print_findings(errors)
         return 1
     if not args.out and not source.folder.startswith(check_repo.SHOWS_DIR + "/"):
-        print("usage error: a show outside lightshows/shows/ builds only with --out DIR", file=sys.stderr)
+        print(f"usage error: the show {repo.root / source.folder} is not under "
+              f"{repo.root / check_repo.SHOWS_DIR}/; a show outside lightshows/shows/ builds only with --out DIR",
+              file=sys.stderr)
         return 2
     compiled, found, rule_found = show_rules.evaluate_show(source, check_repo.show_inputs(repo, source))
     if found or compiled is None:
@@ -144,9 +160,24 @@ def _build(args) -> int:
             print(f"wrote {shown}")
         else:
             print(f"unchanged {shown}")
+    stale = _stale(out_dir or repo.root / TRACKS_DIR, source.folder, {t.slug for t in compiled.tracks})
+    for path in stale:
+        shown = str(path) if out_dir else path.relative_to(repo.root).as_posix()
+        print(f"stale {shown}: owned by this show, which no longer compiles it; delete it")
     _print_findings(rule_found)
     drift = args.check and any(state == "changed" for *_, state in plan)
-    return 1 if drift or rule_found else 0
+    return 1 if drift or stale or rule_found else 0
+
+
+def _stale(folder: Path, owner: str, slugs: set[str]) -> list[Path]:
+    """The choreographies in `folder` whose header names `owner` and whose track it no longer
+    compiles. `build` names them and never deletes them."""
+    out = []
+    for path in sorted(folder.glob("*.yml")):
+        text = _existing(path)
+        if path.stem not in slugs and text and show_language.owner_of(text) == owner:
+            out.append(path)
+    return out
 
 
 # ------------------------------------------------------------------ report --
@@ -274,6 +305,14 @@ def _report(args) -> int:
 # ------------------------------------------------------------------- vocab --
 
 
+def _layer_forms(layer: str) -> str:
+    """`auto | off | ... | {key, ...}`: the words a layer takes, then its mapping keys."""
+    forms = list(lightshow.SCALARS[layer])
+    if layer in show_language.LAYER_KEYS:
+        forms.append("{" + ", ".join(show_language.LAYER_KEYS[layer]) + "}")
+    return " | ".join(forms)
+
+
 def render_vocab(source: ShowSource | None) -> str:
     """What an agent needs to write a show: anchors, layer words, gestures, rules, and with a
     show its palette and looks."""
@@ -284,6 +323,8 @@ def render_vocab(source: ShowSource | None) -> str:
            "",
            "layers",
            f"  layers: {', '.join(lightshow.LAYERS)} (haze is held by every compile)",
+           "  each layer takes one of its words or a mapping of its keys:",
+           *(f"  {layer}: {_layer_forms(layer)}" for layer in lightshow.LAYERS),
            f"  movers move: {', '.join(lightshow.MOVER_MOVES)}",
            f"  matrix draw: {', '.join(lightshow.MATRIX_DRAWS)}",
            f"  hue state: {', '.join(lightshow.HUE_STATES)}",
