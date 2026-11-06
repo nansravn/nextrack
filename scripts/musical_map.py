@@ -469,10 +469,17 @@ def loud_db(db) -> float:
     return float(np.percentile(live, LOUD_PERCENTILE)) if len(live) else SILENT_DB
 
 
-def level_digits(db, voice_loud_db: float, mix_loud_db: float) -> str:
+def is_bleed(voice_loud_db: float, mix_loud_db: float) -> bool:
+    """Whether a voice whose loud level is `voice_loud_db` is only separation bleed: more than
+    `BLEED_DB` under the mix's loud level."""
+    return voice_loud_db < mix_loud_db - BLEED_DB
+
+
+def level_digits(db, voice_loud_db: float, mix_loud_db: float | None = None) -> str:
     """One digit per interval: 9 at `voice_loud_db`, one less per 3 dB below, 0 at 27 dB below
-    or more. All 0 when the voice is `BLEED_DB` under the mix."""
-    if voice_loud_db < mix_loud_db - BLEED_DB:
+    or more. All 0 when the voice is bleed against `mix_loud_db` (no check when it is None:
+    the caller decided)."""
+    if mix_loud_db is not None and is_bleed(voice_loud_db, mix_loud_db):
         return "0" * len(db)
     return "".join(str(max(0, min(9, 9 - int((voice_loud_db - d) // DB_PER_DIGIT)))) for d in db)
 
@@ -946,12 +953,19 @@ def build_map(*, track: str, guid: str, audio_sha: str, audio_ms: int, anchors, 
     bars = len(bar_edges) - 1
     voices = voices_from_stems(stems, sr)
     mix = sum(_stereo(stems[k]) for k in ("vocals", "drums", "bass", "other"))
-    mix_step, mix_bar = rms_db(mix, sr, edges), rms_db(mix, sr, bar_edges)
+    mix_bar = rms_db(mix, sr, bar_edges)
     del mix
     step_db = {v: rms_db(voices[v], sr, edges) for v in VOICES}
     bar_db = {v: rms_db(voices[v], sr, bar_edges) for v in VOICES}
-    steps = {v: level_digits(step_db[v], loud_db(step_db[v]), loud_db(mix_step)) for v in VOICES}
-    bar_digits = {v: level_digits(bar_db[v], loud_db(bar_db[v]), loud_db(mix_bar)) for v in VOICES}
+    # bleed is decided once per voice, on the bars, so the steps (and the register and phrases
+    # read from them) never carry a voice the bars zero out
+    bleed = {v: is_bleed(loud_db(bar_db[v]), loud_db(mix_bar)) for v in VOICES}
+
+    def levels(db, v):
+        return "0" * len(db) if bleed[v] else level_digits(db, loud_db(db))
+
+    steps = {v: levels(step_db[v], v) for v in VOICES}
+    bar_digits = {v: levels(bar_db[v], v) for v in VOICES}
     out_voices = {}
     for v in VOICES:
         entries, exits = entries_exits(bar_digits[v])
