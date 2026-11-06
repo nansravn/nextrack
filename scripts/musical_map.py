@@ -567,6 +567,11 @@ def _onset_env(x, sr: int):
     return np.sqrt((csum[starts + win] - csum[starts]) / win), starts, hop
 
 
+def _first_step_ms(edges) -> float:
+    """The earliest onset time that still belongs to step 0: half a step before bar 1."""
+    return float(edges[0] - (edges[1] - edges[0]) / 2) if len(edges) > 1 else float(edges[0])
+
+
 def _strength_digits(best: dict, steps: int) -> str:
     """The onset string for `best` (step -> rise): 9 for the largest, one less per 3 dB below it."""
     import numpy as np
@@ -581,9 +586,10 @@ def _strength_digits(best: dict, steps: int) -> str:
 def onset_digits(x, sr: int, edges_ms) -> tuple[str, list[float]]:
     """Per step `.` or `1`-`9`: onset strength, 9 for the track's strongest onset and one less
     per 3 dB below it. Onsets are peaks of the positive rise of a short-window energy envelope;
-    each is quantised to the nearest step (the strongest wins a step). Also returns the onset
-    times in ms. For `perc` (the drums above `KICK_HZ`, kick clicks included) this is the
-    onset string as is; `kick` goes through `kick_onsets`."""
+    each is quantised to the nearest step (the strongest wins a step); onsets more than half a
+    step before bar 1 or after the last edge are left out. Also returns the onset times in ms.
+    For `perc` (the drums above `KICK_HZ`, kick clicks included) this is the onset string as
+    is; `kick` goes through `kick_onsets`."""
     import numpy as np
 
     edges = np.asarray(edges_ms, dtype=np.float64)
@@ -592,7 +598,9 @@ def onset_digits(x, sr: int, edges_ms) -> tuple[str, list[float]]:
     if steps < 1 or env is None:
         return "." * max(steps, 0), []
     flux = np.maximum(0.0, np.diff(env, prepend=0.0))
-    top = flux.max()
+    t_ms = starts * 1000 / sr
+    inside = (t_ms >= _first_step_ms(edges)) & (t_ms <= edges[-1])  # audio outside the map has no say
+    top = flux[inside].max() if inside.any() else 0.0
     if top <= 0:
         return "." * steps, []
     gap = max(1, int(round(ONSET_MIN_GAP_MS * sr / 1000 / hop)))
@@ -600,13 +608,11 @@ def onset_digits(x, sr: int, edges_ms) -> tuple[str, list[float]]:
     floor = top * 10 ** (-ONSET_FLOOR_DB / 20)
     times = []
     best = {}
-    for i in np.flatnonzero(flux >= floor):
+    for i in np.flatnonzero(inside & (flux >= floor)):
         a, b = max(0, i - gap), min(len(flux), i + gap + 1)
         if i != a + int(np.argmax(flux[a:b])):
             continue
-        t = starts[i] * 1000 / sr
-        if t > edges[-1]:
-            continue
+        t = t_ms[i]
         step = min(steps - 1, int(np.argmin(np.abs(edges - t))))
         times.append(float(t))
         rise = env[i:i + reach].max() - (env[i - 1] if i else 0.0)  # the whole attack, not one hop
@@ -624,7 +630,8 @@ def kick_onsets(drums, kick, sr: int, edges_ms) -> tuple[str, list[float]]:
     steepest drums rise within `KICK_NEAR_S` of it) is the low end ringing, not a hit, and is
     dropped. Strength is the drums' peak level within `KICK_BODY_MS` after the attack, 9 for
     the strongest and one less per 3 dB below it; it reads the whole drums stem, so a hat or
-    snare on the kick adds to it. Returns the string and the times in ms."""
+    snare on the kick adds to it. An attack more than half a step before bar 1 is left out.
+    Returns the string and the times in ms."""
     import numpy as np
 
     edges = np.asarray(edges_ms, dtype=np.float64)
@@ -639,6 +646,7 @@ def kick_onsets(drums, kick, sr: int, edges_ms) -> tuple[str, list[float]]:
     after = max(1, int(round(KICK_NEXT_MS * ms_to_hops)))
     near = max(1, int(round(KICK_NEAR_S * 1000 * ms_to_hops)))
     reach = max(1, int(round(KICK_BODY_MS * ms_to_hops)))
+    earliest = _first_step_ms(edges)
     times, best, prev = [], {}, None
     for t in found:
         i = min(len(flux) - 1, int(round(t * ms_to_hops)))
@@ -650,8 +658,11 @@ def kick_onsets(drums, kick, sr: int, edges_ms) -> tuple[str, list[float]]:
         if flux[j] <= 0 or flux[j] < local * 10 ** (-KICK_ATTACK_FLOOR_DB / 20):
             continue
         prev = j
-        times.append(float(starts[j] * 1000 / sr))
-        step = min(steps - 1, int(np.argmin(np.abs(edges - times[-1]))))
+        attack = float(starts[j] * 1000 / sr)
+        if attack < earliest:  # moved back to before bar 1: not in the map
+            continue
+        times.append(attack)
+        step = min(steps - 1, int(np.argmin(np.abs(edges - attack))))
         best[step] = max(best.get(step, 0.0), env[j:j + reach].max())
     return _strength_digits(best, steps), times
 
