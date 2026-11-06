@@ -72,9 +72,6 @@ def _cue_bars(leg: Leg, warnings: list[str]) -> dict[str, int]:
             continue
         text = mm.cue_text(leg.cues[letter], grid)
         parsed = CUE_BAR_RE.fullmatch(text)
-        if parsed is None:
-            warnings.append(f"{leg.name}: hot cue {letter} cannot be placed on the grid ({text!r})")
-            continue
         bars[letter] = int(parsed[1])
         if parsed[2]:
             warnings.append(f"{leg.name}: hot cue {letter} is not on a beat (rekordbox {text})")
@@ -194,7 +191,7 @@ def render_markdown(transitions: list[Transition], total_s: float, warnings: lis
         lines.append(f"| {i} | {t.out_name} G{t.g_bar} → {t.in_name} B{t.b_bar} "
                      f"(offset {t.offset_bars:+d}) | {_clock(t.clock_g_s, t.relative)} | "
                      f"{t.overlap_bars} bars | {secs} | {_arrival_text(t)} | {peak} |")
-    note = f" (incomplete: {incomplete} tracks without a map)" if incomplete else ""
+    note = f" (incomplete: {incomplete} track{'s' if incomplete != 1 else ''} without a map)" if incomplete else ""
     lines += ["", f"Set length: {_clock(total_s)}{note}"]
     if warnings:
         lines += ["", "Warnings"] + [f"- {w}" for w in warnings]

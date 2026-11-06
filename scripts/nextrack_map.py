@@ -401,6 +401,7 @@ def cmd_timeline(args) -> int:
     transitions, total, warnings = [], 0.0, []
     chain: list[stl.Leg] = []
     missing = 0  # tracks whose map is absent or unreadable so far
+    started = False  # a track with a map came first
 
     def flush() -> None:
         nonlocal total
@@ -427,12 +428,13 @@ def cmd_timeline(args) -> int:
                 raise Refused(f"unreadable map {path.name}: {e}") from e
         except Refused as e:
             flush()
-            missing += 1
             warnings.append(f"no map for {label}: {e}")
-            warnings.append(f"clock restarts after {label}: no map")
+            warnings.append(f"clock {'restarts' if started else 'starts'} after {label}: no map")
+            missing += 1
             continue
         tempo = next((tp for a, ti, tp in tempos if check_repo.same_track(t.artist, t.title, a, ti)), None)
         chain.append(stl.Leg(name, data, dict(t.cues), tempo))
+        started = True
     flush()
     render = stl.render_yaml if args.yaml else stl.render_markdown
     print(render(transitions, total, warnings, missing))
