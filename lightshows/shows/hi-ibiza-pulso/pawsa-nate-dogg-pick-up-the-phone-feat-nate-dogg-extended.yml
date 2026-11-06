@@ -1,0 +1,38 @@
+track: PAWSA, Nate Dogg — PICK UP THE PHONE (feat. Nate Dogg) (Extended)
+story: >-
+  Pick Up The Phone chega no c. 73 com filas vermelhas alternando. No break longo do Nate Dogg a
+  sala vira contraluz; depois a terceira espiral acelera até o drop final, com estrobo e a fita
+  branca, e esse drop é o que ele entrega ao Can't Decide.
+budget: >-
+  Contraluz 3 de 3 (c. 104-127). Espiral 3 de 3 (c. 128-136). Estrobo e fita branca no drop
+  final (137.1).
+cues:
+  - at: break.3
+    name: subida
+    intent: 'Quatro compassos enchendo em vermelho, as movings acelerando.'
+    look:
+      movers: {move: pingpong, every: 1/2, colour: azul-gelo, faster_from: 71, faster_every: 1/4, position: Up}
+      matrix: {draw: fill-up, rate: 1/2, colour: vermelho, mirror: true}
+      hue: dark
+  - at: drop.4
+    name: chegada
+    role: arrival
+    intent: 'A chegada: filas vermelhas subindo, NW e SW alternando; movings revezando.'
+    look:
+      movers: {move: pingpong, every: 1/4, colour: azul-gelo, position: Dance Floor Centre}
+      matrix: {draw: rows-up, rate: 1/8, colour: vermelho, pingpong: true}
+      hue: {state: pulse, colour: vermelho}
+  - at: break.4
+    name: contraluz
+    intent: 'O Nate Dogg no break: contraluz, dois feixes frios cruzando a neblina.'
+    look: contraluz
+  - at: 128
+    name: espiral
+    intent: 'Espiral: os lados revezam cada vez mais rápido, do azul ao vermelho.'
+    gesture: spiral
+    with: {bars: [2, 2, 2, 3]}
+handover:
+  look: pico-pick-up
+  moment: pick-up
+  accents: [white, strobe]
+  until: outro.1

@@ -1,0 +1,39 @@
+track: Toman — Verano En NY
+story: >-
+  Verano en NY entra por baixo do drop final do TOO COOL, já no vermelho. No break longo a sala
+  apaga e espera; a chegada é um zigue-zague vermelho espelhado com a voz.
+budget: >-
+  Nenhum efeito raro: depois da virada, a sala respira antes do Pick Up.
+cues:
+  - at: break.1
+    name: break
+    intent: 'O break: um feixe para cima, Vorlanes apagadas, centro escuro.'
+    look:
+      movers: {move: hold, position: Up, colour: azul-gelo, level: 0.4}
+      matrix: off
+      hue: dark
+  - at: 54
+    name: subida
+    intent: 'Quatro compassos enchendo em vermelho, as movings acelerando.'
+    look:
+      movers: {move: pingpong, every: 1/2, colour: azul-gelo, faster_from: 56, faster_every: 1/4, position: Up}
+      matrix: {draw: fill-up, rate: 1bar, colour: vermelho, mirror: true}
+      hue: dark
+  - at: drop.2
+    name: chegada
+    role: arrival
+    intent: 'A chegada com a voz: zigue-zague vermelho espelhado, movings revezando.'
+    look:
+      movers: {move: pingpong, every: 1/4, colour: azul-gelo, position: Dance Floor Centre}
+      matrix: {draw: zigzag, rate: 1/8, colour: vermelho, mirror: true}
+      hue: {state: pulse, colour: vermelho}
+  - at: 74
+    name: groove
+    intent: 'Groove: zigue-zague azul, feixes varrendo de um lado ao outro.'
+    look:
+      movers: {move: sweep, every: 2bar, positions: [Stage Left, Stage Right], colour: azul-gelo, level: 0.8}
+      matrix: {draw: zigzag, rate: 1/8, colour: azul-profundo, mirror: true}
+      hue: {state: pulse, colour: vermelho}
+handover:
+  look: pulso-vermelho
+  until: end

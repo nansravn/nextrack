@@ -1,0 +1,58 @@
+track: Barbatuques — Baianá (Pablo Fierro Edit)
+story: >-
+  Baianá é o corpo: a percussão do Barbatuques sai do centro das Vorlanes pras bordas, como
+  palmas se espalhando. No break longo a sala respira; um compasso de breu e o drop do corpo
+  explode do centro, rápido.
+budget: >-
+  Breu 3 de 5 (c. 88). Sem fita branca e sem estrobo.
+cues:
+  - at: 43
+    name: break
+    intent: 'Quatro compassos: o centro apaga e as Vorlanes enchem devagar.'
+    look:
+      movers: off
+      matrix: {draw: fill-up, rate: 1bar, colour: azul-profundo, mirror: true}
+      hue: dark
+  - at: drop.1
+    name: chegada
+    role: arrival
+    intent: 'A chegada: o desenho sai do centro pras bordas em ciano, como palmas; movings revezando.'
+    look:
+      movers: {move: pingpong, every: 1/4, colour: azul-gelo, position: Dance Floor Centre}
+      matrix: {draw: centre-out, rate: 1/8, colour: ciano, mirror: true}
+      hue: {state: pulse, colour: carmim}
+  - at: break.1
+    name: break
+    intent: 'O break: filas subindo devagar, um feixe parado na pista, centro escuro.'
+    look:
+      movers: {move: hold, position: Dance Floor Centre, colour: azul-gelo, level: 0.4}
+      matrix: {draw: rows-up, rate: 1bar, colour: azul-profundo, mirror: true}
+      hue: dark
+  - at: drop.2 - 1
+    name: breu
+    intent: 'Um compasso de breu.'
+    look: breu
+  - at: drop.2
+    name: drop-do-corpo
+    intent: 'O drop do corpo: o centro das Vorlanes explode rápido; o coração bate.'
+    look:
+      movers: {move: pingpong, every: 1/4, colour: azul-gelo, position: Crossed Over}
+      matrix: {draw: centre-out, rate: 1/16, colour: azul-profundo, mirror: true}
+      hue: {state: pulse, colour: carmim}
+  - at: break.2
+    name: break-2
+    intent: 'Respiro: os feixes varrem devagar, Vorlanes apagadas.'
+    look:
+      movers: {move: sweep, every: 2bar, positions: [Up, Crossed Over], colour: azul-gelo, level: 0.5}
+      matrix: off
+      hue: dark
+  - at: drop.3
+    name: drop-final
+    intent: 'Último drop antes da entrega: o centro abre de novo, em azul.'
+    look:
+      movers: {move: pingpong, every: 1/4, colour: azul-gelo, position: Dance Floor Centre}
+      matrix: {draw: centre-out, rate: 1/8, colour: azul-profundo, mirror: true}
+      hue: {state: pulse, colour: carmim}
+handover:
+  look: respiracao-azul
+  until: 183

@@ -1,0 +1,116 @@
+track: PAWSA, Adventures Of Stevie V — Dirty Cash (Money Talks)
+story: >-
+  Dirty Cash fecha a noite gastando o que sobrou. A música para e volta o tempo todo, e a luz
+  para e volta junto: cada drop com um desenho, cada corte com a sala quase escura. O drop do c.
+  57 tem estrobo; o último drop tem o rolo de estrobo, a fita branca e a fita em flash. No fim,
+  só o coração fica aceso.
+budget: >-
+  Estrobo no c. 57 e o rolo final (c. 113-114). Fita branca 113.1 e o `flash` nos últimos
+  compassos: a única vez da noite.
+cues:
+  - at: build.1
+    name: subida
+    intent: 'Dois compassos enchendo em vermelho, o centro escuro.'
+    look:
+      movers: {move: pingpong, every: 1/2, colour: azul-gelo, position: Up}
+      matrix: {draw: fill-up, rate: 1/4, colour: vermelho, mirror: true}
+      hue: dark
+  - at: drop.3
+    name: chegada
+    role: arrival
+    intent: 'A chegada: a seta vermelha sobe; movings revezando.'
+    look:
+      movers: {move: pingpong, every: 1/4, colour: azul-gelo, position: Dance Floor Centre}
+      matrix: {draw: arrow-up, rate: 1/4, colour: vermelho, mirror: true}
+      hue: {state: pulse, colour: vermelho}
+  - at: break.3
+    name: money-talks
+    intent: 'A voz: um feixe parado na cabine, Vorlanes apagadas, centro escuro.'
+    look:
+      movers: {move: hold, position: DJ Booth, colour: azul-gelo, level: 0.5}
+      matrix: off
+      hue: dark
+  - at: drop.4
+    name: drop-estrobo
+    moment: dirty-cash
+    accents: [strobe]
+    intent: 'O drop maior: estrobo no 1, as Vorlanes batendo NW e SW alternando, movings piscando.'
+    look:
+      movers: {move: blink, every: 1/4, colour: vermelho, position: Crossed Over}
+      matrix: {draw: solid, rate: 1/4, colour: vermelho, pingpong: true}
+      hue: {state: pulse, colour: vermelho}
+  - at: break.4
+    name: corte
+    intent: 'Corte: só um feixe baixo.'
+    look:
+      movers: {move: hold, position: Down, colour: azul-gelo, level: 0.3}
+      matrix: off
+      hue: dark
+  - at: drop.5
+    name: drop
+    intent: 'Zigue-zague vermelho espelhado.'
+    look:
+      movers: {move: pingpong, every: 1/4, colour: azul-gelo, position: Dance Floor Centre}
+      matrix: {draw: zigzag, rate: 1/8, colour: vermelho, mirror: true}
+      hue: {state: pulse, colour: vermelho}
+  - at: break.5
+    name: break
+    intent: 'Break: feixes varrendo devagar, filas azuis subindo, centro escuro.'
+    look:
+      movers: {move: sweep, every: 2bar, positions: [Up, Crossed Over], colour: azul-gelo, level: 0.5}
+      matrix: {draw: rows-up, rate: 1bar, colour: azul-profundo, mirror: true}
+      hue: dark
+  - at: drop.6
+    name: drop
+    intent: 'Colunas vermelhas alternando, movings revezando.'
+    look:
+      movers: {move: pingpong, every: 1/4, colour: azul-gelo, position: Crossed Over}
+      matrix: {draw: columns, rate: 1/8, colour: vermelho, pingpong: true}
+      hue: {state: pulse, colour: vermelho}
+  - at: break.6
+    name: o-coracao-sozinho
+    intent: 'O break longo: só um feixe na pista e o coração batendo devagar em carmim.'
+    look:
+      movers: {move: hold, position: Dance Floor Centre, colour: azul-gelo, level: 0.4}
+      matrix: off
+      hue: {state: pulse, colour: carmim}
+  - at: drop.7
+    name: drop
+    intent: 'O centro abre em vermelho.'
+    look:
+      movers: {move: pingpong, every: 1/4, colour: azul-gelo, position: Dance Floor Centre}
+      matrix: {draw: centre-out, rate: 1/8, colour: vermelho, mirror: true}
+      hue: {state: pulse, colour: vermelho}
+  - at: break.7
+    name: corte
+    intent: 'O último corte: a sala quase escura.'
+    look:
+      movers: {move: hold, position: Down, colour: azul-gelo, level: 0.3}
+      matrix: off
+      hue: dark
+  - at: drop.8
+    name: final-rolo
+    moment: final
+    accents: [white, strobe-roll]
+    intent: 'O final: rolo de estrobo e a fita branca no 1; a seta sobe em vermelho.'
+    look:
+      movers: {move: blink, every: 1/8, colour: vermelho, position: Crossed Over}
+      matrix: {draw: arrow-up, rate: 1/8, colour: vermelho, mirror: true}
+      hue: {state: pulse, colour: vermelho}
+  - at: 115
+    name: final-flash
+    moment: final
+    intent: 'A fita branca em flash, a única vez da noite; tudo batendo junto.'
+    look:
+      movers: {move: blink, every: 1/4, colour: vermelho, position: Dance Floor Centre}
+      matrix: {draw: solid, rate: 1/4, colour: vermelho}
+      white: {flash: 1/4}
+      hue: {state: pulse, colour: vermelho}
+  - at: 120
+    name: o-coracao-fica
+    until: end
+    intent: 'A música acaba: tudo apaga, só o coração fica aceso em carmim.'
+    look:
+      movers: off
+      matrix: off
+      hue: {state: bright, colour: carmim}

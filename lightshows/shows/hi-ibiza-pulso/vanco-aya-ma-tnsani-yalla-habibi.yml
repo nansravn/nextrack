@@ -1,0 +1,32 @@
+track: Vanco, Aya — Ma Tnsani (Yalla Habibi)
+story: >-
+  Ma Tnsani entra cantando por baixo do Baianá. A chegada desce em filas, uma Vorlane de cada
+  vez; no break a voz de Aya fica com a sala quase escura, e o drop final cai em ciano.
+budget: >-
+  Nenhum efeito raro.
+cues:
+  - at: drop.1
+    name: chegada
+    role: arrival
+    intent: 'A chegada: filas descendo, NW e SW alternando; movings revezando.'
+    look:
+      movers: {move: pingpong, every: 1/2, colour: azul-gelo, position: Dance Floor Centre}
+      matrix: {draw: rows-down, rate: 1/4, colour: azul-profundo, pingpong: true}
+      hue: {state: pulse, colour: carmim}
+  - at: break.2
+    name: break-cantado
+    intent: 'A voz no break: filas subindo devagar, um feixe para cima, centro escuro.'
+    look:
+      movers: {move: hold, position: Up, colour: azul-gelo, level: 0.5}
+      matrix: {draw: rows-up, rate: 1bar, colour: azul-profundo, mirror: true}
+      hue: dark
+  - at: 76
+    name: o-grave-volta
+    intent: 'O grave volta antes do kick: filas caindo rápido em ciano, o coração volta.'
+    look:
+      movers: {move: pingpong, every: 1/4, colour: azul-gelo, position: Crossed Over}
+      matrix: {draw: rows-down, rate: 1/8, colour: ciano, pingpong: true}
+      hue: {state: pulse, colour: carmim}
+handover:
+  look: respiracao-azul
+  until: 109

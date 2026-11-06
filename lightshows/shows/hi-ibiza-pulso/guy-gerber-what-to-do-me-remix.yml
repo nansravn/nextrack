@@ -1,0 +1,37 @@
+track: Guy Gerber — What To Do (&ME Remix)
+story: >-
+  What To Do chega devagar por baixo do Akan. No break a voz aparece pela primeira vez e a sala
+  vira contraluz; a subida enche as Vorlanes e o drop desce em cascata, filas caindo de cima pra
+  baixo, como a melodia.
+budget: >-
+  Contraluz 2 de 3 (c. 163-172). Sem breu: o drop do c. 177 é aberto pela subida.
+cues:
+  - at: 163
+    name: a-voz-no-escuro
+    intent: 'A voz chega no escuro: contraluz, dois feixes frios cruzando.'
+    look: contraluz
+  - at: 173
+    name: subida
+    intent: 'As Vorlanes enchem rápido, as movings aceleram até o drop.'
+    look:
+      movers: {move: pingpong, every: 1/2, colour: azul-gelo, faster_from: 175, faster_every: 1/4, position: Up}
+      matrix: {draw: fill-up, rate: 1/2, colour: azul-profundo, mirror: true}
+      hue: dark
+  - at: drop.2
+    name: chegada
+    role: arrival
+    intent: 'A chegada: filas descendo em cascata, a melodia escorrendo pelas paredes.'
+    look:
+      movers: {move: pingpong, every: 1/4, colour: azul-gelo, position: Dance Floor Centre}
+      matrix: {draw: rows-down, rate: 1/8, colour: azul-profundo, mirror: true}
+      hue: {state: pulse, colour: carmim}
+  - at: 193
+    name: groove
+    intent: 'O groove assenta: cascata mais lenta e feixes varrendo.'
+    look:
+      movers: {move: sweep, every: 2bar, positions: [Dance Floor Centre, Up], colour: azul-gelo, level: 0.7}
+      matrix: {draw: rows-down, rate: 1/4, colour: ciano, mirror: true}
+      hue: {state: pulse, colour: carmim}
+handover:
+  look: respiracao-azul
+  until: end

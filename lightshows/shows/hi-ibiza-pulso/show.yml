@@ -1,0 +1,77 @@
+show_version: 1
+set: sets/hi-ibiza-pulso.md
+plan: lightshows/sets/hi-ibiza-pulso.md
+story: >-
+  Pulso: a noite é um corpo. O azul é o espaço, os feixes das movings cortando a neblina numa
+  sala escura; o vermelho é o coração, no lustre. O BPM é o batimento: começa em repouso, a 120
+  na Rapture, e termina acelerado, a 132 no Dirty Cash. Quanto mais a noite anda, mais rápido e
+  mais vermelho o coração bate.
+
+palette:
+  azul-profundo: '#0A2CFF'
+  azul-gelo: '#3A6BFF'
+  ciano: '#00B8FF'
+  violeta: '#6A1CFF'
+  carmim: '#B0001E'
+  vermelho: '#FF0A2A'
+
+looks:
+  # Os looks de entrega: tocam do G até o fim de uma faixa, e a ponte da seguinte os copia.
+  respiracao-azul:
+    movers: {move: sweep, every: 2bar, positions: [Dance Floor Centre, Crossed Over], colour: azul-gelo, level: 0.7}
+    matrix: {draw: rows-up, rate: 1bar, colour: azul-profundo, mirror: true}
+    hue: {state: pulse, colour: carmim}
+  aceleracao:
+    movers: {move: pingpong, every: 1/2, colour: violeta, positions: [Dance Floor Centre, Crossed Over, Up]}
+    matrix: {draw: rows-up, rate: 1/2, colour: azul-profundo, mirror: true}
+    hue: {state: pulse, colour: carmim}
+  pulso-vermelho:
+    movers: {move: pingpong, every: 1/4, colour: azul-gelo, position: Crossed Over}
+    matrix: {draw: rows-up, rate: 1/4, colour: vermelho, mirror: true}
+    hue: {state: pulse, colour: vermelho}
+  pico-pick-up:
+    movers: {move: blink, every: 1/4, colour: vermelho, position: Dance Floor Centre}
+    matrix: {draw: rows-down, rate: 1/16, colour: vermelho, mirror: true}
+    hue: {state: pulse, colour: vermelho}
+  pico-cant-decide:
+    extends: pico-pick-up
+    matrix: {draw: centre-out}
+  # Os gestos contados no orçamento.
+  breu: {movers: off, matrix: off, hue: dark}
+  breu-inicial: {extends: breu}
+  contraluz:
+    movers: {move: hold, position: Crossed Over, colour: azul-gelo, level: 0.35}
+    matrix: off
+    hue: dark
+
+gesture_defaults:
+  spiral:
+    rates: [1/2, 1/4, 1/8, 1/16]
+    colours: [azul-profundo, violeta, violeta, vermelho]
+    aims:
+      - [Crossed Over, Up, Dance Floor Centre]
+      - [Crossed Over, Up, Dance Floor Centre]
+      - Dance Floor Centre
+      - Dance Floor Centre
+
+bridge:
+  name: ponte
+  intent: 'Ponte: a mesma luz da música anterior, copiada camada por camada, até a chegada.'
+handover:
+  name: entrega
+  intent: 'Entrega: do G até o fim, o look que a próxima música copia na ponte.'
+
+rules:
+  budget:
+    breu: {max: 5}
+    spiral: {max: 3}
+    contraluz: {max: 3}
+    white-accent: {max: 5, moments: [abertura, yamore, virada, pick-up, final]}
+    white-flash: {max: 1, moments: [final]}
+    strobe: {max: 5, moments: [virada, pick-up, cant-decide, dirty-cash, final], from: 'PAWSA — Too Cool To Be Careless'}
+    uv: {max: 0}
+  total-dark: {only: [breu, breu-inicial]}
+  arrivals: {draw_differs: true}
+  movers-aim: true
+  matrix-not-cloned: {except_moments: [virada, final]}
+  exclusive: {keys: [spiral, breu], except_tracks: ['PAWSA — Too Cool To Be Careless']}
