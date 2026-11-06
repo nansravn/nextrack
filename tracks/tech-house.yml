@@ -251,3 +251,47 @@
   status: downloaded
   tags: [tech-house, remix, halloween]
   notes: "Versão curta do Cloonee Remix. Energia estimada sem ouvir: confira."
+
+- title: "Verano En NY"
+  artist: "Toman"
+  genre: tech-house
+  bpm: 126
+  key: 6A
+  energy: 8
+  duration: "4:05"
+  status: downloaded
+  tags: [tech-house]
+  notes: "Energia estimada sem ouvir: confira."
+
+- title: "PICK UP THE PHONE (feat. Nate Dogg) (Extended)"
+  artist: "PAWSA, Nate Dogg"
+  genre: tech-house
+  bpm: 129
+  key: 7B
+  energy: 8
+  duration: "5:59"
+  status: downloaded
+  tags: [tech-house, vocal]
+  notes: "Energia estimada sem ouvir: confira."
+
+- title: "Can't Decide"
+  artist: "Max Dean, Luke Dean, LOCKY"
+  genre: tech-house
+  bpm: 130
+  key: 1A
+  energy: 8
+  duration: "2:55"
+  status: downloaded
+  tags: [tech-house]
+  notes: "Energia estimada sem ouvir: confira."
+
+- title: "Dirty Cash (Money Talks)"
+  artist: "PAWSA, Adventures Of Stevie V"
+  genre: tech-house
+  bpm: 132
+  key: 5A
+  energy: 9
+  duration: "3:41"
+  status: downloaded
+  tags: [tech-house, vocal]
+  notes: "Energia estimada sem ouvir: confira."

@@ -34,3 +34,91 @@
   status: downloaded
   tags: [afro-house, vocal]
   notes: "Energia estimada sem ouvir: confira."
+
+- title: "The Akan"
+  artist: "Caiiro"
+  genre: afro-house
+  bpm: 120
+  key: 9A
+  energy: 6
+  duration: "6:26"
+  status: downloaded
+  tags: [afro-house, percussion, dark]
+  notes: "Energia estimada sem ouvir: confira."
+
+- title: "What To Do (&ME Remix)"
+  artist: "Guy Gerber"
+  genre: afro-house
+  bpm: 122
+  key: 5A
+  energy: 6
+  duration: "8:24"
+  status: downloaded
+  tags: [afro-house, melodic]
+  notes: "Energia estimada sem ouvir: confira."
+
+- title: "Trippy Yeah"
+  artist: "Jimi Jules, Black Coffee"
+  genre: afro-house
+  bpm: 123
+  key: 9A
+  energy: 7
+  duration: "3:58"
+  status: downloaded
+  tags: [afro-house, vocal]
+  notes: "Energia estimada sem ouvir: confira."
+
+- title: "Say What"
+  artist: "Rampa, Adam Port, &ME, chuala, Keinemusik"
+  genre: afro-house
+  bpm: 120
+  key: 8A
+  energy: 7
+  duration: "3:01"
+  status: downloaded
+  tags: [afro-house, vocal]
+  notes: "Energia estimada sem ouvir: confira."
+
+- title: "Baianá (Pablo Fierro Edit)"
+  artist: "Barbatuques"
+  genre: afro-house
+  bpm: 120
+  key: 7A
+  energy: 7
+  duration: "6:06"
+  status: downloaded
+  tags: [afro-house, br, percussion]
+  notes: "Edit afro house da percussão corporal; a versão tech house (Jack Back Club Mix) está no pool tech-house. Energia estimada sem ouvir: confira."
+
+- title: "Ma Tnsani (Yalla Habibi)"
+  artist: "Vanco, Aya"
+  genre: afro-house
+  bpm: 120
+  key: 12A
+  energy: 7
+  duration: "3:39"
+  status: downloaded
+  tags: [afro-house, vocal]
+  notes: "Energia estimada sem ouvir: confira."
+
+- title: "Yamore"
+  artist: "MoBlack, Salif Keita, Cesária Evora, Benja (NL), Franc Fala"
+  genre: afro-house
+  bpm: 120
+  key: 12A
+  energy: 7
+  duration: "4:07"
+  status: downloaded
+  tags: [afro-house, vocal]
+  notes: "Energia estimada sem ouvir: confira."
+
+- title: "Move"
+  artist: "Adam Port, Stryv, Keinemusik, oRSo, Malachiii"
+  genre: afro-house
+  bpm: 120
+  key: 1A
+  energy: 7
+  duration: "2:57"
+  status: downloaded
+  tags: [afro-house, vocal]
+  notes: "Energia estimada sem ouvir: confira."
