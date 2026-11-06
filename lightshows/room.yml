@@ -1,0 +1,123 @@
+# A sala nominal, em metros: x vai do oeste (0) ao leste, y do sul (0) ao norte (a frente
+# da sala é o norte) e z sobe a partir do chão. Os pontos de `fixtures`, `booth` e `targets`
+# são [x, y, z] dentro de `size`. `assumed: true` até o dono medir a sala e os equipamentos;
+# então os números mudam e `assumed` vira false. Os alvos são instruções de programação para o
+# dono criar as posições no SoundSwitch; nenhum relatório usa coordenadas.
+size: {x: 5.0, y: 4.0, z: 2.6}
+assumed: true
+fixtures:
+  mover-ne:  [5.0, 4.0, 2.3]
+  mover-se:  [5.0, 0.0, 2.3]
+  matrix-nw: [0.0, 4.0, 1.6]
+  matrix-sw: [0.0, 0.0, 1.6]
+  hue:       [2.5, 2.0, 2.2]
+  haze:      [5.0, 0.0, 0.3]
+booth: [2.5, 4.0, 1.2]
+aims:
+  centro-da-pista:
+    figure: "os dois feixes convergem no centro do chão"
+    preset: Dance Floor Centre
+    status: configured
+    targets: {mover-ne: [2.5, 2.0, 0.0], mover-se: [2.5, 2.0, 0.0]}
+  cruzado:
+    figure: "um X sobre a pista: o NE aponta para o lado SW e o SE para o lado NW, a cerca de 1,2 m"
+    preset: Crossed Over
+    status: configured
+    targets: {mover-ne: [0.5, 0.5, 1.2], mover-se: [0.5, 3.5, 1.2]}
+  coluna:
+    figure: "duas colunas verticais na neblina"
+    preset: Up
+    status: configured
+    targets: {mover-ne: [5.0, 4.0, 2.6], mover-se: [5.0, 0.0, 2.6]}
+  poca:
+    figure: "cada feixe desce no seu próprio canto"
+    preset: Down
+    status: configured
+    targets: {mover-ne: [4.5, 3.5, 0.0], mover-se: [4.5, 0.5, 0.0]}
+  cabine:
+    figure: "os dois feixes no DJ"
+    preset: DJ Booth
+    status: configured
+    targets: {mover-ne: [2.5, 4.0, 1.2], mover-se: [2.5, 4.0, 1.2]}
+  lado-oeste:
+    figure: "para o lado oeste (qual preset é qual lado: a confirmar, P2)"
+    preset: Stage Left
+    status: configured
+    targets: {mover-ne: [1.25, 2.0, 0.0], mover-se: [1.25, 2.0, 0.0]}
+  lado-leste:
+    figure: "para o lado leste (a confirmar, P2)"
+    preset: Stage Right
+    status: configured
+    targets: {mover-ne: [3.75, 2.0, 0.0], mover-se: [3.75, 2.0, 0.0]}
+  apice:
+    figure: "os dois se encontram meio metro acima do lustre: uma tenda de luz sobre o coração"
+    preset: Apex
+    status: pending
+    fallback: coluna
+    targets: {mover-ne: [2.5, 2.0, 2.6], mover-se: [2.5, 2.0, 2.6]}
+  leque:
+    figure: "o NE vai ao canto alto NW e o SE ao canto alto SW: a sala se abre"
+    preset: Fan Out
+    status: pending
+    fallback: coluna
+    targets: {mover-ne: [0.0, 4.0, 2.4], mover-se: [0.0, 0.0, 2.4]}
+  varal:
+    figure: "os dois nivelados acima das cabeças, rumo às Vorlanes"
+    preset: Parallel West
+    status: pending
+    fallback: cruzado
+    targets: {mover-ne: [0.0, 3.0, 2.2], mover-se: [0.0, 1.0, 2.2]}
+  rasante:
+    figure: "cruzam a cerca de 0,9 m, abaixo da altura dos olhos"
+    preset: Low Cross
+    status: pending
+    fallback: poca
+    targets: {mover-ne: [0.0, 0.5, 0.9], mover-se: [0.0, 3.5, 0.9]}
+  anel-1:
+    figure: "oito pontos pelas paredes a cerca de 2,2 m, no sentido horário a partir do centro da parede norte; um padrão dá aos dois móveis pontos opostos (ponto 1)"
+    preset: Ring 1
+    status: pending
+    fallback: cruzado
+    targets: {mover-ne: [2.5, 4.0, 2.2], mover-se: [2.5, 0.0, 2.2]}
+  anel-2:
+    figure: "oito pontos pelas paredes a cerca de 2,2 m, no sentido horário a partir do centro da parede norte; um padrão dá aos dois móveis pontos opostos (ponto 2)"
+    preset: Ring 2
+    status: pending
+    fallback: cruzado
+    targets: {mover-ne: [4.75, 4.0, 2.2], mover-se: [0.25, 0.0, 2.2]}
+  anel-3:
+    figure: "oito pontos pelas paredes a cerca de 2,2 m, no sentido horário a partir do centro da parede norte; um padrão dá aos dois móveis pontos opostos (ponto 3)"
+    preset: Ring 3
+    status: pending
+    fallback: cruzado
+    targets: {mover-ne: [5.0, 2.0, 2.2], mover-se: [0.0, 2.0, 2.2]}
+  anel-4:
+    figure: "oito pontos pelas paredes a cerca de 2,2 m, no sentido horário a partir do centro da parede norte; um padrão dá aos dois móveis pontos opostos (ponto 4)"
+    preset: Ring 4
+    status: pending
+    fallback: cruzado
+    targets: {mover-ne: [4.75, 0.0, 2.2], mover-se: [0.25, 4.0, 2.2]}
+  anel-5:
+    figure: "oito pontos pelas paredes a cerca de 2,2 m, no sentido horário a partir do centro da parede norte; um padrão dá aos dois móveis pontos opostos (ponto 5)"
+    preset: Ring 5
+    status: pending
+    fallback: cruzado
+    targets: {mover-ne: [2.5, 0.0, 2.2], mover-se: [2.5, 4.0, 2.2]}
+  anel-6:
+    figure: "oito pontos pelas paredes a cerca de 2,2 m, no sentido horário a partir do centro da parede norte; um padrão dá aos dois móveis pontos opostos (ponto 6)"
+    preset: Ring 6
+    status: pending
+    fallback: cruzado
+    targets: {mover-ne: [0.25, 0.0, 2.2], mover-se: [4.75, 4.0, 2.2]}
+  anel-7:
+    figure: "oito pontos pelas paredes a cerca de 2,2 m, no sentido horário a partir do centro da parede norte; um padrão dá aos dois móveis pontos opostos (ponto 7)"
+    preset: Ring 7
+    status: pending
+    fallback: cruzado
+    targets: {mover-ne: [0.0, 2.0, 2.2], mover-se: [5.0, 2.0, 2.2]}
+  anel-8:
+    figure: "oito pontos pelas paredes a cerca de 2,2 m, no sentido horário a partir do centro da parede norte; um padrão dá aos dois móveis pontos opostos (ponto 8)"
+    preset: Ring 8
+    status: pending
+    fallback: cruzado
+    targets: {mover-ne: [0.25, 4.0, 2.2], mover-se: [4.75, 0.0, 2.2]}
