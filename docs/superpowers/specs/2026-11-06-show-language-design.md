@@ -255,6 +255,10 @@ has a handover, the map has a hot cue `B` and the track file does not say `bridg
 the compiler adds a section from `B` to the bar before the first cue (or before the handover,
 or to the map's end) with the show's bridge `name` and `intent` and exactly the layers of the
 previous track's handover look, after merging and palette resolution, without its accents.
+A bar number in the outgoing track means nothing in the incoming one. So a handover whose
+layers hold bar-numbered values (`faster_from`, or raw `white.accent`, `strobe.hit`,
+`strobe.roll`) is a finding at the handover when a bridge would copy it. The message says to
+move them to a cue before the handover, or to write `bridge: false` in the next track.
 A first cue at or before `B` is a finding then: there is no room for the bridge. When the
 previous track hands over but this map has no `B`, that is a finding too; the message says
 to add the cue in rekordbox and run `nextrack_map.py cues`, or to write `bridge: false`.
