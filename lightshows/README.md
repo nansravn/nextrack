@@ -1,4 +1,4 @@
-# lightshows/ — the rig, per-track choreographies and show plans
+# lightshows/ — the rig, shows, per-track choreographies and show plans
 
 The room's lights are driven by SoundSwitch, which writes an automatic script for every
 track (the *autoscript*). This folder holds what makes that script yours:
@@ -24,6 +24,8 @@ Prose in the files (`story`, `intent`, plan text) is pt-BR; keys and values are 
 
 1. **Write the choreography** (by hand, or with the agent skill for it) from the track's
    structure (its [musical map](#musical-maps), when it has one) and the show plan's budget.
+   For a set written as a [show](shows/README.md), write the show's track file instead and
+   run `uv run scripts/nextrack_show.py build <show-id>`: it generates the choreography.
 2. **See it:** `uv run scripts/nextrack_lights.py render "<track>" --choreo lightshows/tracks/<slug>.yml -o /tmp/sim.html`
    writes the room simulator, before and after, on a timeline (add the audio file in the
    page to hear it). Nothing is written to SoundSwitch.
@@ -359,7 +361,9 @@ Free choices: XR_DMX_Visualiser, Capture (Student edition) and QLC+ 5. Details i
 ## Schemas checked by the validator
 
 Checked by `check_repo.py` (rules `lightshow-rig`, `lightshow-track`, `lightshow-plan`,
-`musical-map`); the checks live in `scripts/lightshow.py` and `scripts/musical_map.py`.
+`musical-map`); the checks live in `scripts/lightshow.py` and `scripts/musical_map.py`. Shows
+have their own rules (`show-source`, `show-rules`, `show-compiled`), described in
+[shows/README.md](shows/README.md).
 
 **`rig.yml`** (optional): exactly `room`, `fixtures` and `matrix`, with the keys above;
 `kind` and `corner` from their lists; `matrix.white_max` a number in (0, 1]; a fixture of

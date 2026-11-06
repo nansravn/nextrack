@@ -87,6 +87,7 @@ Because everything is documented, planning a gig becomes assembling:
 2. Assemble [blocks](../blocks/) along that arc with the right
    [energy shape](energy-arcs.md).
 3. Group blocks into a [set](../sets/) for the venue.
-4. (Later) attach a [light scene](../lightshows/) to each block.
+4. Give the set a [light show](../lightshows/): a show plan, and the show that
+   generates each track's choreography.
 
 Then you just... play — fluctuating within each genre pool as the room tells you.

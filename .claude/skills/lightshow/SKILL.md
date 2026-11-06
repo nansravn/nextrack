@@ -136,7 +136,9 @@ the owner approves; on amendments, send the revised proposal.
 ## 5. Write, check, preview, compile
 
 1. Write `lightshows/tracks/<artist-title-slug>.yml` (ASCII kebab-case, as the example):
-   `story`, `budget` and every `intent` in pt-BR; keys and values in English.
+   `story`, `budget` and every `intent` in pt-BR; keys and values in English. For a track of
+   a show, write its track file under `lightshows/shows/<show-id>/` instead and run
+   `uv run scripts/nextrack_show.py build <show-id>`; the steps below then use the generated file.
 2. `uv run scripts/check_repo.py`; fix every finding in the YAML.
 3. `uv run scripts/nextrack_lights.py render <guid8> --choreo lightshows/tracks/<slug>.yml -o <scratch>/<slug>.html`.
    Give the owner the path (on WSL also `wslpath -w <file>`); the page toggles before/after.

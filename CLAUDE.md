@@ -3,9 +3,10 @@
 ## What this is
 
 NEXTRACK is a documentation-first DJ "set planning as code" repo: Markdown and
-YAML, plus one Python CLI (`scripts/nextrack_tags.py`) and a validator
-(`scripts/check_repo.py`). It documents what the owner plays; the audio lives on
-the owner's drive, outside the repo.
+YAML, plus Python tools in `scripts/` (the library tool `nextrack_tags.py`, the
+lights `nextrack_lights.py`, the musical maps `nextrack_map.py`, the shows
+`nextrack_show.py`) and a validator (`scripts/check_repo.py`). It documents what
+the owner plays; the audio lives on the owner's drive, outside the repo.
 
 Hierarchy: **Genre** (graph node) → **Track** (pool entry) → **Block**
 (time-boxed themed sequence) → **Radio** (program of blocks) → **Set** (full gig).

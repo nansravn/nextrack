@@ -6,6 +6,7 @@ for checking that the repo agrees with itself.
 - [`nextrack_tags.py`](#nextrack_tagspy) — retag and rename the audio library, pull BPM/key into `tracks/`.
 - [`nextrack_lights.py`](#nextrack_lightspy) — read SoundSwitch's light scripts, simulate the room, compile choreographies onto a track's script.
 - [`nextrack_map.py`](#nextrack_mappy) — make the musical map of a track (Demucs, SoundSwitch tempo map, rekordbox cues) and print a playlist's set timeline.
+- [`nextrack_show.py`](#nextrack_showpy) — build a show (the show language) into its choreographies, report the night, list the vocabulary.
 - [`check_repo.py`](#check_repopy) — validate the graph, docs, pools and blocks against each other.
 
 ## `nextrack_tags.py`
