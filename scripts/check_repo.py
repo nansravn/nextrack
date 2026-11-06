@@ -42,6 +42,8 @@ except ImportError:
 
 import lightshow
 import musical_map
+import show_language
+import show_rules
 
 GRAPH_PATH = "genres/graph.yml"
 RIG_PATH = "lightshows/rig.yml"
@@ -118,6 +120,8 @@ class Repo:
     choreos: list[tuple[str, object]] = field(default_factory=list)  # lightshows/tracks/*.yml
     plans: list[Block] = field(default_factory=list)  # lightshows/sets/*.md
     maps: list[tuple[str, object]] = field(default_factory=list)  # lightshows/maps/*.yml
+    shows: list[show_language.ShowSource] = field(default_factory=list)  # lightshows/shows/*/
+    _show_results: list | None = field(default=None, repr=False, compare=False)
 
     def node_ids(self) -> set[str]:
         return {n["id"] for n in self.nodes if isinstance(n.get("id"), str)}
@@ -364,6 +368,45 @@ def _load_lightshows(root: Path, errors: list[Finding]):
     return rig, choreos, plans, maps
 
 
+SHOWS_DIR = "lightshows/shows"
+
+
+def load_show_folder(root: Path, folder: Path, errors: list[Finding]) -> show_language.ShowSource | None:
+    """The show in `folder`: `show.yml` and every other `*.yml` there, sorted. `folder` may lie
+    outside `root`; its label is then the folder as given. A file that fails to parse is
+    reported in `errors` and sets `parse_failed`. None when there is no `show.yml`."""
+    if not (folder / "show.yml").is_file():
+        return None
+    try:
+        label = folder.relative_to(root).as_posix()
+    except ValueError:
+        label = str(folder)
+    show: object = None
+    tracks: dict[str, object] = {}
+    failed = False
+    for path in sorted(folder.glob("*.yml")):
+        try:
+            data = _parse(f"{label}/{path.name}", _read(folder, path.name))
+        except _LoadError as exc:
+            errors.append(exc.finding)
+            failed = True
+            continue
+        if path.name == "show.yml":
+            show = data
+        else:
+            tracks[path.name] = data
+    return show_language.ShowSource(folder.name, label, show, tracks, failed)
+
+
+def _load_shows(root: Path, errors: list[Finding]) -> list[show_language.ShowSource]:
+    shows = []
+    for folder in sorted(p for p in (root / SHOWS_DIR).glob("*") if p.is_dir()):
+        source = load_show_folder(root, folder, errors)
+        if source is not None:
+            shows.append(source)
+    return shows
+
+
 def load_repo(root: Path) -> Repo:
     """Load the graph, the pools, the blocks and the lightshow files. Never raises on bad
     content."""
@@ -372,7 +415,8 @@ def load_repo(root: Path) -> Repo:
     pools = _load_pools(root, errors)
     blocks = _load_blocks(root, errors)
     rig, choreos, plans, maps = _load_lightshows(root, errors)
-    return Repo(root, nodes, pools, blocks, errors, graph_ok, rig, choreos, plans, maps)
+    shows = _load_shows(root, errors)
+    return Repo(root, nodes, pools, blocks, errors, graph_ok, rig, choreos, plans, maps, shows)
 
 
 # ---------------------------------------------------------------------- rules --
@@ -1319,6 +1363,124 @@ def lightshow_plan(repo: Repo) -> Iterable[Finding]:
             continue
         for problem in lightshow.problems_plan(plan.front, repo.root):
             yield Finding(plan.path, plan.front["__line__"], "lightshow-plan", problem)
+
+
+# ---- shows (lightshows/shows/*/) ----
+#
+# The compiler and the show rules are pure (show_language, show_rules); here the repo gives
+# them their inputs and the findings get their rule ids. A show with a file that did not
+# parse is left out: the loader's parse-error is enough. None of these rules reads node ids
+# or edges, so none depends on `graph_ok`.
+
+
+def show_inputs(repo: Repo, source: show_language.ShowSource) -> show_language.ShowInputs:
+    """What the repo gives a show: the set's track order (set -> blocks -> tracklists), the
+    valid maps by file stem, and `same_track`."""
+    maps = {Path(path).stem: show_language.clean(data) for path, data in repo.maps
+            if not musical_map.problems_map(data)}
+    set_tracks: list[tuple[str, str]] | None = []
+    problem = None
+    rel = source.show.get("set") if isinstance(source.show, dict) else None
+    if not isinstance(rel, str):
+        set_tracks, problem = None, "the set is not a path"
+    elif not (repo.root / rel).is_file():
+        set_tracks, problem = None, f"set {rel!r} does not exist"
+    else:
+        try:
+            text = read_text(repo.root / rel)
+        except (UnicodeDecodeError, OSError):
+            text = None
+            set_tracks, problem = None, f"set {rel!r} cannot be read"
+        by_path = {b.path: b for b in repo.blocks}
+        for block_id in set_block_ids(text) if text is not None else []:
+            block = by_path.get(f"blocks/{block_id}.md")
+            if block is None:
+                set_tracks, problem = None, f"set {rel!r} links block {block_id!r}, which has no blocks/{block_id}.md"
+                break
+            set_tracks.extend((artist, title) for _, artist, title in tracklist_entries(block))
+    return show_language.ShowInputs(maps, set_tracks, problem, same_track)
+
+
+def show_results(repo: Repo) -> list:
+    """`(source, compiled | None, source findings, rule findings)` per show, computed once
+    per Repo. Shows with `parse_failed` are left out."""
+    if repo._show_results is None:
+        repo._show_results = [
+            (source, *show_rules.evaluate_show(source, show_inputs(repo, source)))
+            for source in repo.shows if not source.parse_failed
+        ]
+    return repo._show_results
+
+
+def _show_finding(f: show_language.ShowFinding, rule_id: str) -> Finding:
+    return Finding(f.path, f.line, rule_id, f.message)
+
+
+@rule("show-source")
+def show_source_rule(repo: Repo) -> Iterable[Finding]:
+    for _, _, found, _ in show_results(repo):
+        for f in found:
+            yield _show_finding(f, "show-source")
+
+
+@rule("show-rules")
+def show_rules_rule(repo: Repo) -> Iterable[Finding]:
+    for _, _, _, found in show_results(repo):
+        for f in found:
+            yield _show_finding(f, "show-rules")
+
+
+@rule("show-compiled")
+def show_compiled(repo: Repo) -> Iterable[Finding]:
+    results = show_results(repo)
+    folders = {source.folder: (source, compiled) for source, compiled, _, _ in results}
+    loaded = {source.folder for source in repo.shows}
+    owners: dict[str, list[tuple[str, str]]] = {}  # slug -> [(show id, track file path)]
+    for source, compiled, found, _ in results:
+        if compiled is None or found:
+            continue
+        for track in compiled.tracks:
+            owners.setdefault(track.slug, []).append((source.show_id, track.path))
+            rel = f"lightshows/tracks/{track.slug}.yml"
+            path = repo.root / rel
+            if not path.is_file():
+                yield Finding(rel, 0, "show-compiled",
+                              f"missing: generated from {source.folder}; run uv run scripts/nextrack_show.py "
+                              f"build {source.show_id}")
+                continue
+            try:
+                actual = read_text(path)
+            except (UnicodeDecodeError, OSError):
+                continue  # the loader reported it
+            if show_language.owner_of(actual) not in (None, source.folder):
+                continue  # another header: the owner clauses below report it
+            if actual != show_language.emit_choreography(track.choreography, source.folder):
+                yield Finding(rel, 0, "show-compiled",
+                              f"differs from what {source.folder} compiles to; run uv run scripts/nextrack_show.py "
+                              f"build {source.show_id}")
+    for slug, held in owners.items():
+        if len(held) > 1:
+            names = ", ".join(sorted(show_id for show_id, _ in held))
+            for show_id, track_path in held:
+                yield Finding(track_path, 0, "show-compiled",
+                              f"track {slug!r} is owned by more than one show ({names}); keep it in one")
+    for path in sorted((repo.root / "lightshows/tracks").glob("*.yml")):
+        try:
+            owner = show_language.owner_of(read_text(path))
+        except (UnicodeDecodeError, OSError):
+            continue
+        if owner is None:
+            continue
+        rel = path.relative_to(repo.root).as_posix()
+        if owner not in loaded:
+            yield Finding(rel, 0, "show-compiled",
+                          f"owned by {owner}, which does not exist: delete this file or restore the show")
+        elif owner in folders:
+            source, compiled = folders[owner]
+            if compiled is not None and path.stem not in {t.slug for t in compiled.tracks}:
+                yield Finding(rel, 0, "show-compiled",
+                              f"owned by {owner}, which does not compile track {path.stem!r}: "
+                              f"delete this file or add the track to the show")
 
 
 # ------------------------------------------------------------------------ run --
