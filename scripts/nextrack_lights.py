@@ -629,14 +629,19 @@ def _yaml_checked(path: Path, problems) -> dict | None:
     return None if found else data
 
 
-def _find_map(repo_root: Path, guid: str, tempo) -> dict | None:
-    """The musical map of the track `guid` in `<repo>/lightshows/maps/`, or None when there is
-    none, it does not parse, or its tempo anchors differ from the script's (a warning then).
-    The first map (by file name) whose `soundswitch` is the GUID is the one used."""
+def _find_map(repo_root: Path, ref: ssf.TrackRef, tempo) -> dict | None:
+    """The musical map of the track `ref` in `<repo>/lightshows/maps/`, or None when there is
+    none, it does not parse, or it is stale (a warning then): its tempo anchors differ from the
+    script's, or no map has the script's GUID but one names the same track (the script was
+    redone). The first map (by file name) whose `soundswitch` is the GUID is the one used."""
+    same_track = False
     for path in sorted((repo_root / "lightshows" / "maps").glob("*.yml")):
         try:
             data = mm.load_map(path)
-            if not (isinstance(data, dict) and str(data["soundswitch"]).lower() == guid.lower()):
+            if not isinstance(data, dict):
+                continue
+            if str(data["soundswitch"]).lower() != ref.guid.lower():
+                same_track = same_track or _names(data, ref.artist, ref.title)
                 continue
             stored = [(int(a[0]), float(a[1])) for a in data["grid"]["anchors"]]
         except (OSError, yaml.YAMLError, KeyError, TypeError, ValueError, IndexError):
@@ -647,6 +652,9 @@ def _find_map(repo_root: Path, guid: str, tempo) -> dict | None:
             return None
         if not mm.problems_map(data):
             return data
+    if same_track:
+        print("warning: the musical map is stale (script GUID changed); run nextrack_map.py analyze",
+              file=sys.stderr)
     return None
 
 
@@ -665,7 +673,7 @@ def cmd_render(project: ssf.Project, args) -> int:
     venues, presets = project.venues()
     data = sim_data(script, venues, presets, rig, choreo, duration_ms=ref.duration_ms or 0,
                     title=f"{ref.artist} — {ref.title}",
-                    musical_map=_find_map(Path(args.repo), ref.guid, script.tempo))
+                    musical_map=_find_map(Path(args.repo), ref, script.tempo))
     page = page_html(data)
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)

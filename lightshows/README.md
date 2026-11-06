@@ -301,7 +301,8 @@ or when the track is not in its collection, `hot_cues` is `null` and `hot_cues_n
 
 **Stale maps.** A map is stale when the audio file's hash, the script's GUID or its tempo
 anchors differ from the stored ones. `analyze` redoes a stale map; `render` warns and does not
-draw a map whose anchors differ from the script's.
+draw a map whose anchors differ from the script's, nor, when no map has the script's GUID, the
+map of the same track made from an older script.
 
 **How a choreography reads a map.** Cut sections at the map's drops and breaks instead of
 guessing them from the autoscript's 8-bar phrases (`nextrack_map.py show <track>`; for a set,
