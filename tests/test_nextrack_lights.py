@@ -239,6 +239,19 @@ def test_render_warns_on_a_stale_map(make_project, tmp_path, capsys):
     assert blob(out.read_text(encoding="utf-8"))["map"] is None
 
 
+def test_render_warns_when_the_script_guid_changed(make_project, tmp_path, capsys):
+    d = a_map()
+    d["soundswitch"] = "11111111-2222-3333-4444-555555555555"  # made from an older script
+    repo = map_repo(tmp_path, d)
+    project = make_project()
+    code, err, out = render(capsys, project, tmp_path, "--repo", str(repo))
+    assert code == 0, err
+    assert "warning: the musical map is stale (script GUID changed); run nextrack_map.py analyze" in err
+    assert blob(out.read_text(encoding="utf-8"))["map"] is None
+    code, err, out = render(capsys, project, tmp_path, "--repo", str(repo), track="Voa Voa")
+    assert code == 0 and "stale" not in err  # another track's map says nothing
+
+
 def test_render_with_choreo_adds_the_compiled_after(make_project, make_script, tmp_path, capsys):
     project = _happier_project(make_project, make_script)
     code, err, out = render(capsys, project, tmp_path, "--choreo", str(HAPPIER))

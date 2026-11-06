@@ -159,8 +159,10 @@ print the **manual cues** (things SoundSwitch must be told by hand) after the re
 
 `render` also draws the track's musical map (sections, five voice lanes, drops, hot cues)
 under the timeline when `lightshows/maps/` of `--repo` (default: this repo) holds a valid
-map whose `soundswitch` is the track's GUID. A map whose tempo anchors differ from the
-script's is skipped, with a warning; without a map the page is unchanged.
+map whose `soundswitch` is the track's GUID. A stale map is skipped with a warning: its tempo
+anchors differ from the script's (`stale (grid changed)`), or no map has the GUID but one
+names the same track, so the script was redone (`stale (script GUID changed)`); either way
+`nextrack_map.py analyze` redoes it. Without a map the page is unchanged.
 
 ### Reading `dump`
 
