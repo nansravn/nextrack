@@ -487,6 +487,9 @@ ONSET_WIN_MS = 3.0     # energy window of the onset envelope
 ONSET_HOP_MS = 1.0
 ONSET_FLOOR_DB = 27.0  # an onset this far under the strongest one is not reported
 ONSET_MIN_GAP_MS = 30.0
+KICK_ATTACK_FLOOR_DB = 12.0  # a drum rise this far under the drums' steepest is no kick attack
+KICK_BODY_MS = 50.0    # a kick's strength is the drums' peak level within this long after its attack
+KICK_ATTACK_BACK_MS = 100.0  # a kick's drum attack is looked for this far before its low-end onset
 ONSET_ATTACK_MS = 10.0  # strength is the envelope rise over this long after the onset
 PITCH_SR = 11025       # the pitch tracker decimates to about this rate
 PITCH_MIN_HZ = 70.0
@@ -504,28 +507,48 @@ def _mono(x):
     return x if x.ndim == 1 else np.sqrt(np.mean(x ** 2, axis=1))  # power over channels
 
 
+def _onset_env(x, sr: int):
+    """`(env, starts, win, hop)`: the short-window RMS of mono `x`, the sample where each window
+    starts and the window and hop in samples; `env` is None when `x` is too short."""
+    import numpy as np
+
+    win = max(2, int(round(ONSET_WIN_MS * sr / 1000)))
+    hop = max(1, int(round(ONSET_HOP_MS * sr / 1000)))
+    if len(x) < win + hop:
+        return None, None, win, hop
+    csum = np.concatenate([[0.0], np.cumsum(x ** 2)])
+    starts = np.arange(0, len(x) - win + 1, hop)
+    return np.sqrt((csum[starts + win] - csum[starts]) / win), starts, win, hop
+
+
+def _strength_digits(best: dict, steps: int) -> str:
+    """The onset string for `best` (step -> rise): 9 for the largest, one less per 3 dB below it."""
+    import numpy as np
+
+    digits = ["."] * steps
+    for step, rise in best.items():
+        below = 20 * np.log10(max(best.values()) / rise)
+        digits[step] = str(max(1, min(9, 9 - int(below // DB_PER_DIGIT))))
+    return "".join(digits)
+
+
 def onset_digits(x, sr: int, edges_ms) -> tuple[str, list[float]]:
     """Per step `.` or `1`-`9`: onset strength, 9 for the track's strongest onset and one less
     per 3 dB below it. Onsets are peaks of the positive rise of a short-window energy envelope;
     each is quantised to the nearest step (the strongest wins a step). Also returns the onset
-    times in ms."""
+    times in ms. For `perc` (the drums above `KICK_HZ`, kick clicks included) this is the
+    onset string as is; `kick` goes through `kick_onsets`."""
     import numpy as np
 
     edges = np.asarray(edges_ms, dtype=np.float64)
     steps = len(edges) - 1
-    digits = ["."] * steps
-    x = _mono(x)
-    win = max(2, int(round(ONSET_WIN_MS * sr / 1000)))
-    hop = max(1, int(round(ONSET_HOP_MS * sr / 1000)))
-    if steps < 1 or len(x) < win + hop:
-        return "".join(digits), []
-    csum = np.concatenate([[0.0], np.cumsum(x ** 2)])
-    starts = np.arange(0, len(x) - win + 1, hop)
-    env = np.sqrt((csum[starts + win] - csum[starts]) / win)
+    env, starts, _, hop = _onset_env(_mono(x), sr)
+    if steps < 1 or env is None:
+        return "." * max(steps, 0), []
     flux = np.maximum(0.0, np.diff(env, prepend=0.0))
     top = flux.max()
     if top <= 0:
-        return "".join(digits), []
+        return "." * steps, []
     gap = max(1, int(round(ONSET_MIN_GAP_MS * sr / 1000 / hop)))
     reach = max(1, int(round(ONSET_ATTACK_MS * sr / 1000 / hop)))
     floor = top * 10 ** (-ONSET_FLOOR_DB / 20)
@@ -542,10 +565,41 @@ def onset_digits(x, sr: int, edges_ms) -> tuple[str, list[float]]:
         times.append(float(t))
         rise = env[i:i + reach].max() - (env[i - 1] if i else 0.0)  # the whole attack, not one hop
         best[step] = max(best.get(step, 0.0), rise)
-    for step, s in best.items():
-        below = 20 * np.log10(max(best.values()) / s)
-        digits[step] = str(max(1, min(9, 9 - int(below // DB_PER_DIGIT))))
-    return "".join(digits), times
+    return _strength_digits(best, steps), times
+
+
+def kick_onsets(drums, kick, sr: int, edges_ms) -> tuple[str, list[float]]:
+    """Like `onset_digits` for the kick, but timed at the drum attack. A real kick's energy below
+    `KICK_HZ` builds after the attack, so the low band alone reads late. The onsets `onset_digits`
+    finds on `kick` say that a kick happened; each is moved back to the steepest rise of the
+    full `drums` stem's short-window energy within `KICK_ATTACK_BACK_MS` before it. An onset with
+    no clear rise there (under `KICK_ATTACK_FLOOR_DB` below the drums' steepest) is the low end
+    ringing, not a hit, and is dropped, as is one on an attack already counted. Strength is the
+    drums' peak level within `KICK_BODY_MS` after the attack, 9 for the strongest and one less per 3 dB below it. Returns the
+    string and the times in ms."""
+    import numpy as np
+
+    edges = np.asarray(edges_ms, dtype=np.float64)
+    steps = len(edges) - 1
+    _, found = onset_digits(kick, sr, edges)
+    env, starts, _, hop = _onset_env(_mono(drums), sr)
+    if env is None or not found:
+        return "." * steps, []
+    flux = np.maximum(0.0, np.diff(env, prepend=0.0))
+    floor = flux.max() * 10 ** (-KICK_ATTACK_FLOOR_DB / 20)
+    back = max(1, int(round(KICK_ATTACK_BACK_MS * sr / 1000 / hop)))
+    reach = max(1, int(round(KICK_BODY_MS * sr / 1000 / hop)))
+    times, best = [], {}
+    for t in found:
+        i = min(len(flux) - 1, int(round(t * sr / 1000 / hop)))
+        a = max(0, i - back)
+        j = a + int(np.argmax(flux[a:i + 1]))
+        if flux[j] < floor or flux[j] <= 0 or (times and starts[j] * 1000 / sr == times[-1]):
+            continue
+        times.append(float(starts[j] * 1000 / sr))
+        step = min(steps - 1, int(np.argmin(np.abs(edges - times[-1]))))
+        best[step] = max(best.get(step, 0.0), env[j:j + reach].max())
+    return _strength_digits(best, steps), times
 
 
 def _yin_hz(frame, sr: float, tau_min: int, tau_max: int):
@@ -658,12 +712,12 @@ def phrases(step_levels: str, register: str) -> list[dict]:
 FULL_DB = 6.0           # the low end (kick + bass) within this of its loud level: "full"
 WELL_BELOW_DB = 9.0     # the low end at least this far under its loud level: well below full
 BREAK_MIN_BARS = 2
+MIN_DROP_BARS = 2       # fewer full bars than this between two breaks are a stab in one break
 BUILD_MIN_BARS = 2
 BUILD_MAX_BARS = 16
 BUILD_RISE_DB = 1.0     # a build bar is this much louder (perc + other) than the bar before
 DROP_FLOOR_DB = 60.0    # kick + bass levels are floored this far under the loudest bar
 SILENCE_DB = 40.0       # a bar this far under the mix's loud level is a silence
-ATTACK_GAP_MS = 80      # onsets closer than this to the one before are a kick's ripple
 CUE_NEAR_MS = 30        # a hot cue farther than this from a beat gets its offset written
 
 
@@ -677,7 +731,8 @@ def sections_and_drops(bar_db: dict) -> tuple[list[dict], list[dict]]:
     """Sections (`intro`, `groove`, `break`, `build`, `drop`, `outro`) and drops from the bar
     dB of the voices. The low end is the power sum of kick and bass; a bar is full when it is
     within `FULL_DB` of the low end's loud level and well below full when it is at least
-    `WELL_BELOW_DB` under it (a filtered bass and kick count). A break is >= 2 well-below-full bars between full bars;
+    `WELL_BELOW_DB` under it (a filtered bass and kick count). A break is >= 2 well-below-full bars between full bars (a run of fewer than `MIN_DROP_BARS`
+    bars between two breaks is a stab and joins them into one break);
     the track's last full bar ends its groove/drop and the rest is the outro; before the first
     full bar is the intro (none when bar 1 is full: a groove). A break's trailing bars where
     perc + other rise bar over bar (2 to 16, never its first bar) are the build. A drop starts
@@ -707,6 +762,12 @@ def sections_and_drops(bar_db: dict) -> tuple[list[dict], list[dict]]:
             i = j + 1
         else:
             i += 1
+    merged = []
+    for a, b in breaks:  # a run of bars between two breaks shorter than a drop is part of the break
+        if merged and a - merged[-1][1] - 1 < MIN_DROP_BARS:
+            a = merged.pop()[0]
+        merged.append((a, b))
+    breaks = merged
     rise = _power_sum_db(bar_db["perc"], bar_db["other"])
     sections, drops = [], []
 
@@ -770,16 +831,11 @@ def _nearest_beat(ms: float, grid) -> tuple[int, int, float]:
 
 def grid_offset_ms(onset_ms, grid) -> float:
     """Median signed distance from each attack to the nearest beat; 0 when there are none.
-    Onsets before the first anchor are left out, and so is an onset less than
-    `ATTACK_GAP_MS` after the one before it (the ripple of a decaying kick, not a new hit)."""
+    Onsets before the first anchor are left out."""
     import numpy as np
 
     first = grid.anchors[0][0]
-    offs, prev = [], None
-    for t in sorted(onset_ms):
-        if t >= first and (prev is None or t - prev >= ATTACK_GAP_MS):
-            offs.append(_nearest_beat(t, grid)[2])
-        prev = t
+    offs = [_nearest_beat(t, grid)[2] for t in onset_ms if t >= first]
     return float(np.median(offs)) if offs else 0.0
 
 
@@ -830,8 +886,8 @@ def build_map(*, track: str, guid: str, audio_sha: str, audio_ms: int, anchors, 
             entry["balance"] = balance_letters(voices[v], sr, bar_edges)
         out_voices[v] = entry
     onsets, onset_ms = {}, {}
-    for v in ONSET_VOICES:
-        onsets[v], onset_ms[v] = onset_digits(voices[v], sr, edges)
+    onsets["kick"], onset_ms["kick"] = kick_onsets(_stereo(stems["drums"]), voices["kick"], sr, edges)
+    onsets["perc"], onset_ms["perc"] = onset_digits(voices["perc"], sr, edges)
     register = register_digits(voices["vocals"], sr, edges, steps["vocals"])
     offset = grid_offset_ms(onset_ms["kick"], grid)
     sections, drops = sections_and_drops(bar_db)

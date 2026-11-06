@@ -74,3 +74,18 @@ def glide(f0: float, f1: float, ms: float, sr: int = SR, amp: float = 0.5) -> np
     k = np.log(f1 / f0) / (ms / 1000)
     phase = 2 * np.pi * f0 * (np.exp(k * t) - 1) / k
     return (amp * np.sin(phase)).astype(np.float32)
+
+
+def real_kick(sr: int = SR, ms: float = 300) -> np.ndarray:
+    """A kick whose low end builds after the attack: a 3 ms broadband click plus a sine
+    sweeping 150 -> 50 Hz whose amplitude rises over its first 40 ms and decays over 250 ms."""
+    n = _n(ms, sr)
+    t = np.arange(n) / sr
+    freq = 150 - 100 * np.minimum(t / 0.25, 1)
+    phase = 2 * np.pi * np.cumsum(freq) / sr
+    env = np.minimum(t / 0.04, 1) * np.exp(-t / 0.25 * 3) * (t < 0.04 + 0.25)
+    body = 0.6 * env * np.sin(phase)
+    click = np.zeros(n)
+    k = min(_n(3, sr), n)
+    click[:k] = np.random.default_rng(7).standard_normal(k) * 0.5
+    return (body + click).astype(np.float32)
