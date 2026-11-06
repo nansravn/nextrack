@@ -379,6 +379,49 @@ def test_report_prints_findings_and_exits_one_on_source_findings(mini_repo, caps
     assert code == 1 and "show-source:" in out
 
 
+def test_zoom_cli_moment_and_anchor(mini_repo, capsys):
+    put_show(mini_repo)
+    code, out = run(mini_repo, capsys, "zoom", "teste", "virada")
+    assert code == 0
+    lines = out.splitlines()
+    assert lines[0].startswith("Dançarina · virada (bar 21) · bars 18-22 · ")
+    assert lines[1].startswith(" " * 11 + "|18 ") and "frames" not in out
+    code, out = run(mini_repo, capsys, "zoom", "teste", "Pedro Sampaio — Dançarina", "drop.2",
+                    "--before", "1", "--after", "0", "--frames", "21.1,20.4")
+    assert code == 0
+    assert out.splitlines()[0].startswith("Dançarina · drop.2 (bar 21) · bars 20-21 · ")
+    assert "  21.1 · virada" in out and "  20.4 · espiral-1-4" in out
+    code = nextrack_show.main(["zoom", "teste", "nada", "--repo", str(mini_repo.root)])
+    captured = capsys.readouterr()
+    assert code == 2 and captured.out == ""
+    assert "'nada' is not a moment of the show (moments: virada, passagem, final)" in captured.err
+    for args in (["Pedro Sampaio — Dançarina"], ["Ninguém — Nada", "drop.1"],
+                 ["Pedro Sampaio — Dançarina", "drop.9"], ["virada", "--frames", "21"],
+                 ["virada", "--before", "-1"]):
+        code = nextrack_show.main(["zoom", "teste", *args, "--repo", str(mini_repo.root)])
+        captured = capsys.readouterr()
+        assert code == 2 and captured.err.startswith("usage error: "), args
+
+
+def test_zoom_follows_the_rig_and_names_aims(mini_repo, capsys):
+    put_show(mini_repo)
+    mini_repo.write("lightshows/rig.yml", RIG)            # one mover, no Vorlane
+    mini_repo.write("lightshows/room.yml", ROOM_YML)
+    code, out = run(mini_repo, capsys, "zoom", "teste", "Pedro Sampaio — Dançarina", "16", "--before", "0",
+                    "--after", "0")
+    assert code == 0
+    labels = [line[:11].strip() for line in out.splitlines() if "|" in line]
+    assert "mover NE" in labels and "mover SE" not in labels and not any(l.startswith("vorl.") for l in labels)
+    assert any(line.startswith("  aim      |Crossed Over") for line in out.splitlines())
+
+
+def test_zoom_prints_source_findings_and_exits_one(mini_repo, capsys):
+    put_show(mini_repo)
+    mini_repo.edit(f"{SHOW}/{FILE_1}", "at: drop.1", "at: drop.9")
+    code, out = run(mini_repo, capsys, "zoom", "teste", "virada")
+    assert code == 1 and "show-source:" in out
+
+
 def test_vocab_lists_anchors_gestures_rules_and_the_shows_looks(mini_repo, capsys):
     import show_gestures
     import show_rules
