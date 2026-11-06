@@ -114,12 +114,12 @@ o mesmo balanço. Toda seção de movings tem a sua mira:
 | espirais | a 1/2 e 1/4, a mira salta entre Crossed Over, Up e Dance Floor Centre; a 1/8 e 1/16 fecha no centro da pista |
 
 Onde cada preset aponta na sala ainda é palpite (os cantos do rig não foram confirmados): confira
-Dance Floor Centre, Crossed Over, Up e Down na sala antes de afinar esta tabela.
+Dance Floor Centre, Crossed Over, Up e Down na sala antes de afinar esta tabela (experimento P2
+em [experiments.md](../../docs/soundswitch/experiments.md#playback-in-the-room-p)).
 
-O compilador ainda imprime `manual cue … shape block … removed whole` quando a borda de uma seção
-corta um bloco de movimento do autoscript. Neste set não se perde nada: os dois lados de toda
-borda ouvida têm mira própria, e o que sobra do autoscript fica antes do B, que ninguém ouve. Cortar
-o bloco na borda em vez de removê-lo inteiro é uma melhoria do compilador (projeto B).
+Com toda seção mirando, o movimento do autoscript que uma borda de seção corta nunca aparece
+neste set, e o compilador não pede nenhum cue manual por isso: ele só avisa quando o movimento
+removido apareceria de verdade.
 
 ## Paleta
 | nome | cor | papel |
@@ -183,9 +183,13 @@ O set dura cerca de 44 minutos.
 10. **Sem UV:** a noite não é de Halloween.
 
 ## O que fica para a próxima versão
+- **A linguagem do show** (próximo projeto): paleta e looks com nome, tempo ancorado nos mapas e
+  nos cues B/G, gestos (breu, espiral, contraluz, ponte, chegada) e o orçamento checados pela
+  ferramenta, gerando as coreografias deste plano em vez de escrevê-las à mão.
 - **Espiral de verdade**, **coração com decaimento** (um "tum-tum" duplo, o pulso que some antes
   do próximo), **feixe que respira com a voz**, **Vorlanes como equalizador** (uma faixa de
   linhas por instrumento) e **estéreo vira sala**: vocabulário novo, projeto B, com os dados que
   os mapas musicais já guardam (vozes por passo, batidas, registro, estéreo).
 - **Quando o SoundSwitch troca de script na mixagem** ainda não foi testado. A ponte foi feita
-  para funcionar em qualquer compasso; o teste entra junto com o X1b.
+  para funcionar em qualquer compasso; o teste (P1) entra junto com o X1b, e o do lustre
+  acompanhando o pulso (P3) também.

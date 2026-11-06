@@ -62,6 +62,17 @@ Seen on the way: the autoscript gives the W cells colour blocks too (Happier's t
 | E7 | Where the active venue is stored. | Switch to the other venue, quit, diff the venue file. | byte diff | If nothing changes the choice is in the registry; the tools always pick the venue by GUID from the script. |
 | E8 | Static look layout. | Create one static look in slot 33: Mover 1 red, "Disco Ball", strobe 50 %. Save. | byte diff | Documentation only. |
 
+## Playback in the room (P)
+
+Not file questions either: they need rekordbox, SoundSwitch and the lights running, with the
+owner in the room (do them with X1b).
+
+| # | Question | Steps | What to watch | What the answer changes |
+|---|---|---|---|---|
+| P1 | During a blend, when do the lights switch from the outgoing track's script to the incoming one's? | Load two choreographed tracks whose looks differ at a glance (e.g. a blue sweep and a red blink). Play A, start B, then move B's channel fader up and A's down, separately and with the crossfader; also try the tempo-master button. | The bar at which the room changes look, and which control triggered it. | Today every transition is a *bridge*: the incoming track copies the outgoing one's last look over the whole overlap, so the switch is invisible wherever it happens. If the switch follows the louder channel fader, the bridge can be shortened to the bars around the fader move. |
+| P2 | Where does each position preset aim in the real room? | One static look per preset (Dance Floor Centre, Crossed Over, Up, Down, DJ Booth, Stage Left, Stage Right, Stage Center) on both movers, in the haze. | Where each beam lands; whether "Crossed Over" really crosses. | The beam grammar of a set's light plan (which preset to use for drops, builds, breaks) and the simulator's guessed targets. |
+| P3 | Does the Hue chandelier keep up with one pulse per beat? | Play a section with `hue: pulse` at 120 and at 130 BPM. | Whether the lamps follow each beat or lag and smooth out. | Whether a heartbeat can live in the chandelier or only in the Vorlanes (with the Hue on slower states). |
+
 ## Corners (rig)
 
 Not a file question: which physical corner each mover and Vorlane stands in
