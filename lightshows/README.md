@@ -248,8 +248,9 @@ grid, so a map bar is a choreography bar. The map stores `grid` (`bpm` and `down
 first anchor, as in a choreography) plus every tempo anchor in `anchors` (`[ms, bpm]`), so tools
 turn milliseconds into bars from the map alone. The finest unit is the **step**, a 1/16 note: 16
 per bar. `offset_ms` is the median distance between the kick attacks and the nearest beat; when
-it is over a quarter of a step the map also carries a `grid_warning` (check the grid; a
-soft-attack kick can raise it falsely, and then the grid agrees with rekordbox).
+it is over a quarter of a step the map also carries a `grid_warning`. It has two causes: the
+grid is off, or the kick's attack is soft and `onsets.kick` reads late (then the grid is right
+and the kick onsets sit up to a step late); check the grid against the audio.
 
 **Voices.** The track is separated (Demucs `htdemucs`) into vocals, drums, bass and other; the
 drums are split by frequency into `kick` (low band) and `perc` (the rest), so a map has five

@@ -964,9 +964,11 @@ def build_map(*, track: str, guid: str, audio_sha: str, audio_ms: int, anchors, 
                  "anchors": [[ms, bpm] for ms, bpm in grid.anchors], "offset_ms": round(offset)},
     }
     step_ms = 60000 / first_bpm / 4
-    if abs(offset) > step_ms / 4:
-        data["grid_warning"] = (f"kick onsets sit {offset:+.0f} ms from the beat, more than a "
-                                f"quarter of a step ({step_ms / 4:.0f} ms): check the grid")
+    if abs(offset) > step_ms / 4:  # a soft kick attack reads late too: name both causes
+        data["grid_warning"] = (
+            f"kick onsets sit {round(offset):+d} ms from the beat (more than a quarter of a step, "
+            f"{step_ms / 4:.0f} ms): either the grid is off or the kick's attack is soft and "
+            "onsets.kick reads late; check the grid against the audio")
     data.update({
         "separator": separator,
         "bars": bars,

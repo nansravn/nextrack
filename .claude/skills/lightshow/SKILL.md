@@ -58,7 +58,8 @@ Copy this checklist into your reply and keep it current:
   audio needed). It gives the sections (`i` intro, `g` groove, `b` break, `u` build, `d` drop,
   `o` outro), the drops with their size, who plays per bar (vocals, kick, perc, bass, other),
   the vocal phrases and the owner's hot cues (B enters, G is where the next track starts). Its
-  bars are the choreography's bars. A `grid warning` line means the grid may be off: say so.
+  bars are the choreography's bars. A `grid warning` line means the grid may be off, or the
+  kick's attack is soft and its onsets read late: say so.
   No map: say so and fall back to `dump`; offer `nextrack_map.py analyze` (it needs the optional
   `uv sync --group analysis`, the audio and rekordbox, so it is the owner's call).
 - A set: `uv run scripts/nextrack_map.py timeline --playlist "<rekordbox playlist>" --block blocks/<block-id>.md`

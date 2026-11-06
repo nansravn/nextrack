@@ -355,9 +355,10 @@ uv run scripts/nextrack_map.py timeline --playlist 1-hi-ibiza-lightshow --block 
   anchors changed) or `--force` is given, so a playlist run only does what is missing or out of
   date. One line per track says whether it was written, redone because stale, kept or refused
   and why; a `grid warning` line follows when the kick onsets sit more than a quarter of a step
-  from the beat. `--keep-stems DIR` also writes the four stems (FLAC) under `DIR/<slug>/`;
-  without it they live in memory only. A refused track makes the exit status 1, and the
-  playlist run goes on.
+  from the beat (either the grid is off, or the kick's attack is soft and `onsets.kick` reads
+  late: see [Known limits](#known-limits)). `--keep-stems DIR` also writes the four stems
+  (FLAC) under `DIR/<slug>/`; without it they live in memory only. A refused track makes the
+  exit status 1, and the playlist run goes on.
 - **`cues <track>` or `cues --playlist NAME`**: rewrites only the `hot_cues` lines of existing
   maps from rekordbox, leaving the rest of the file untouched.
 - **`show <track>`**: the map for directing, per 64 bars: a ruler, a `cues` line (the hot
@@ -400,8 +401,12 @@ uv run scripts/nextrack_map.py timeline --playlist 1-hi-ibiza-lightshow --block 
 
 ### Known limits
 
-- A soft-attack kick can still raise a false `grid_warning` (seen on 2 of 15 real tracks, where
-  the grid agrees with rekordbox).
+- `onsets.kick` can sit a step late on a soft-attack kick. A kick is timed at the steepest rise
+  of the drums stem's energy in the 100 ms before its low-band onset; a kick with no sharp
+  transient has its steepest rise in its body, tens of ms after the hit, and an onset more than
+  half a step late is quantised to the next step. The same lateness raises a `grid_warning`
+  while the grid is right (seen on 2 of 15 real tracks, one at +64 ms with the grid within 6 ms
+  of the audio), so the warning names both causes: check the grid against the audio.
 - `onsets.perc` includes the kick's click, and quiet kicks within a second before a louder
   section can be missing from `onsets.kick`.
 - The kick/percussion split is by frequency, so a low tom can read as kick.
