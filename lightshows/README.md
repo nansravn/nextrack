@@ -320,11 +320,21 @@ grid: {bpm: 120.0, downbeat: "0:00.061", anchors: [[61, 120.0]], offset_ms: -5}
 separator: htdemucs
 bars: 97
 hot_cues: {A: "1.1", B: "26.1", G: "79.1"}                    # or `hot_cues: null` with `hot_cues_note`
-voices:
+voices:                                                       # the five voices, in this order
   vocals: {bars: "9999...", entries: [1, 45], exits: [33, 96]}
-  perc:   {bars: "...", balance: "ccccl..."}
-steps: {vocals: ["9988...", ...], ...}                        # one string per 8 bars, per voice
-onsets: {kick: ["9...9...9...9...", ...], perc: [...]}
+  kick: {bars: "9999...", entries: [1, 41], exits: [38, 94]}
+  perc: {bars: "8999...", entries: [1], exits: [96], balance: "ccccl..."}
+  bass: {bars: "0000...", entries: [9, 41], exits: [38, 94]}
+  other: {bars: "7788...", entries: [1], exits: [96], balance: "cccc..."}
+steps:                                                        # one string per 8 bars, per voice
+  vocals: ["9988...", ...]
+  kick: ["9711...", ...]
+  perc: ["9468...", ...]
+  bass: ["0008...", ...]
+  other: ["7777...", ...]
+onsets:                                                       # kick and perc only
+  kick: ["9...9...9...9...", ...]
+  perc: ["..8...8...8...8.", ...]
 register: ["..567765..", ...]
 phrases: [{from: "1.1", to: "8.4", register: mid, level: 8}]
 sections: [{bars: [1, 38], kind: groove}, {bars: [39, 40], kind: break}, {bars: [41, 64], kind: drop}]
@@ -358,9 +368,12 @@ colours are from the vocabulary, and unknown option keys are findings.
 to the repo root and whose `budget` keys are layers or `white-accent`.
 
 **`maps/*.yml`**: exactly the keys of the example above (`grid_warning` is optional;
-`hot_cues_note` is required when `hot_cues` is `null` and forbidden otherwise); `track` matches
-a pool track and the file is named `<slug of track>.yml`; `soundswitch` is a GUID; `grid` has
-`bpm`, `downbeat`, `anchors` (sorted `[ms, bpm]`, the first at the downbeat and the `bpm`) and
-`offset_ms`; `bars` is a positive integer; every per-bar string has `bars` characters and every
-step list adds up to `bars × 16`, from its alphabet; bar numbers and `bar.beat` values are
-inside `1..bars`; `sections` are sorted, do not overlap, cover every bar and use the kinds above.
+`hot_cues_note` is required when `hot_cues` is `null` and forbidden otherwise); `voices` and
+`steps` hold exactly one entry per voice (`vocals`, `kick`, `perc`, `bass`, `other`), `onsets`
+exactly `kick` and `perc`, and a voice has `bars` plus optional `entries`, `exits` and (`perc`
+and `other` only) `balance`; `track` matches a pool track and the file is named
+`<slug of track>.yml`; `soundswitch` is a GUID; `grid` has `bpm`, `downbeat`, `anchors` (sorted
+`[ms, bpm]`, the first at the downbeat and the `bpm`) and `offset_ms`; `bars` is a positive
+integer; every per-bar string has `bars` characters and every step list adds up to `bars × 16`,
+from its alphabet; bar numbers and `bar.beat` values are inside `1..bars`; `sections` are
+sorted, do not overlap, cover every bar and use the kinds above.
