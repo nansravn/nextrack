@@ -11,7 +11,8 @@ content or reads a file. See docs/superpowers/specs/2026-11-06-show-language-des
 Python API: `clean`, `layer_word`, `resolve_anchor`, `problems_show`, `problems_track_file`,
 `merge_layers`, `flatten_looks`, `expand_look`, `resolve_colours`, `compile_show` and its
 types `ShowSource`, `ShowInputs`, `ShowFinding`, `CompiledShow`, `CompiledTrack`,
-`CompiledSection`, `Provenance`, and the emitter `emit_choreography`, `owner_of`, `LAYER_KEYS`.
+`CompiledSection`, `Provenance`, and the emitter `emit_choreography`, `owner_of`, `LAYER_KEYS`;
+`BRIDGE_BARS`, the bounds of `bridge.bars`.
 """
 from __future__ import annotations
 
@@ -30,6 +31,7 @@ from musical_map import slug
 from show_gestures import GESTURES, GestureContext, run_gesture
 
 SHOW_VERSION = 1
+BRIDGE_BARS = (1, 32)        # the bounds of `bridge.bars`, the mix window, in bars
 SECTION_KINDS = ("intro", "groove", "break", "build", "drop", "outro")
 ACCENTS = ("white", "strobe", "strobe-roll")
 ROLES = ("arrival",)
@@ -152,7 +154,7 @@ def problems_show(data: object) -> list[tuple[int, str]]:
     if not isinstance(data, dict):
         return [(0, "show.yml is not a mapping")]
     out = _check_keys(data, ("show_version", "set", "story", "palette"),
-                      ("plan", "looks", "gesture_defaults", "bridge", "handover", "rules"), "show.yml")
+                      ("plan", "looks", "gesture_defaults", "bridge", "handover", "rules", "advice"), "show.yml")
     version = data.get("show_version")
     if "show_version" in data and (version != SHOW_VERSION or isinstance(version, bool)):
         out.append((_line(data), f"show_version {version!r} is not {SHOW_VERSION}"))
@@ -169,11 +171,19 @@ def problems_show(data: object) -> list[tuple[int, str]]:
         out += _looks(data["looks"])
     if "gesture_defaults" in data:
         out += _gesture_defaults(data["gesture_defaults"])
-    for key in ("bridge", "handover"):
-        if key in data:
-            out += _naming_block(data[key], key)
-    if "rules" in data and not isinstance(data["rules"], dict):
-        out.append((_line(data), f"rules {data['rules']!r} is not a mapping"))
+    if "bridge" in data:
+        bridge = data["bridge"]
+        out += _naming_block(bridge, "bridge", ("bars",))
+        low, high = BRIDGE_BARS
+        bars = bridge.get("bars") if isinstance(bridge, dict) else None
+        if (isinstance(bridge, dict) and "bars" in bridge
+                and not (isinstance(bars, int) and not isinstance(bars, bool) and low <= bars <= high)):
+            out.append((_line(bridge), f"bridge.bars {bars!r} is not a whole number of bars from {low} to {high}"))
+    if "handover" in data:
+        out += _naming_block(data["handover"], "handover")
+    for key in ("rules", "advice"):
+        if key in data and not isinstance(data[key], dict):
+            out.append((_line(data), f"{key} {data[key]!r} is not a mapping"))
     return out
 
 
@@ -218,10 +228,10 @@ def _gesture_defaults(defaults: object) -> list[tuple[int, str]]:
             for name in _keys(defaults) if not isinstance(defaults[name], dict)]
 
 
-def _naming_block(node: object, where: str) -> list[tuple[int, str]]:
+def _naming_block(node: object, where: str, optional: tuple = ()) -> list[tuple[int, str]]:
     if not isinstance(node, dict):
         return [(0, f"{where} {node!r} is not a mapping")]
-    out = _check_keys(node, ("name", "intent"), (), where) + _check_naming(node, where)
+    out = _check_keys(node, ("name", "intent"), optional, where) + _check_naming(node, where)
     if isinstance(node.get("intent"), str) and not node["intent"].strip():
         out.append((_line(node), f"{where}.intent is empty"))
     return out
@@ -602,6 +612,7 @@ class _TrackCompiler:
         self.title = _title(self.track)
         self.cues: list[dict] = data["cues"]
         self.handover: dict | None = data.get("handover")
+        self.window: int | None = (show.bridge or {}).get("bars")   # bridge.bars: the mix window, or None
         self.findings: list[ShowFinding] = []
         self.decisions: list[str] = []
         self.parts: list[_Part] = []
@@ -650,7 +661,8 @@ class _TrackCompiler:
 
     def _anchors(self) -> None:
         """Every `at` and `until` to a bar (an `until` may be bars + 1); the handover's `at`
-        defaults to G and its `until` to bars + 1."""
+        defaults to G and its `until` to bars + 1, or with `bridge.bars` to `at + bars` (at most
+        bars + 1): the handover is the outgoing side of the mix window."""
         self.starts = [self._anchor(c, "at", _cue_label(c)) for c in self.cues]
         self.untils = [self._anchor(c, "until", f"{_cue_label(c)}: until", until=True) if "until" in c else None
                        for c in self.cues]
@@ -663,13 +675,18 @@ class _TrackCompiler:
             self.h_start, problem = resolve_anchor("G", self.map)
             if problem:
                 self.find(_line(h), f"handover: {problem}; a handover starts at G unless it has an at")
-        self.h_until = (self._anchor(h, "until", "handover: until", until=True) if "until" in h
-                        else self.map["bars"] + 1)
+        if "until" in h:
+            self.h_until = self._anchor(h, "until", "handover: until", until=True)
+        elif self.window is not None and self.h_start is not None:
+            self.h_until = min(self.h_start + self.window, self.map["bars"] + 1)
+        else:
+            self.h_until = self.map["bars"] + 1
 
     # step 2
     def _spans(self) -> None:
         """A cue runs to the bar before the next start, or to `until - 1`; the last one to the
-        bar before the handover, or to the map's end. The handover runs from its `at`."""
+        bar before the handover, or to the map's end. The handover runs from its `at`, and with
+        `bridge.bars` an `until` past `at + bars` is a finding at the handover."""
         cues, starts, untils, h = self.cues, self.starts, self.untils, self.handover
         for i in range(1, len(cues)):
             if starts[i] <= starts[i - 1]:
@@ -692,12 +709,19 @@ class _TrackCompiler:
         if h is not None:
             if self.h_until <= self.h_start:
                 self.find(_line(h), f"handover: until {self.h_until} is not after its at {self.h_start}")
+            elif self.window is not None and self.h_until > self.h_start + self.window:
+                end = self.h_start + self.window - 1
+                self.find(_line(h), f"handover: until {_shown(self.h_until, h['until'])}: the handover ends at bar "
+                          f"{end} (bridge.bars {self.window}); write an until at or before bar {end + 1}, or "
+                          "leave it out")
             self.h_span = (self.h_start, self.h_until - 1)
         self._bridge_span()
 
     def _bridge_span(self) -> None:
         """With a bridge in the show and a handover before, this track opens with a bridge from
-        B to the bar before its first cue (or its handover, or the map's end)."""
+        B to the bar before its first cue (or its handover, or the map's end). With `bridge.bars`,
+        that start must come by `B + bars`: a later one is a finding there (the bridge would end
+        at `B + bars - 1` and leave the bars after it to the autoscript)."""
         prev = self.prev
         if self.show.bridge is None or prev is None or not prev.has_handover or self.data.get("bridge") is False:
             return
@@ -715,6 +739,13 @@ class _TrackCompiler:
         if first <= b:
             self.find(_line(node), f"{label} at {first} is not after hot cue B ({b}): no room for the bridge "
                       f"from {prev.title}; start it after bar {b}, or write bridge: false")
+            return
+        if self.window is not None and first > b + self.window:
+            end = b + self.window - 1
+            where = f"{label} at {_shown(first, node.get('at', 'G'))}: " if node is not None else ""
+            self.find(_line(node) if node is not None else _line(self.data),
+                      f"{where}the bridge ends at bar {end} (bridge.bars {self.window}); start a cue at or before "
+                      f"bar {end + 1}")
             return
         self.bridge_span = (b, first - 1)
         self._bar_values_copied()
@@ -882,7 +913,8 @@ class _TrackCompiler:
             self.find(part.origin.line, f"{where}: {m['rest']}")
 
     def _decide(self) -> None:
-        """What the compiler inferred for this track: its bridge, and the end of its last cue."""
+        """What the compiler inferred for this track: its bridge, the end of its last cue, and the
+        end of a handover that `bridge.bars` cut before the map's end."""
         if self.parts and self.parts[0].origin.kind == "bridge":
             (a, b), look = self.parts[0].bars, self.parts[0].origin.look
             self.decisions.append(f"{self.title}: bridge {a}-{b} copies the handover of {self.prev.title} "
@@ -891,6 +923,9 @@ class _TrackCompiler:
             until = "the handover" if self.handover is not None else "the map's end"
             self.decisions.append(f"{self.title}: {_cue_label(self.cues[-1])} runs to bar {self.spans[-1][1]} "
                                   f"({until})")
+        h = self.handover
+        if h is not None and "until" not in h and self.window is not None and self.h_until <= self.map["bars"]:
+            self.decisions.append(f"{self.title}: handover runs to bar {self.h_until - 1} (bridge.bars {self.window})")
 
 
 def _show_context(source: ShowSource, folder: str) -> tuple[_Show | None, list[ShowFinding]]:
@@ -1073,10 +1108,12 @@ def _missing_handovers(show: _Show, entries: list) -> list[ShowFinding]:
             continue
         if next_data.get("bridge") is False or resolve_anchor("B", next_map)[1] is not None:
             continue
+        window = show.bridge.get("bars")
+        plays = "to the end" if window is None else f"for {window} bars (bridge.bars {window})"
         out.append(ShowFinding(f"{show.folder}/{name}", _line(data), SOURCE,
                                f"the map has hot cue G ({hot['G']}) and the next track, "
                                f"{_title(next_data['track'])}, opens with a bridge: add a handover here (its look "
-                               f"plays from G to the end and the bridge copies it), or write bridge: false in "
+                               f"plays from G {plays} and the bridge copies it), or write bridge: false in "
                                f"{next_name}"))
     return out
 

@@ -124,9 +124,10 @@ handover:
 | `plan` | optional: repo-relative path of the prose light plan (`lightshows/sets/<show-id>.md`), with the same check as `set` |
 | `looks` | optional: name -> [look](#looks) |
 | `gesture_defaults` | optional: gesture name -> parameters merged under every call of that gesture (the cue's `with` wins; `null` removes a default). Its problems land in `show.yml`: see [Gestures](#gestures) |
-| `bridge` | optional: `{name, intent}`, both required when `bridge` is present. Without it no bridges are made |
+| `bridge` | optional: `{name, intent, bars?}`, `name` and `intent` required when `bridge` is present. Without it no bridges are made. `bars` (1-32) is the mix window: see [The handover and the bridge](#the-handover-and-the-bridge) |
 | `handover` | optional: `{name, intent}`, both required when `handover` is present. The default `name`/`intent` of the handover sections of the track files; needed when a track's handover does not write its own |
 | `rules` | optional: rule id -> parameters (or `true`). Chooses which [rules](#show-rules) run; none written, none run |
+| `advice` | optional: rule id -> parameters, as in `rules` (a rule may be in both, with other parameters). Design goals: their findings (`show-advice`) are printed by `build` and `report`, and never fail `check_repo.py` or change an exit status |
 
 ## A track file
 
@@ -221,7 +222,7 @@ handover:
   look: pulso              # a look name or a mapping of layers (required)
   with: {...}              # optional overrides
   at: G                    # optional anchor, default G
-  until: end + 1           # optional anchor, default: after the map's last bar
+  until: end + 1           # optional anchor, default: after the map's last bar (with bridge.bars: at + bars)
   name: entrega            # optional, default: the show's handover.name
   intent: "..."            # optional, default: the show's handover.intent
   moment: passagem         # optional
@@ -237,6 +238,13 @@ the track file does not say `bridge: false`, the track opens with a section from
 before its first cue (or its handover, or the map's end), named and described by the show's
 `bridge`, with exactly the layers of the previous handover (after merging and palette
 resolution, without accents). The continuity of the night is that copy.
+
+**`bridge.bars`** (optional, 1-32) is the length of the mix window, on both sides. The handover
+runs by default from its start (`G`, or its `at`) for `bars` bars, not to the map's end, and an
+explicit `until` past that is a finding at the handover. The bridge still runs from `B` to the
+bar before the first cue, and a first cue (or handover) after `B + bars` is a finding there:
+`the bridge ends at bar <B + bars - 1> (bridge.bars <n>); start a cue at or before bar <B + bars>`.
+Without `bars`, nothing changes. The [`bridges`](#show-rules) rule measures the windows.
 
 Consequences, each a finding that says what to do:
 
@@ -368,8 +376,11 @@ rules:
 | `movers-aim` | `true` | a compiled section's movers is a mapping without `position` or `positions` (the autoscript would pick a random preset every two bars) |
 | `matrix-not-cloned` | `true` or `{except_moments?: [names]}` | a compiled section's matrix is a mapping with neither `mirror` nor `pingpong` (both Vorlanes would draw the same), and its cue's moment is not excepted |
 | `exclusive` | `{keys: [two or more budget keys], except_tracks?: [Artist — Title, or the title]}` | a track has occurrences of more than one of `keys` |
+| `bridges` | `{max: 1-32}` | a compiled handover section, or the bridge section that copies it, is longer than `max` bars. Both findings point at the handover's line in the outgoing track's file (the handover owns the window) and name both lengths and both tracks |
 
-A show with no `rules` runs none. Adding a rule is a code change with tests: see
+A show with no `rules` runs none. Under `advice:` the same rules are design goals: their
+findings carry the rule id `show-advice` and never fail a check (an unknown id or a bad
+parameter there is still a `show-source` finding, prefixed `advice.<id>:`). Adding a rule is a code change with tests: see
 [CLAUDE.md](../../CLAUDE.md#change-checklists), whose last step is the row in this table.
 
 ### Provenance and occurrences
@@ -407,7 +418,8 @@ produces a `white-accent` or `strobe` occurrence like the raw form does.
 `stale <path>: owned by this show, which no longer compiles it; delete it` line per
 choreography that has this show's header but whose track the show no longer compiles (a track
 that left the set: `build` never deletes it, and exits 1 until you do), then the findings and
-`N finding(s)`. With any `show-source` finding it writes nothing. The compiler stops a track at the first step
+`N finding(s)`, then the advice (`show-advice` lines) and `N advice`, which never change the exit
+status. With any `show-source` finding it writes nothing. The compiler stops a track at the first step
 that finds something (anchors, then spans, looks and gestures, accents, colours), so fix the
 findings you see and build again: later ones may appear. Exit status: `0` clean, `1` findings, `2` usage. `report` prints the night and exits 1
 when it printed any finding. The report from the example above (shortened):
@@ -432,8 +444,9 @@ decided by the compiler
 
 Each section line is `bars name | source | layers | role and moment | music`, with colours by
 palette name; the source is `look <name>`, `look (inline)`, `gesture <name>`, `bridge <look>`
-or `handover <look>`. Then the budget tally, the arrivals, what the compiler decided on its own
-(bridges, default ends) and the findings.
+or `handover <look>`. Then the budget tally, the arrivals, the `advice` section (when the show
+has advice that does not hold), what the compiler decided on its own (bridges, default ends, a
+handover cut by `bridge.bars`) and the findings.
 
 Real findings, and what each asks for:
 
@@ -441,7 +454,7 @@ Real findings, and what each asks for:
 pedro-sampaio-dancarina.yml:5: show-source: cue 'chegada': drop.4: the map has 2 drop sections (9, 21)
 pedro-sampaio-dancarina.yml:10: show-source: cue 'espiral': look 'nada' is not defined; defined: pulso, respiracao
 pedro-sampaio-dancarina.yml:18: show-source: cue 'virada': spiral: bars add up to 1, the cue spans 4 bars (21-24)
-show.yml:57: show-source: unknown rule 'nope'; rules: arrivals, budget, exclusive, matrix-not-cloned, movers-aim, total-dark
+show.yml:57: show-source: rules.nope: unknown rule 'nope'; rules: arrivals, bridges, budget, exclusive, matrix-not-cloned, movers-aim, total-dark
 show.yml:20: show-source: spiral: rates[0] '1/3' is not a rate (1/16, 1/8, 1/4, 1/2, <n>bar) (from gesture_defaults.spiral in show.yml)
 chiclete-com-banana-voa-voa-ao-vivo.yml:1: show-source: lightshows/maps/chiclete-com-banana-voa-voa-ao-vivo.yml is not a valid map: fix its musical-map finding (or redo it with uv run scripts/nextrack_map.py analyze)
 pedro-sampaio-dancarina.yml:1: show-source: the map has hot cue G (25.1) and the next track, Voa Voa (Ao Vivo), opens with a bridge: add a handover here (its look plays from G to the end and the bridge copies it), or write bridge: false in chiclete-com-banana-voa-voa-ao-vivo.yml

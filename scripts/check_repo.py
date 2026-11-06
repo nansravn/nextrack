@@ -1407,12 +1407,14 @@ def show_inputs(repo: Repo, source: show_language.ShowSource) -> show_language.S
 
 def show_results(repo: Repo) -> list:
     """`(source, compiled | None, source findings, rule findings)` per show, computed once
-    per Repo. Shows with `parse_failed` are left out."""
+    per Repo. Shows with `parse_failed` are left out. A show's advice (`show-advice`) is a
+    design goal, never a check: it is dropped here, and only `nextrack_show.py` prints it."""
     if repo._show_results is None:
-        repo._show_results = [
-            (source, *show_rules.evaluate_show(source, show_inputs(repo, source)))
-            for source in repo.shows if not source.parse_failed
-        ]
+        repo._show_results = []
+        for source in repo.shows:
+            if not source.parse_failed:
+                compiled, found, rule_found, _advice = show_rules.evaluate_show(source, show_inputs(repo, source))
+                repo._show_results.append((source, compiled, found, rule_found))
     return repo._show_results
 
 

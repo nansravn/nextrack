@@ -43,6 +43,20 @@ def test_show_rules_report_a_broken_budget(mini_repo):
     assert found and {f[2] for f in found} == {"show-rules"}
 
 
+def test_check_repo_ignores_advice(mini_repo):
+    from check_repo import check, load_repo, show_inputs, show_results
+    from show_rules import evaluate_show
+
+    put_show(mini_repo)
+    _edit_yaml(mini_repo, f"{SHOW}/show.yml", lambda data: data.update(advice={"bridges": {"max": 2}}))
+    repo = load_repo(mini_repo.root)
+    source = repo.shows[0]
+    *_, advice = evaluate_show(source, show_inputs(repo, source))
+    assert [f.rule for f in advice] == ["show-advice", "show-advice"]     # the handover and its bridge
+    assert [len(result) for result in show_results(repo)] == [4]           # source, compiled, found, rules
+    assert check(mini_repo.root) == []
+
+
 def test_show_compiled_flags_a_hand_edit(mini_repo):
     from check_repo import check
 

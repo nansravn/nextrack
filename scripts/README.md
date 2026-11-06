@@ -458,22 +458,25 @@ uv run scripts/nextrack_show.py report <show>                 # the night as tex
 uv run scripts/nextrack_show.py vocab [<show>]                # anchors, layer words, gestures, rules (and the show's palette and looks)
 ```
 
-- `build` prints `wrote <path>` or `unchanged <path>` per track, then the rule findings. With
+- `build` prints `wrote <path>` or `unchanged <path>` per track, then the rule findings, then
+  the advice (`advice:` in `show.yml`, design goals) as `show-advice` lines and `N advice`. With
   a `show-source` finding it writes nothing. With only rule findings it writes the files, so a
-  draft can be rendered and critiqued, and it exits 1.
+  draft can be rendered and critiqued, and it exits 1. Advice never changes the exit status.
 - `build` and `build --check` also print
   `stale <path>: owned by this show, which no longer compiles it; delete it` for each
   choreography with this show's header whose track the show no longer compiles (a track that
   left the set). They never delete it, and exit 1 while it is there.
 - `report` prints, per track, one line per compiled section (bars, name, source, layers,
-  accents, role, moment, the music under it), then the budget tally, the arrivals, what the
-  compiler decided on its own (bridges, default ends) and the findings.
+  accents, role, moment, the music under it), then the budget tally, the arrivals, the
+  `advice` section, what the compiler decided on its own (bridges, default ends) and the
+  findings.
 - `vocab` prints what an agent needs to write a show without reading the docs (the anchors,
   each layer's words and mapping keys, the gestures, the rules); with a show it adds its
   palette and looks.
 
 **Output and exit status.** Findings are `path:line: rule-id: message` (`show-source`,
-`show-rules`), like `check_repo.py`, followed by `N finding(s)`. `0` no findings, `1` findings
+`show-rules`), like `check_repo.py`, followed by `N finding(s)`. Advice has the same form with
+the rule id `show-advice`; `check_repo.py` never reports it. `0` no findings, `1` findings
 (for `report`, any finding printed; for `build --check`, a file that would change; for both
 `build` and `build --check`, a stale file), `2` usage (unknown show, a show outside
 `lightshows/shows/` without `--out`).

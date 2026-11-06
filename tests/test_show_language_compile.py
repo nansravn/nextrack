@@ -7,7 +7,7 @@ import lightshow
 from check_repo import load_yaml
 from musical_map import slug
 from show_gestures import GESTURES, Gesture, GestureSection
-from show_language import compile_show
+from show_language import compile_show, problems_show
 from showdata import (FILE_1, FILE_2, GUID_2, SET_TRACKS, TRACK_1, TRACK_2, inputs, show_map, source,
                       two_track_show)
 
@@ -184,6 +184,82 @@ def test_g_without_handover_before_a_bridged_track():
     del src.track_files[FILE_1]["handover"]
     inp.maps[slug(TRACK_1)]["hot_cues"] = {"A": "1.1", "B": "5.1"}
     assert compile_show(src, inp)[1] == []
+
+
+def bars_show(bars):
+    """`two_track_show` with `bridge.bars`: B 5 and G 25 on both maps, Voa Voa's first cue at 9."""
+    src, inp = two_track_show()
+    src.show["bridge"]["bars"] = bars
+    return src, inp
+
+
+def test_bridge_bars_cuts_bridge_and_handover():
+    show = compiled(*bars_show(4))
+    assert spans(show.tracks[0])[-1] == ((25, 28), "entrega")       # G 25 for 4 bars
+    assert spans(show.tracks[1])[0] == ((5, 8), "ponte")            # B 5 for 4 bars: the first cue is at 9
+    assert "Dançarina: handover runs to bar 28 (bridge.bars 4)" in show.decisions
+    # a wider window: the bridge stops at the first cue and the handover at the map's end, as without bars
+    show = compiled(*bars_show(16))
+    assert spans(show.tracks[0])[-1] == ((25, 32), "entrega") and spans(show.tracks[1])[0] == ((5, 8), "ponte")
+    assert show.decisions == compiled(*two_track_show()).decisions
+    # an until inside the window holds; a handover with an at opens its window there
+    src, inp = bars_show(4)
+    src.track_files[FILE_1]["handover"]["until"] = 27
+    assert spans(compiled(src, inp).tracks[0])[-1] == ((25, 26), "entrega")
+    src, inp = bars_show(4)
+    src.track_files[FILE_1]["handover"]["at"] = 27
+    assert spans(compiled(src, inp).tracks[0])[-2:] == [((21, 26), "virada"), ((27, 30), "entrega")]
+    # a missing handover's finding names the window
+    src, inp = bars_show(4)
+    del src.track_files[FILE_1]["handover"]
+    message = compile_show(src, inp)[1][0].message
+    assert "add a handover here (its look plays from G for 4 bars (bridge.bars 4) and the bridge copies it)" in message
+
+
+def test_bridge_bars_first_cue_too_late():
+    src, inp = bars_show(3)
+    src.track_files[FILE_2]["cues"][0]["__line__"] = 6
+    show, findings = compile_show(src, inp)
+    assert show is None
+    assert found(findings) == [(PATH_2, 6, "show-source", "cue 'chegada' at 9 (drop.1): the bridge ends at bar 7 "
+                                                          "(bridge.bars 3); start a cue at or before bar 8")]
+    # a first cue at B + bars ends the bridge in time
+    src.track_files[FILE_2]["cues"][0]["at"] = 8
+    assert spans(compiled(src, inp).tracks[1])[:2] == [((5, 7), "ponte"), ((8, 16), "chegada")]
+    # with no cue, the handover must start in time; with neither, the track file is where to start one
+    src, inp = bars_show(4)
+    second = src.track_files[FILE_2]
+    second.update({"cues": [], "handover": {"look": "pulso", "__line__": 7}, "__line__": 1})
+    assert found(compile_show(src, inp)[1]) == [
+        (PATH_2, 7, "show-source", "handover at 25 (G): the bridge ends at bar 8 (bridge.bars 4); start a cue at or "
+                                   "before bar 9")]
+    del second["handover"]
+    assert found(compile_show(src, inp)[1]) == [
+        (PATH_2, 1, "show-source", "the bridge ends at bar 8 (bridge.bars 4); start a cue at or before bar 9")]
+
+
+def test_bridge_bars_handover_until_too_late():
+    src, inp = bars_show(4)
+    src.track_files[FILE_1]["handover"].update({"until": "end - 2", "__line__": 30})
+    show, findings = compile_show(src, inp)
+    assert show is None
+    assert found(findings) == [(PATH_1, 30, "show-source",
+                                "handover: until 30 (end - 2): the handover ends at bar 28 (bridge.bars 4); write an "
+                                "until at or before bar 29, or leave it out")]
+    src.track_files[FILE_1]["handover"]["until"] = 29
+    assert spans(compiled(src, inp).tracks[0])[-1] == ((25, 28), "entrega")
+
+
+def test_bridge_bars_bounds():
+    for bars in (0, 33, True, "4", 4.5):
+        assert found(compile_show(*bars_show(bars))[1]) == [
+            (SHOW_PATH, 0, "show-source", f"bridge.bars {bars!r} is not a whole number of bars from 1 to 32")]
+    for bars in (1, 32):
+        assert problems_show(bars_show(bars)[0].show) == []
+    src, inp = two_track_show()
+    src.show["handover"]["bars"] = 4                                # only the bridge takes bars
+    assert found(compile_show(src, inp)[1]) == [
+        (SHOW_PATH, 0, "show-source", "handover: unexpected key 'bars' (allowed: name, intent)")]
 
 
 def test_gesture_sections_get_the_cue_provenance():
