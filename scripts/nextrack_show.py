@@ -11,7 +11,8 @@ Subcommands:
   report  the night as text, one line per section, for a critic
   zoom    a moment at 1/16 of a beat: the map's music lanes over the light `build` would
           compile, and with --frames the Vorlanes' 8x7 cells (needs no SoundSwitch project;
-          rule findings are the report's, so it exits 1 only on source findings)
+          rule findings are the report's: it counts them on stderr and exits 1 only on source
+          findings)
   vocab   the anchors, the layer words and keys, the gestures and the rules; with a show, its
           palette and looks
 
@@ -460,10 +461,11 @@ def _valid_rig(repo: check_repo.Repo) -> lightshow.Rig | None:
     return lightshow.load_rig(repo.root / check_repo.RIG_PATH)
 
 
-def zoom_target(show: CompiledShow, target: str, anchor: str | None) -> tuple[int, int, str] | str:
+def zoom_target(show: CompiledShow, target: str, anchor: str | None) -> tuple[int, int, str | None] | str:
     """`(track index, bar, label)` of a zoom's target, or the usage error. Without `anchor`,
     `target` is a moment (`show_zoom.moment_target`); with one, it is a track as its track
-    file names it (`Artist — Title`) and `anchor` a bar of its map (`resolve_anchor`)."""
+    file names it (`Artist — Title`) and `anchor` a bar of its map (`resolve_anchor`). The
+    label is the moment or the anchor, None for a bare bar number (the header says `bar N`)."""
     moments = ", ".join(show_zoom.moment_names(show)) or "none"
     if anchor is None:
         found = show_zoom.moment_target(show, target)
@@ -480,7 +482,7 @@ def zoom_target(show: CompiledShow, target: str, anchor: str | None) -> tuple[in
     bar, problem = show_language.resolve_anchor(anchor, show.tracks[index].map)
     if problem is not None:
         return f"anchor of {target}: {problem}"
-    return index, bar, anchor
+    return index, bar, None if anchor.strip().isdigit() else anchor
 
 
 def _zoom(args) -> int:
@@ -496,7 +498,7 @@ def _zoom(args) -> int:
     if errors or source is None or source.parse_failed:
         _print_findings(errors)
         return 1
-    compiled, found, _, _ = show_rules.evaluate_show(source, check_repo.show_inputs(repo, source))
+    compiled, found, rule_found, _ = show_rules.evaluate_show(source, check_repo.show_inputs(repo, source))
     if found or compiled is None:
         _print_findings(found)
         return 1
@@ -507,6 +509,8 @@ def _zoom(args) -> int:
     clock = show_views.build_clock(compiled, check_repo.show_tempos(repo, source))
     print(show_zoom.render_zoom(compiled, index, bar, args.before, args.after, frames, clock,
                                 rig=_valid_rig(repo), room=check_repo.valid_room(repo), label=label), end="")
+    if rule_found:                     # the report lists them; the zoom only says they exist
+        print(f"{len(rule_found)} rule finding(s): see nextrack_show.py report", file=sys.stderr)
     return 0
 
 

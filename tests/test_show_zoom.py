@@ -8,6 +8,7 @@ Centre), virada 21-24 (blink 1/4, solid 1/8, all vermelho, white and strobe on 2
 handover entrega 25-32. The palette's legend letters are a azul, v vermelho, i violeta (the
 initial, else the next free letter of the name). The house rig is assumed: movers NE (mover 0)
 and SE (mover 1), Vorlanes NW (unit 0) and SW (unit 1)."""
+import pytest
 import test_lightshow_compile as lc
 from mapdata import chunks, good_map
 from test_lightshow_compile import choreo, room  # noqa: F401  (room: the house venue fixture)
@@ -121,6 +122,19 @@ def test_zoom_accents_and_strobe_steps():
     assert out["vorl. NW"] == ["VVVV" + "Vv" * 6]           # solid 1/8: a pulse every two steps
     assert out["lustre"] == ["9742" * 4]                    # hue pulse: a beat of decay, 0-9
     assert "v/V vermelho" in text and "a/A azul" not in text   # the legend lists the colours shown
+    assert ("  white #, strobe x, uv u (blank: none); the strobe writes over the movers and the Vorlanes "
+            "for its span; uv shows intent only (not compiled yet: a manual cue)") in text.splitlines()
+
+
+def test_zoom_legend_gives_the_lustres_colour():
+    show = with_look({"movers": "off", "matrix": "off", "hue": {"state": "pulse", "colour": "azul"}})
+    text = sz.render_zoom(show, 0, 17, 2, 4, [], None)       # bars 15-21: azul, the dark spiral, vermelho
+    assert "  lustre 0-9 (. dark): azul 15-16, vermelho 21" in text.splitlines()
+    show = with_look({"movers": "off", "matrix": "off", "hue": "bright"})
+    text = sz.render_zoom(show, 0, 12, 0, 0, [], None)       # no colour: Main keeps the autoscript's
+    assert "  lustre 0-9 (. dark): autoscript colour 12" in text.splitlines()
+    text = sz.render_zoom(base(), 0, 18, 0, 0, [], None)     # dark: no colour to name
+    assert "  lustre 0-9 (. dark)" in text.splitlines()
 
 
 def test_zoom_marks_auto():
@@ -183,6 +197,34 @@ def test_zoom_steps_follow_the_anchors():
     assert out["mover SE"] == ["." * 8 + "A" * 8]
 
 
+@pytest.mark.parametrize("bpm, downbeat, ms", [(129.0, "0:00.025", 25), (132.0, "0:00.230", 230)])
+def test_zoom_reads_inside_each_step_off_whole_milliseconds(bpm, downbeat, ms):
+    """At 129 or 132 BPM a 1/16 step is not a whole number of ms, so the compiler's step and
+    pulse times land up to 1 ms off the grid's (each rounded on its own), with a dark key 1 ms
+    before every rise: the zoom reads 2 ms into each step, past both, never on the edge."""
+    src, inp = two_track_show()
+    for data in inp.maps.values():
+        data["grid"] = {"bpm": bpm, "downbeat": downbeat, "anchors": [[ms, bpm]], "offset_ms": 0}
+    src.track_files[FILE_1]["cues"] = [
+        {"at": "drop.1", "name": "rapido", "look": {
+            "movers": {"move": "pingpong", "every": "1/16", "colour": "azul", "position": "Up"},
+            "matrix": {"draw": "solid", "rate": "1/16", "colour": "azul", "pingpong": True},
+            "hue": {"state": "pulse", "colour": "vermelho"}}},
+        {"at": "break.1", "name": "varrida", "look": {
+            "movers": {"move": "sweep", "every": "1bar", "colour": "azul", "positions": ["Crossed Over", "Up"]},
+            "matrix": "off", "hue": {"state": "pulse", "colour": "vermelho"}}},
+    ]
+    show = compiled(src, inp)
+    out = rows(sz.render_zoom(show, 0, 9, 0, 15, [], None, room=ROOM))   # bars 9-24
+    fast = slice(0, 8 * BAR)                                 # rapido, bars 9-16: 128 steps
+    assert "".join(out["mover NE"])[fast] == "A." * 64
+    assert "".join(out["mover SE"])[fast] == ".A" * 64
+    assert "".join(out["vorl. NW"])[fast] == "A." * 64
+    assert "".join(out["vorl. SW"])[fast] == ".A" * 64
+    assert "".join(out["lustre"]) == "9742" * 64             # the hue's full pulse train, both sections
+    assert out["aim"][8:] == ["cruzado".ljust(BAR), "coluna".ljust(BAR)] * 4   # it changes on the downbeat only
+
+
 def test_zoom_frames_draw_both_vorlanes():
     show = with_look({"movers": "off", "matrix": {"draw": "columns", "rate": "1/4", "colour": "azul", "mirror": True},
                       "hue": "dark"})
@@ -234,7 +276,31 @@ def test_colour_letters_are_unique():
     assert len(set(many.values()) - {"?"}) == 26 and list(many.values())[-1] == "?"
 
 
+
 # --------------------------------------------- against the compiler itself --
+# The house venue of tests/test_lightshow_compile.py (two movers, two Vorlanes with every
+# cell, Main), compiled by lightshow.compile_choreography with the real rig at 129 BPM, so
+# compiled times are rounded off the grid's. Every lane is read back from the compiled script
+# at the zoom's own instants (`sample_times`).
+
+CHECK_PALETTE = {"azul": "#0A2CFF", "vermelho": "#FF0A2A", "violeta": "#6A1CFF", "ciano": "#00B8FF"}
+CHECK_SECTIONS = [
+    ((3, 4), {"movers": {"move": "pingpong", "every": "1/8", "colour": "#FF0A2A",
+                         "positions": ["Crossed Over", "Up"]},
+              "matrix": {"draw": "columns", "rate": "1/8", "colour": "#0A2CFF", "pingpong": True, "mirror": True},
+              "strobe": "off", "hue": "pulse"}),
+    ((5, 6), {"movers": {"move": "blink", "every": "1/4", "colour": "#FF0A2A", "position": "Dance Floor Centre"},
+              "matrix": {"draw": "solid", "rate": "1/8", "colour": "#FF0A2A", "with_white": True},
+              "white": {"accent": ["5.1", "6.3"]}, "strobe": {"hit": ["5.1", "6.2"]}, "hue": "bright"}),
+    ((7, 8), {"movers": {"move": "hold", "level": 0.4, "colour": "#6A1CFF"},
+              "matrix": {"draw": "columns", "rate": "1/4", "mirror": True},     # the draw's own colour
+              "white": {"flash": "1/2"}, "strobe": {"roll": [8, 8]}, "hue": "dark"}),
+    ((9, 10), {"movers": {"move": "sweep", "every": "1bar", "level": 0.7, "colour": "#00B8FF",
+                          "positions": ["Up", "Stage Left"]},
+               "matrix": {"draw": "fill-up", "rate": "1/4", "colour": "#00B8FF"}, "hue": "off"}),
+    ((11, 11), {"movers": "off", "matrix": "off", "hue": "pulse"}),
+]
+FIRST, LAST = 3, 11
 
 
 def _case(glyph: str) -> str:
@@ -246,47 +312,122 @@ def _band(level: float) -> str:
     return "." if level <= 0 else "U" if level >= 0.5 else "l"
 
 
-def test_zoom_samples_what_compile_writes(room):
-    """Every step of every light lane equals the level the compiled script holds there: the
-    house venue of tests/test_lightshow_compile.py, compiled with the real rig at 100 BPM."""
-    sections = [
-        ls.Section((3, 4), "a", None, {
-            "movers": {"move": "pingpong", "every": "1/8", "colour": "#FF0A2A"},
-            "matrix": {"draw": "columns", "rate": "1/8", "colour": "#0A2CFF", "pingpong": True},
-            "hue": "pulse"}),
-        ls.Section((5, 6), "b", None, {
-            "movers": {"move": "blink", "every": "1/4", "colour": "#FF0A2A"},
-            "matrix": {"draw": "solid", "rate": "1/8", "colour": "#FF0A2A", "with_white": True},
-            "white": {"accent": ["5.1", "6.3"]}, "strobe": {"hit": ["5.1"]}, "hue": "bright"}),
-        ls.Section((7, 8), "c", None, {
-            "movers": {"move": "hold", "level": 0.4, "colour": "#6A1CFF"},
-            "matrix": {"draw": "rows-up", "rate": "1bar", "mirror": True},
-            "white": {"flash": "1/2"}, "strobe": {"roll": [8, 8]}, "hue": "dark"}),
-    ]
-    script, _ = ls.compile_choreography(choreo(*sections), room(), lc.RIG, lc.VENUES, lc.PRESETS)
-    data = good_map(10)
-    data["grid"].update(bpm=100.0, downbeat="0:00.158", anchors=[[158, 100.0]])
+def _compile(room, layers_of):
+    sections = [ls.Section(bars, "s", None, layers_of(layers)) for bars, layers in CHECK_SECTIONS]
+    script, _ = ls.compile_choreography(choreo(*sections, grid={"bpm": 129, "downbeat": "0:00.158"}),
+                                        room(tempo=((158, 129.0),)), lc.RIG, lc.VENUES, lc.PRESETS)
+    return script
+
+
+def _zoom_show() -> CompiledShow:
+    data = good_map(12)
+    data["grid"].update(bpm=129.0, downbeat="0:00.158", anchors=[[158, 129.0]])
     origin = Provenance("cue", "A — B", None, None, None, None, "x.yml", 1)
     track = CompiledTrack("A — B", "a-b", "x.yml", data, {},
-                          [CompiledSection(s.bars, s.name, None, s.layers, origin) for s in sections])
-    show = CompiledShow("x", "lightshows/shows/x", {"palette": {"azul": "#0A2CFF"}}, [track], [])
-    out = rows(sz.render_zoom(show, 0, 5, 2, 3, [], None, rig=lc.RIG))
-    times = sz.step_times(data, 3, 8)
+                          [CompiledSection(bars, f"s{bars[0]}", None, layers, origin)
+                           for bars, layers in CHECK_SECTIONS])
+    return CompiledShow("x", "lightshows/shows/x", {"palette": CHECK_PALETTE}, [track], [])
 
-    def level(node: int, t: int) -> float:
-        trk = script.main if node == 2 else ssf.track(script, node)
+
+def _legend_hex(text: str) -> dict[str, str]:
+    """Each legend letter (both cases) -> the #RRGGBB it stands for."""
+    head = text.split("legend: ", 1)[1].split(" (lower case", 1)[0]
+    out = {}
+    for entry in head.split(", "):
+        pair, name = entry.split(" ", 1)
+        for letter in pair.split("/"):
+            out[letter] = CHECK_PALETTE.get(name, name)
+    return out
+
+
+def _aims_per_step(cells: list[str], text: str) -> list[str]:
+    """The aim lane, one aim per step: a bar's name, or each digit through the `aims:` line."""
+    line = next((l for l in text.splitlines() if l.startswith("aims: ")), "aims: ")
+    digits = dict(entry.split(" ", 1) for entry in line[len("aims: "):].split(", ") if entry)
+    out = []
+    for cell in cells:
+        name = "~" if cell == "~" * BAR else cell.strip()
+        out += [digits[c] for c in cell] if cell.isdigit() else [name] * BAR
+    return out
+
+
+def _frame_cells(lines: list[str], beat: str) -> list[str]:
+    """The 7 rows of a `--frames` beat, both units side by side."""
+    at = next(i for i, l in enumerate(lines) if l.startswith(f"  {beat} · "))
+    return [row[4:] for row in lines[at + 2:at + 9]]
+
+
+def test_zoom_samples_what_compile_writes(room):
+    script = _compile(room, dict)
+    strobe_only = _compile(room, lambda layers: {"movers": "off", "matrix": "off", "white": "off", "hue": "dark",
+                                                 **({"strobe": layers["strobe"]} if "strobe" in layers else {})})
+    show = _zoom_show()
+    data = show.tracks[0].map
+    beats = [f"{b}.{beat}" for b in range(FIRST, LAST + 1) for beat in range(1, 5)]
+    text = sz.render_zoom(show, 0, FIRST, 0, LAST - FIRST, beats, None, rig=lc.RIG)
+    out, lines = rows(text), text.splitlines()
+    samples = sz.sample_times(data, FIRST, LAST)
+    letters = _legend_hex(text)
+
+    def level(s, node: int, t: int) -> float:
+        trk = s.main if node == 2 else ssf.track(s, node)
         return ssf.level_at(ssf.intensity(trk), t) / 2**32
+
+    def colour(node: int, t: int) -> str:
+        argb = lc.colour_at(ssf.track(script, node), t)
+        return f"#{argb & 0xFFFFFF:06X}"
 
     def lane(label: str) -> str:
         return "".join(out[label])
 
-    cells = {unit: [lc.rgb(unit, n) for n in range(1, 49)] for unit in lc.UNITS}
-    whites = [lc.white(unit, n) for unit in lc.UNITS for n in range(1, 9)]
+    def node_of(unit: int, row: int, col: int) -> int:
+        kind, n = ls.cell_zone(row, col)
+        return lc.rgb(unit, n) if kind == "rgb" else lc.white(unit, n)
+
+    colour_cells = {u: [node_of(u, r, c) for r in ls.COLOUR_ROWS for c in range(8)] for u in lc.UNITS}
+    whites = [lc.white(u, n) for u in lc.UNITS for n in range(1, 9)]
+    # movers: the level band and the colour letter
     for label, node in (("mover NE", 1167), ("mover SE", 1168)):
-        assert [_case(g) for g in lane(label)] == [_band(level(node, t)) for t in times], label
+        glyphs = lane(label)
+        assert [_case(g) for g in glyphs] == [_band(level(script, node, t)) for t in samples], label
+        assert all(letters[g] == colour(node, t) for g, t in zip(glyphs, samples) if g != "."), label
+    # Vorlanes: the brightest colour cell, and the colour of every lit cell
     for label, unit in (("vorl. NW", lc.UNITS[0]), ("vorl. SW", lc.UNITS[1])):
-        assert [_case(g) for g in lane(label)] == [_band(max(level(n, t) for n in cells[unit])) for t in times], label
-    assert lane("white") == "".join("#" if max(level(n, t) for n in whites) > 0 else " " for t in times)
-    assert lane("lustre") == "".join(sz._digit(level(2, t)) for t in times)
-    bands = set(_case(g) for g in lane("mover NE") + lane("vorl. NW"))
-    assert bands == {"U", "l", "."}                         # every band is exercised
+        glyphs = lane(label)
+        assert [_case(g) for g in glyphs] == [
+            _band(max(level(script, n, t) for n in colour_cells[unit])) for t in samples], label
+        for g, t in zip(glyphs, samples):
+            lit = [n for n in colour_cells[unit] if level(script, n, t) > 0]
+            assert all(letters[g] == colour(n, t) for n in lit), (label, t)
+    # white, lustre, strobe: the W cells, Main, and the movers of a compile with only the strobe
+    assert lane("white") == "".join("#" if max(level(script, n, t) for n in whites) > 0 else " " for t in samples)
+    assert lane("lustre") == "".join(sz._digit(level(script, 2, t)) for t in samples)
+    auto = range(16 * (9 - FIRST), 16 * (LAST + 1 - FIRST))              # 9-11 leave the strobe to the autoscript
+    strobe = lane("strobe")
+    assert all(strobe[k] == "~" for k in auto)
+    assert [g for k, g in enumerate(strobe) if k not in auto] == [
+        "x" if level(strobe_only, 1167, t) > 0 else " " for k, t in enumerate(samples) if k not in auto]
+    # aims: the compiled position flag in force, where the section names a position
+    names = {p.guid: p.name for p in lc.PRESETS}
+    mover = ssf.track(script, 1167)
+    aims = _aims_per_step(out["aim"], text)
+    for k, t in enumerate(samples):
+        bar = FIRST + k // BAR
+        if 7 <= bar <= 8:
+            assert aims[k] == "~"                                            # hold without a position
+        elif bar == 11:
+            assert aims[k] == "-"                                            # movers off
+        else:
+            assert aims[k] == names[mover.positions.palette[ssf.active_flag(mover, t).preset][0]], (bar, k)
+    # --frames: every cell of both units at every beat
+    grid = ssf.Grid([(158, 129.0)])
+    for beat in beats:
+        b, n = (int(x) for x in beat.split("."))
+        t = grid.ms(b, n) + sz.SAMPLE_OFFSET_MS
+        want = ["  ".join("".join("#" if level(script, node_of(u, r, c), t) > 0 else "." for c in range(8))
+                          for u in lc.UNITS) for r in range(7)]
+        assert _frame_cells(lines, beat) == want, beat
+    # every band, several colours, both aims of a cycle and both strobe forms are exercised
+    assert set(_case(g) for g in lane("mover NE") + lane("vorl. NW")) == {"U", "l", "."}
+    assert len(set(letters.values())) >= 4 and "x" in strobe and "#" in lane("white")
+    assert {"Crossed Over", "Up", "Stage Left", "Dance Floor Centre"} <= set(aims)
