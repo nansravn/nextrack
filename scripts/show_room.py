@@ -13,6 +13,7 @@ Python API: `Aim`, `Room`, `problems_room`, `load_room`, `resolve_aim`, `preset_
 """
 from __future__ import annotations
 
+import math
 import re
 from dataclasses import dataclass
 
@@ -53,7 +54,10 @@ def _line(node: object, default: int = 0) -> int:
 
 
 def _num(v: object) -> bool:
-    return isinstance(v, (int, float)) and not isinstance(v, bool)
+    """A real number: int or float, not bool, and finite (`.inf` and `.nan` are not)."""
+    if isinstance(v, bool) or not isinstance(v, (int, float)):
+        return False
+    return isinstance(v, int) or math.isfinite(v)
 
 
 def _clean(v: object) -> object:
@@ -63,17 +67,17 @@ def _clean(v: object) -> object:
 
 
 def _size_problems(size: object, line: int) -> tuple[list[tuple[int, str]], Point | None]:
-    if not isinstance(size, dict) or sorted(_keys(size)) != sorted(AXES):
+    if not isinstance(size, dict) or set(_keys(size)) != set(AXES):
         return [(line, f"size {_clean(size)!r} must be a mapping with x, y and z")], None
     vals = [size[a] for a in AXES]
     if not all(_num(v) and v > 0 for v in vals):
-        return [(_line(size, line), f"size {_clean(size)!r} must hold three positive numbers")], None
+        return [(_line(size, line), f"size {_clean(size)!r} must hold three positive finite numbers")], None
     return [], (float(vals[0]), float(vals[1]), float(vals[2]))
 
 
 def _point_problem(point: object, size: Point | None, where: str) -> str | None:
     if not isinstance(point, list) or len(point) != 3 or not all(_num(v) for v in point):
-        return f"{where} {point!r} must be a list of three numbers [x, y, z]"
+        return f"{where} {point!r} must be a list of three finite numbers [x, y, z]"
     if size is not None:
         for v, hi, axis in zip(point, size, AXES):
             if not 0 <= v <= hi:
@@ -131,7 +135,7 @@ def _aims_problems(aims: object, size: Point | None, rig_fixtures: dict[str, str
     if not isinstance(aims, dict) or not _keys(aims):
         return [(top, "aims must be a non-empty mapping of aim id to aim")]
     out: list[tuple[int, str]] = []
-    movers = sorted(k for k, kind in (rig_fixtures or {}).items() if kind == "mover")
+    movers = [k for k, kind in (rig_fixtures or {}).items() if kind == "mover"]
     for aim_id in _keys(aims):
         aim = aims[aim_id]
         where = f"aim {aim_id!r}"
@@ -198,7 +202,7 @@ def _chain_problems(aims: dict, top: int) -> list[tuple[int, str]]:
                 cycle = chain[chain.index(nxt):] + [nxt]
                 if frozenset(cycle) not in reported:
                     reported.add(frozenset(cycle))
-                    out.append((_line(aims.get(nxt), top), "fallback cycle: " + " -> ".join(cycle)))
+                    out.append((_line(aims.get(nxt), top), "fallback cycle: " + " -> ".join(map(str, cycle))))
                 break
             chain.append(nxt)
     return out
@@ -238,7 +242,7 @@ def resolve_aim(room: Room, aim_id: str) -> tuple[str | None, list[str], str | N
         if current not in room.aims:
             return None, chain, f"aim {current!r} is not in the room's catalogue"
         if current in chain:
-            return None, chain, "fallback cycle: " + " -> ".join(chain + [current])
+            return None, chain, "fallback cycle: " + " -> ".join(map(str, chain + [current]))
         chain.append(current)
         aim = room.aims[current]
         if aim.status == "configured":
