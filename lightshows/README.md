@@ -257,8 +257,9 @@ drums are split by frequency into `kick` (low band) and `perc` (the rest), so a 
 voices: `vocals`, `kick`, `perc`, `bass`, `other`.
 
 - `voices.<v>.bars`: one level per bar, `0`-`9`. `9` is the voice's own loud level and each
-  level below is about 3 dB quieter; `0` is silence. A voice that is only bleed (far under the
-  mix) reads `0` all the way, so an instrumental's vocal stem does not light the movers.
+  level below is about 3 dB quieter; `0` is silence. A voice that is only bleed (its loud level
+  per bar far under the mix's) reads `0` all the way, in `bars`, `steps`, `register` and
+  `phrases` alike, so an instrumental's vocal stem does not light the movers.
   `entries` and `exits` list the bars where the voice comes in (after two quiet bars) and
   leaves (before two quiet bars). `perc` and `other` also have `balance`, one letter per bar:
   `L`, `l`, `c`, `r`, `R` (hard and soft sides, centre).

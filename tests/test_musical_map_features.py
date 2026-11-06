@@ -486,6 +486,24 @@ def test_short_full_stretch_after_the_intro_is_a_drop():
     assert [d["bar"] for d in m["drops"]][:2] == [5, 9]
 
 
+def test_bleed_is_decided_once_for_steps_and_bars():
+    bars = 8
+    total = bars * BAR_MS
+    z = silence(total)
+    # vocals: one 100 ms blip per bar, quiet: under the bleed line as bars, above it as steps
+    blips = place(total, [(b * BAR_MS + 10, tone(440, 100, amp=0.0355)) for b in range(bars)])
+    stems = {"vocals": blips, "drums": z, "bass": z.copy(), "other": tone(440, total, amp=0.5)}
+    edges = mm.step_edges_ms(Grid([(0, 120.0)]), total)
+    mix = blips + stems["other"]
+    step_gap = mm.loud_db(mm.rms_db(mix, SR, edges)) - mm.loud_db(mm.rms_db(blips, SR, edges))
+    bar_gap = mm.loud_db(mm.rms_db(mix, SR, edges[::16])) - mm.loud_db(mm.rms_db(blips, SR, edges[::16]))
+    assert step_gap < mm.BLEED_DB < bar_gap
+    m = make(stems)
+    assert m["voices"]["vocals"]["bars"] == "0" * bars
+    assert set("".join(m["steps"]["vocals"])) == {"0"}
+    assert set("".join(m["register"])) == {"."} and m["phrases"] == []
+
+
 def test_a_loud_kick_only_intro_is_intro_until_the_bass_enters():
     allbars = list(range(1, 25))
     stems = render(kick=allbars, bass=range(9, 25), kick_db={b: -18 for b in allbars},
