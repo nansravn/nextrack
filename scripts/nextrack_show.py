@@ -9,6 +9,9 @@ Subcommands:
           --out DIR: write elsewhere, --adopt: take over hand-written files); name the stale
           files the show owns but no longer compiles, never deleting them; print the advice
   report  the night as text, one line per section, for a critic
+  zoom    a moment at 1/16 of a beat: the map's music lanes over the light `build` would
+          compile, and with --frames the Vorlanes' 8x7 cells (needs no SoundSwitch project;
+          rule findings are the report's, so it exits 1 only on source findings)
   vocab   the anchors, the layer words and keys, the gestures and the rules; with a show, its
           palette and looks
 
@@ -32,6 +35,7 @@ import show_language
 import show_room
 import show_rules
 import show_views
+import show_zoom
 from show_language import CompiledShow, ShowFinding, ShowSource
 
 DEFAULT_REPO = Path(__file__).resolve().parent.parent
@@ -441,6 +445,71 @@ def _report(args) -> int:
     return 1 if rule_found else 0
 
 
+# -------------------------------------------------------------------- zoom --
+
+
+def _usage(message: str) -> int:
+    print(f"usage error: {message}", file=sys.stderr)
+    return 2
+
+
+def _valid_rig(repo: check_repo.Repo) -> lightshow.Rig | None:
+    """The rig of `lightshows/rig.yml`, or None when it is missing or fails its check."""
+    if repo.rig is None or lightshow.problems_rig(repo.rig[1]):
+        return None
+    return lightshow.load_rig(repo.root / check_repo.RIG_PATH)
+
+
+def zoom_target(show: CompiledShow, target: str, anchor: str | None) -> tuple[int, int, str] | str:
+    """`(track index, bar, label)` of a zoom's target, or the usage error. Without `anchor`,
+    `target` is a moment (`show_zoom.moment_target`); with one, it is a track as its track
+    file names it (`Artist — Title`) and `anchor` a bar of its map (`resolve_anchor`)."""
+    moments = ", ".join(show_zoom.moment_names(show)) or "none"
+    if anchor is None:
+        found = show_zoom.moment_target(show, target)
+        if found is not None:
+            return (*found, target)
+        if any(t.track == target for t in show.tracks):
+            return f'{target!r} is a track: give an anchor too (zoom SHOW "{target}" drop.1)'
+        return (f"{target!r} is not a moment of the show (moments: {moments}); "
+                'or give a track and an anchor (zoom SHOW "Artist — Title" ANCHOR)')
+    index = next((i for i, t in enumerate(show.tracks) if t.track == target), None)
+    if index is None:
+        tracks = "; ".join(t.track for t in show.tracks)
+        return f"{target!r} is not a track of the show (tracks: {tracks}; moments: {moments})"
+    bar, problem = show_language.resolve_anchor(anchor, show.tracks[index].map)
+    if problem is not None:
+        return f"anchor of {target}: {problem}"
+    return index, bar, anchor
+
+
+def _zoom(args) -> int:
+    if args.before < 0 or args.after < 0:
+        return _usage(f"--before and --after take a number of bars from 0, not {min(args.before, args.after)}")
+    frames = [f.strip() for f in (args.frames or "").split(",") if f.strip()]
+    bad = [f for f in frames if not show_zoom.FRAME_RE.fullmatch(f)]
+    if bad:
+        return _usage(f"--frames takes <bar>.<beat> beats (beat 1-4), comma-separated, not {', '.join(bad)}")
+    repo, source, errors = _load(args)
+    if repo is None:
+        return 2
+    if errors or source is None or source.parse_failed:
+        _print_findings(errors)
+        return 1
+    compiled, found, _, _ = show_rules.evaluate_show(source, check_repo.show_inputs(repo, source))
+    if found or compiled is None:
+        _print_findings(found)
+        return 1
+    target = zoom_target(compiled, args.target, args.anchor)
+    if isinstance(target, str):
+        return _usage(target)
+    index, bar, label = target
+    clock = show_views.build_clock(compiled, check_repo.show_tempos(repo, source))
+    print(show_zoom.render_zoom(compiled, index, bar, args.before, args.after, frames, clock,
+                                rig=_valid_rig(repo), room=check_repo.valid_room(repo), label=label), end="")
+    return 0
+
+
 # ------------------------------------------------------------------- vocab --
 
 
@@ -547,9 +616,15 @@ def main(argv: list[str] | None = None) -> int:
     build.add_argument("--out", type=Path, help="write the choreographies into DIR instead (a variant)")
     build.add_argument("--adopt", action="store_true", help="take over hand-written files")
     add("report", "the night as text, for a critic")
+    zoom = add("zoom", "a moment at 1/16 of a beat: the map's music over the compiled light")
+    zoom.add_argument("target", help='a moment name, or a track ("Artist — Title") followed by ANCHOR')
+    zoom.add_argument("anchor", nargs="?", help="with a track: its bar, as an anchor (49, G, drop.2, drop.2 - 1)")
+    zoom.add_argument("--before", type=int, default=3, help="bars before the target (default 3)")
+    zoom.add_argument("--after", type=int, default=1, help="bars after the target (default 1)")
+    zoom.add_argument("--frames", metavar="B.b,...", help="also both Vorlanes' 8x7 cells at these beats")
     add("vocab", "anchors, layer words, gestures and rules (and a show's palette and looks)", show_required=False)
     args = parser.parse_args(argv)
-    return {"build": _build, "report": _report, "vocab": _vocab}[args.command](args)
+    return {"build": _build, "report": _report, "zoom": _zoom, "vocab": _vocab}[args.command](args)
 
 
 if __name__ == "__main__":
