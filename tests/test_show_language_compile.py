@@ -605,3 +605,14 @@ def test_a_cue_that_overrides_a_bad_default_has_no_finding():
     _, findings = compile_show(src, inp)
     assert found(findings) == [(PATH_1, 12, "show-source",
                                 "cue 'espiral': spiral: rates[0] '1/5' is not a rate (1/16, 1/8, 1/4, 1/2, <n>bar)")]
+
+
+def test_an_invalid_map_is_not_a_missing_one():
+    src, inp = two_track_show()
+    del inp.maps[slug(TRACK_2)]
+    inp.invalid_maps = {slug(TRACK_2)}
+    show, findings = compile_show(src, inp)
+    assert show is None
+    assert found(findings) == [(PATH_2, 0, "show-source",
+                                f"lightshows/maps/{FILE_2} is not a valid map: fix its musical-map finding "
+                                "(or redo it with uv run scripts/nextrack_map.py analyze)")]

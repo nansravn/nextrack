@@ -1375,9 +1375,13 @@ def lightshow_plan(repo: Repo) -> Iterable[Finding]:
 
 def show_inputs(repo: Repo, source: show_language.ShowSource) -> show_language.ShowInputs:
     """What the repo gives a show: the set's track order (set -> blocks -> tracklists), the
-    valid maps by file stem, and `same_track`."""
-    maps = {Path(path).stem: show_language.clean(data) for path, data in repo.maps
-            if not musical_map.problems_map(data)}
+    valid maps by file stem, the stems of the invalid ones, and `same_track`."""
+    maps, invalid = {}, set()
+    for path, data in repo.maps:
+        if musical_map.problems_map(data):
+            invalid.add(Path(path).stem)
+        else:
+            maps[Path(path).stem] = show_language.clean(data)
     set_tracks: list[tuple[str, str]] | None = []
     problem = None
     rel = source.show.get("set") if isinstance(source.show, dict) else None
@@ -1398,7 +1402,7 @@ def show_inputs(repo: Repo, source: show_language.ShowSource) -> show_language.S
                 set_tracks, problem = None, f"set {rel!r} links block {block_id!r}, which has no blocks/{block_id}.md"
                 break
             set_tracks.extend((artist, title) for _, artist, title in tracklist_entries(block))
-    return show_language.ShowInputs(maps, set_tracks, problem, same_track)
+    return show_language.ShowInputs(maps, set_tracks, problem, same_track, invalid)
 
 
 def show_results(repo: Repo) -> list:

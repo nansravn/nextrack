@@ -88,6 +88,7 @@ def test_broken_inputs_report_once(mini_repo_at, tmp_path):
         "set missing": (lambda r: r.path("sets/teste.md").unlink(), "show-source"),
         "block link broken": (lambda r: r.edit("sets/teste.md", "alpha-festa.md", "nope.md"), "show-source"),
         "map deleted": (lambda r: r.path(f"lightshows/maps/{FILE_2}").unlink(), "show-source"),
+        "map invalid": (lambda r: r.edit(f"lightshows/maps/{FILE_2}", "bars: 32", "bars: -1"), "show-source"),
         "invalid yaml": (lambda r: r.write(f"{SHOW}/{FILE_2}", "a: [1, 2\n"), "parse-error"),
     }
     for n, (name, (break_it, expected)) in enumerate(causes.items()):
@@ -96,6 +97,18 @@ def test_broken_inputs_report_once(mini_repo_at, tmp_path):
         break_it(repo)
         found = _show_only(repo)
         assert [f[2] for f in found] == [expected], (name, found)
+
+
+def test_an_invalid_map_is_named_as_invalid(mini_repo):
+    from check_repo import check
+
+    put_show(mini_repo)
+    mini_repo.edit(f"lightshows/maps/{FILE_2}", "bars: 32", "bars: -1")
+    found = check(mini_repo.root)
+    assert any(f.rule == "musical-map" and f.path == f"lightshows/maps/{FILE_2}" for f in found)
+    assert [(f.path, f.message) for f in found if f.rule == "show-source"] == [
+        (f"{SHOW}/{FILE_2}", f"lightshows/maps/{FILE_2} is not a valid map: fix its musical-map finding "
+                             "(or redo it with uv run scripts/nextrack_map.py analyze)")]
 
 
 def test_rules_table_lists_the_show_rules():
