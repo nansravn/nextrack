@@ -28,6 +28,7 @@ import yaml
 import lightshow
 from lightshow import COLOUR_RE, LAYERS, problems_choreography
 from musical_map import slug
+import show_room
 from show_gestures import GESTURES, GestureContext, run_gesture
 
 SHOW_VERSION = 1
@@ -529,6 +530,7 @@ class ShowInputs:
     set_problem: str | None            # why set_tracks is None
     same_track: Callable[[str, str, str, str], bool]
     invalid_maps: set[str] = field(default_factory=set)   # slugs of maps that exist but fail their check
+    room: "show_room.Room | None" = None   # the valid lightshows/room.yml, if any
 
 
 @dataclass

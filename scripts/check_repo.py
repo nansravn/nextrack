@@ -43,10 +43,12 @@ except ImportError:
 import lightshow
 import musical_map
 import show_language
+import show_room
 import show_rules
 
 GRAPH_PATH = "genres/graph.yml"
 RIG_PATH = "lightshows/rig.yml"
+ROOM_PATH = "lightshows/room.yml"
 
 # --------------------------------------------------------------------- loader --
 
@@ -121,6 +123,7 @@ class Repo:
     plans: list[Block] = field(default_factory=list)  # lightshows/sets/*.md
     maps: list[tuple[str, object]] = field(default_factory=list)  # lightshows/maps/*.yml
     shows: list[show_language.ShowSource] = field(default_factory=list)  # lightshows/shows/*/
+    room: tuple[str, object] | None = None  # (path, parsed YAML) of lightshows/room.yml, if any
     _show_results: list | None = field(default=None, repr=False, compare=False)
 
     def node_ids(self) -> set[str]:
@@ -416,7 +419,8 @@ def load_repo(root: Path) -> Repo:
     blocks = _load_blocks(root, errors)
     rig, choreos, plans, maps = _load_lightshows(root, errors)
     shows = _load_shows(root, errors)
-    return Repo(root, nodes, pools, blocks, errors, graph_ok, rig, choreos, plans, maps, shows)
+    room = _load_yaml_file(root, ROOM_PATH, errors) if (root / ROOM_PATH).is_file() else None
+    return Repo(root, nodes, pools, blocks, errors, graph_ok, rig, choreos, plans, maps, shows, room)
 
 
 # ---------------------------------------------------------------------- rules --
@@ -1312,6 +1316,23 @@ def lightshow_rig(repo: Repo) -> Iterable[Finding]:
         yield Finding(path, 0, "lightshow-rig", problem)
 
 
+def rig_fixture_kinds(repo: Repo) -> dict[str, str] | None:
+    """Rig fixture key -> kind, or None when the rig is missing or invalid."""
+    if repo.rig is None or lightshow.problems_rig(repo.rig[1]):
+        return None
+    fixtures = repo.rig[1]["fixtures"]
+    return {k: v["kind"] for k, v in fixtures.items() if k != "__line__"}
+
+
+@rule("lightshow-room")
+def lightshow_room(repo: Repo) -> Iterable[Finding]:
+    if repo.room is None:
+        return
+    path, data = repo.room
+    for line, problem in show_room.problems_room(data, rig_fixture_kinds(repo)):
+        yield Finding(path, line, "lightshow-room", problem)
+
+
 def _pool_track_problem(repo: Repo, track: str) -> str | None:
     """Why the `track` of a choreography or map does not name a pool track, or None."""
     artist, dash, title = track.partition(" — ")
@@ -1402,7 +1423,10 @@ def show_inputs(repo: Repo, source: show_language.ShowSource) -> show_language.S
                 set_tracks, problem = None, f"set {rel!r} links block {block_id!r}, which has no blocks/{block_id}.md"
                 break
             set_tracks.extend((artist, title) for _, artist, title in tracklist_entries(block))
-    return show_language.ShowInputs(maps, set_tracks, problem, same_track, invalid)
+    room = None
+    if repo.room is not None and not show_room.problems_room(repo.room[1], rig_fixture_kinds(repo)):
+        room = show_room.load_room(repo.room[1])
+    return show_language.ShowInputs(maps, set_tracks, problem, same_track, invalid, room)
 
 
 def show_results(repo: Repo) -> list:
