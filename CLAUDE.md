@@ -67,7 +67,7 @@ Map tool (`analyze`, `cues`, `show`, `timeline`; see
   `--rekordbox`/`NEXTRACK_REKORDBOX_DIR`. rekordbox's database is read from a copy.
 - `analyze`, `cues` and `timeline` need `uv sync --group analysis` (not in CI).
 
-Show tool (`build`, `report`, `vocab`; see
+Show tool (`build`, `report`, `zoom`, `vocab`; see
 [scripts/README.md](scripts/README.md#nextrack_showpy) and
 [lightshows/shows/README.md](lightshows/shows/README.md), the manual of the show language):
 
@@ -75,7 +75,8 @@ Show tool (`build`, `report`, `vocab`; see
   `lightshows/tracks/`. Edit the show, run `build`, never the generated file.
 - `build` refuses hand-written files without `--adopt` and files of another show always. A
   show folder outside `lightshows/shows/` builds only with `--out DIR`. `report` exits 1
-  when it printed a finding.
+  when it printed a finding. `zoom` shows a moment at 1/16 of a beat (music over the light
+  `build` writes); `advice:` goals never fail anything.
 - It needs no audio, rekordbox or SoundSwitch, and writes only
   `lightshows/tracks/` of `--repo` or the `--out` folder.
 
@@ -104,6 +105,12 @@ Show tool (`build`, `report`, `vocab`; see
   `@show_rule(name, params=..., check=...)`, with a docstring, a `check` for its
   parameters, tests for the passing and the failing case in `tests/test_show_rules.py`, and
   its row in the rules table of [lightshows/shows/README.md](lightshows/shows/README.md#show-rules).
+- **Add an aim:** an entry in `lightshows/room.yml` (`figure` in pt-BR, `preset`,
+  `targets` for every mover). A new one is `pending` with a `fallback` that is
+  `configured`; `uv run scripts/nextrack_show.py vocab` lists it under the presets to
+  create. The owner makes that preset in SoundSwitch and then flips it to `configured`.
+  `assumed: true` stays until the owner measures the room. Name the aim id in
+  [lightshows/README.md](lightshows/README.md#the-room-roomyml): a test checks it.
 - **Change `nextrack_tags.py`:** write or update the test first. Its tests pin
   current behavior, including the three write paths.
 - **Add a validator rule:** one function in `RULES`, tests for the passing and

@@ -75,3 +75,6 @@ rules:
   movers-aim: true
   matrix-not-cloned: {except_moments: [virada, final]}
   exclusive: {keys: [spiral, breu], except_tracks: ['PAWSA — Too Cool To Be Careless']}
+# Meta de projeto: a ponte é ágil, 16 compassos (nunca mais de 32).
+advice:
+  bridges: {max: 16}

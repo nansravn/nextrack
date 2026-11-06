@@ -303,6 +303,9 @@ legend: v violeta, r/R vermelho (lower case: decaying), lustre 0-9, ~ autoscript
 - **`--frames BAR.BEAT,...`** prints, for each beat, the two Vorlanes' 8×7 frames side by
   side, as in the lightshow README's frame drawings.
 
+The zoom samples each step a few milliseconds after its start (`SAMPLE_OFFSET_MS`), so it reads
+the value in force and not the compiler's rounding edge.
+
 The zoom needs no SoundSwitch project. A later version could read the base script with
 `--project` to show the autoscript's lanes too; that is a non-goal here.
 

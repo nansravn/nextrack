@@ -6,6 +6,7 @@ track (the *autoscript*). This folder holds what makes that script yours:
 | path | what it is |
 |---|---|
 | `rig.yml` | the room and its fixtures, by SoundSwitch node name |
+| `room.yml` | the venue's nominal size and the **aims**: named figures the movers draw, each tied to a SoundSwitch position preset; see [The room](#the-room-roomyml) |
 | `tracks/<artist-title-slug>.yml` | the **choreography** of one track: sections of bars, each saying what a layer does |
 | `sets/<set-file-stem>.md` | the **show plan** of a set: its story, palette per block and the effect budget |
 | `shows/<show-id>/` | a **show**: one night written in the show language (`show.yml` plus one cue list per track), compiled into the choreographies above; see [shows/README.md](shows/README.md) |
@@ -221,6 +222,56 @@ room), `pingpong` (the first Vorlane gets the even steps and the second the odd 
   it printed. [scripts/README.md](../scripts/README.md#safety-model-of-apply---apply) has
   what the next `apply` then asks for.
 
+## The room: `room.yml`
+
+`room.yml` (optional) is the nominal venue and the catalogue of **aims**. A show writes an aim
+id (`cruzado`) where a SoundSwitch preset name goes (`position`, `positions`, a gesture's
+`aims`); the compiler swaps it for the preset, so the choreography stays what SoundSwitch
+reads. Coordinates feed no report: they are programming instructions for the owner.
+
+```yaml
+size: {x: 5.0, y: 4.0, z: 2.6}      # metres: x west (0) to east, y south (0) to north (the front is N), z up from the floor
+assumed: true                        # true until the owner measures the room and the fixtures
+fixtures:                            # one [x, y, z] for each fixture of rig.yml, no other key
+  mover-ne:  [5.0, 4.0, 2.3]
+  # mover-se, matrix-nw, matrix-sw, hue, haze ...
+booth: [2.5, 4.0, 1.2]
+aims:
+  cruzado:
+    figure: "um X sobre a pista: ..."   # pt-BR: what the figure looks like
+    preset: Crossed Over                 # the SoundSwitch position preset
+    status: configured                   # configured | pending
+    targets: {mover-ne: [0.5, 0.5, 1.2], mover-se: [0.5, 3.5, 1.2]}   # a point for every mover of the rig
+  rasante:
+    figure: "cruzam a cerca de 0,9 m, abaixo da altura dos olhos"
+    preset: Low Cross
+    status: pending                      # the preset does not exist in SoundSwitch yet
+    fallback: poca                       # required when pending, forbidden otherwise: an aim id of this file
+    targets: {mover-ne: [0.0, 0.5, 0.9], mover-se: [0.0, 3.5, 0.9]}
+```
+
+**What the catalogue means.** A `configured` aim has its preset in SoundSwitch and compiles
+to it. A `pending` aim is a design: the compiler uses the preset of the first `configured`
+aim along its `fallback` chain, and `build` and `report` note each fallback among the
+decisions, so the show can name the figure it wants today. `uv run scripts/nextrack_show.py vocab`
+lists the pending aims as the presets to create, with their targets.
+
+The aims:
+
+- configured: `centro-da-pista`, `cruzado`, `coluna`, `poca`, `cabine`, `lado-oeste`,
+  `lado-leste` (the two `lado-` presets: which is which side is still to confirm, P2);
+- pending: `apice`, `leque`, `varal`, `rasante` and the ring `anel-1`, `anel-2`, `anel-3`, `anel-4`, `anel-5`, `anel-6`, `anel-7`, `anel-8` (eight wall points
+  at about 2.2 m; each gives the two movers opposite points). `rasante` crosses at 0.9 m,
+  under eye level.
+
+**Measuring the room.** The numbers are nominal until measured. With a tape measure, fix the
+origin at the south-west floor corner and take, in metres, the room's `size`, each fixture's
+`[x, y, z]` and the booth. Then recompute each aim's `targets` from the real geometry (the
+figure's description says where each beam lands), set `assumed: false`, and have the
+owner create the pending presets in SoundSwitch from `vocab`'s list. When a preset exists,
+change its `status` to `configured` and remove its `fallback`. Checked by `check_repo.py` as
+`lightshow-room`; see [scripts/README.md](../scripts/README.md#rules).
+
 ## Show plan: `sets/<set-file-stem>.md`
 
 ```markdown
@@ -360,7 +411,7 @@ Free choices: XR_DMX_Visualiser, Capture (Student edition) and QLC+ 5. Details i
 
 ## Schemas checked by the validator
 
-Checked by `check_repo.py` (rules `lightshow-rig`, `lightshow-track`, `lightshow-plan`,
+Checked by `check_repo.py` (rules `lightshow-rig`, `lightshow-room`, `lightshow-track`, `lightshow-plan`,
 `musical-map`); the checks live in `scripts/lightshow.py` and `scripts/musical_map.py`. Shows
 have their own rules (`show-source`, `show-rules`, `show-compiled`), described in
 [shows/README.md](shows/README.md).
