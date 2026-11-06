@@ -509,6 +509,7 @@ class ShowInputs:
     set_tracks: list[tuple[str, str]] | None   # (artist, title) in set order
     set_problem: str | None            # why set_tracks is None
     same_track: Callable[[str, str, str, str], bool]
+    invalid_maps: set[str] = field(default_factory=set)   # slugs of maps that exist but fail their check
 
 
 @dataclass
@@ -1005,10 +1006,14 @@ def _match(source: ShowSource, folder: str, files: dict[str, tuple[object, bool]
     return order, out
 
 
-def _no_map(track: str, hits: list[str]) -> str:
+def _no_map(track: str, hits: list[str], invalid: str | None) -> str:
+    """Why a track file has no map: several match, its map fails its check, or there is none."""
     if hits:
         listed = ", ".join(f"{MAPS_DIR}/{k}.yml" for k in hits)
         return f"track {track!r} matches {len(hits)} musical maps ({listed}): write it as one of them does"
+    if invalid is not None:
+        return (f"{MAPS_DIR}/{invalid}.yml is not a valid map: fix its musical-map finding "
+                "(or redo it with uv run scripts/nextrack_map.py analyze)")
     return f"no musical map for {track}: run uv run scripts/nextrack_map.py analyze \"{track}\""
 
 
@@ -1027,7 +1032,11 @@ def _compile_tracks(show: _Show, order: list[tuple[str, dict] | None], inputs: S
         map_data = inputs.maps[key] if key is not None else None
         entries.append((name, data, map_data))
         if map_data is None:
-            findings.append(ShowFinding(f"{show.folder}/{name}", _line(data), SOURCE, _no_map(data["track"], hits)))
+            # the file is named like its map, so its stem names an invalid map as well as the slug does
+            invalid = next((k for k in (slug(data["track"]), name.removesuffix(".yml"))
+                            if k in inputs.invalid_maps), None)
+            findings.append(ShowFinding(f"{show.folder}/{name}", _line(data), SOURCE,
+                                        _no_map(data["track"], hits, invalid)))
             prev = _Prev(_title(data["track"]), "handover" in data) if linked else None
             continue
         compiler = _TrackCompiler(show, name, data, key, map_data, prev)
