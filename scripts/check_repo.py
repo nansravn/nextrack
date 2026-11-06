@@ -1433,6 +1433,39 @@ def show_inputs(repo: Repo, source: show_language.ShowSource) -> show_language.S
     return show_language.ShowInputs(maps, set_tracks, problem, same_track, invalid, valid_room(repo))
 
 
+def show_tempos(repo: Repo, source: show_language.ShowSource) -> dict[str, tuple[float, float]]:
+    """The played tempo of each show track, `{"Artist — Title" of its track file: (t0, t1)}`,
+    from the tracklists of the set's blocks (`set_timeline.block_tempos`): the first tracklist
+    line that is `same_track` as the track file's `track`. A track with no such line, or whose
+    line has no tempo, is left out (the clock then uses its map's bpm). Nothing raises: an
+    unreadable or missing set gives `{}`, a missing block is skipped (show-source reports both)."""
+    import set_timeline  # deferred: set_timeline imports this module
+
+    rel = source.show.get("set") if isinstance(source.show, dict) else None
+    if not isinstance(rel, str) or not (repo.root / rel).is_file():
+        return {}
+    try:
+        text = read_text(repo.root / rel)
+    except (UnicodeDecodeError, OSError):
+        return {}
+    by_path = {b.path: b for b in repo.blocks}
+    played = []
+    for block_id in set_block_ids(text):
+        block = by_path.get(f"blocks/{block_id}.md")
+        if block is not None:
+            played += set_timeline.block_tempos(block.text)
+    out = {}
+    for data in source.track_files.values():
+        track = data.get("track") if isinstance(data, dict) else None
+        if not isinstance(track, str) or " — " not in track:
+            continue
+        artist, title = track.split(" — ", 1)
+        tempo = next((tp for a, t, tp in played if same_track(artist, title, a, t)), None)
+        if tempo is not None:
+            out[track] = tempo
+    return out
+
+
 def show_results(repo: Repo) -> list:
     """`(source, compiled | None, source findings, rule findings)` per show, computed once
     per Repo. Shows with `parse_failed` are left out. A show's advice (`show-advice`) is a
