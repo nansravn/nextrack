@@ -476,6 +476,7 @@ class Provenance:
     moment: str | None
     path: str                 # file a finding points at (for a bridge: the outgoing track's file)
     line: int                 # the cue's or handover's line there
+    aims: tuple[str, ...] = ()   # aim ids the section's movers named (room.yml), in order
 
 
 @dataclass
@@ -606,7 +607,8 @@ class _TrackCompiler:
     compiled track, or None with the reasons in `findings`. Each step runs only when the ones
     before it found nothing, so one mistake is reported once."""
 
-    def __init__(self, show: _Show, name: str, data: dict, map_key: str, map_data: dict, prev: _Prev | None):
+    def __init__(self, show: _Show, name: str, data: dict, map_key: str, map_data: dict, prev: _Prev | None,
+                 room: "show_room.Room | None" = None):
         self.show, self.data, self.map, self.prev = show, data, map_data, prev
         self.name, self.map_key = name, map_key
         self.path = f"{show.folder}/{name}"
@@ -614,6 +616,7 @@ class _TrackCompiler:
         self.title = _title(self.track)
         self.cues: list[dict] = data["cues"]
         self.handover: dict | None = data.get("handover")
+        self.room = room
         self.window: int | None = (show.bridge or {}).get("bars")   # bridge.bars: the mix window, or None
         self.findings: list[ShowFinding] = []
         self.decisions: list[str] = []
@@ -622,6 +625,7 @@ class _TrackCompiler:
         self.h_start = self.h_until = self.h_span = self.bridge_span = None
         self.handover_part: _Part | None = None
         self.resolved = False
+        self.aim_decisions: list[str] = []
 
     def find(self, line: int, message: str, path: str | None = None) -> None:
         finding = ShowFinding(path or self.path, line, SOURCE, message)
@@ -643,6 +647,7 @@ class _TrackCompiler:
         if self.findings:
             return None
         self._decide()
+        self.decisions += self.aim_decisions
         sections = [CompiledSection(p.bars, p.name, p.intent, p.layers, p.origin) for p in self.parts]
         return CompiledTrack(self.track, self.map_key, self.path, self.map, choreography, sections)
 
@@ -774,7 +779,8 @@ class _TrackCompiler:
             o = prev.origin
             self.parts.append(_Part(self.bridge_span, self.show.bridge["name"], self.show.bridge["intent"],
                                     copy.deepcopy(prev.layers),
-                                    Provenance("bridge", self.track, o.look, None, None, o.moment, o.path, o.line),
+                                    Provenance("bridge", self.track, o.look, None, None, o.moment, o.path, o.line,
+                                               o.aims),
                                     "bridge"))
         for cue, span in zip(self.cues, self.spans):
             parts = self._gesture(cue, span) if "gesture" in cue else self._look(cue, span, "cue")
@@ -870,6 +876,7 @@ class _TrackCompiler:
             if part.origin.kind == "bridge":
                 continue          # a copy of layers the previous track resolved
             layers, problems = resolve_colours(part.layers, self.show.palette)
+            problems += self._resolve_aims(part, layers)
             movers = layers.get("movers")
             if isinstance(movers, dict) and "faster_from" in movers:
                 bar, problem = resolve_anchor(movers["faster_from"], self.map)
@@ -883,6 +890,45 @@ class _TrackCompiler:
                 else:
                     self.find(part.origin.line, f"{part.label}: {p}")
             part.layers = _ordered(layers)
+
+    def _resolve_aims(self, part: _Part, layers: dict) -> list[str]:
+        """Aim ids in the movers' `position` and `positions` become the preset of the first
+        configured aim along the fallback chain; anything that is not kebab-case stays a raw
+        preset. Records the ids on the section's provenance and a decision per fallback used."""
+        movers = layers.get("movers")
+        if not isinstance(movers, dict):
+            return []
+        room, used, problems = self.room, [], []
+
+        def one(key: str, value: object) -> object:
+            if not (isinstance(value, str) and ID_RE.fullmatch(value)):
+                return value
+            if room is None:
+                problems.append(f"{key} {value!r} looks like an aim id, but there is no valid lightshows/room.yml "
+                                "to resolve it: add the room, or write a SoundSwitch preset name")
+                return value
+            if value not in room.aims:
+                close = difflib.get_close_matches(value, list(room.aims), n=1, cutoff=0.6)
+                hint = f"; did you mean {close[0]!r}?" if close else f" (aims: {', '.join(room.aims)})"
+                problems.append(f"{key} {value!r} is not an aim of lightshows/room.yml{hint}")
+                return value
+            preset, chain, problem = show_room.resolve_aim(room, value)
+            if preset is None:
+                problems.append(f"{key} {value!r}: {problem}")
+                return value
+            used.append(value)
+            if len(chain) > 1:
+                a, b = part.bars
+                self.aim_decisions.append(f"{self.title}: aim {value!r} is pending; bar {a}-{b} uses "
+                                          f"{chain[-1]!r} ({preset})")
+            return preset
+
+        if "position" in movers:
+            movers["position"] = one("position", movers["position"])
+        if isinstance(movers.get("positions"), list):
+            movers["positions"] = [one("positions", v) for v in movers["positions"]]
+        part.origin.aims = tuple(used)
+        return problems
 
     # step 6
     def _choreography(self) -> dict:
@@ -1086,7 +1132,7 @@ def _compile_tracks(show: _Show, order: list[tuple[str, dict] | None], inputs: S
                                         _no_map(data["track"], hits, invalid)))
             prev = _Prev(_title(data["track"]), "handover" in data) if linked else None
             continue
-        compiler = _TrackCompiler(show, name, data, key, map_data, prev)
+        compiler = _TrackCompiler(show, name, data, key, map_data, prev, inputs.room)
         track = compiler.run()
         findings += [f for f in compiler.findings if f not in findings]   # a show.yml finding once
         decisions += compiler.decisions

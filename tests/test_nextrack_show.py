@@ -12,6 +12,38 @@ T1 = f"lightshows/tracks/{FILE_1}"
 T2 = f"lightshows/tracks/{FILE_2}"
 
 
+RIG = """\
+room: {shape: rectangle, front: N}
+fixtures:
+  mover-ne: {node: Mover 1, corner: NE, kind: mover}
+  hue:      {kind: hue-chandelier, corner: centre, lamps: 7, follows: main-track}
+matrix:
+  rows: [colour, white]
+  zone_order: row-major-top-left
+  white_max: 0.6
+"""
+ROOM_YML = """\
+size: {x: 5.0, y: 4.0, z: 2.6}
+assumed: true
+fixtures:
+  mover-ne: [5.0, 4.0, 2.3]
+  hue: [2.5, 2.0, 2.2]
+booth: [2.5, 4.0, 1.2]
+aims:
+  centro:
+    figure: "no centro"
+    preset: Dance Floor Centre
+    status: configured
+    targets: {mover-ne: [2.5, 2.0, 0.0]}
+  apice:
+    figure: "tenda"
+    preset: Apex
+    status: pending
+    fallback: centro
+    targets: {mover-ne: [2.5, 2.0, 2.6]}
+"""
+
+
 def run(repo, capsys, *args):
     code = nextrack_show.main([*args, "--repo", str(repo.root)])
     return code, capsys.readouterr().out
@@ -303,6 +335,23 @@ def test_vocab_lists_anchors_gestures_rules_and_the_shows_looks(mini_repo, capsy
     assert code == 0
     assert "azul" in out and "#0A2CFF" in out
     assert "look respiracao" in out and "look pulso" in out
+
+
+def test_vocab_lists_presets_to_create(mini_repo, capsys):
+    mini_repo.write("lightshows/rig.yml", RIG)
+    mini_repo.write("lightshows/room.yml", ROOM_YML)
+    code, out = run(mini_repo, capsys, "vocab")
+    assert code == 0
+    assert "aims (room.yml)" in out and "  centro -> Dance Floor Centre" in out
+    assert "presets to create in SoundSwitch" in out
+    assert "  apice -> Apex" in out and "fallback: centro" in out
+    assert "mover-ne at [2.5, 2.0, 2.6]" in out and "(geometria presumida)" in out
+    mini_repo.write("lightshows/room.yml", ROOM_YML.replace("assumed: true", "assumed: false"))
+    assert "(geometria presumida)" not in run(mini_repo, capsys, "vocab")[1]
+
+
+def test_vocab_without_a_room_has_no_aims(mini_repo, capsys):
+    assert "aims (room.yml)" not in run(mini_repo, capsys, "vocab")[1]
 
 
 def test_help_exits_zero():

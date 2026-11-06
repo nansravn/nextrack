@@ -4,6 +4,7 @@ import copy
 import yaml
 
 import lightshow
+import show_room
 from check_repo import load_yaml
 from musical_map import slug
 from show_gestures import GESTURES, Gesture, GestureSection
@@ -701,3 +702,90 @@ def test_a_section_number_out_of_range_points_at_the_track_file(monkeypatch):
         monkeypatch.setattr(show_language, "problems_choreography", lambda c, r, m=message: [m])
         _, findings = compile_show(*one_track([{"at": 9, "name": "a", "look": "pulso"}], __line__=2))
         assert found(findings) == [(PATH_1, 2, "show-source", message)]
+
+
+# ------------------------------------------------------------------- aims --
+
+
+def _aim(figure, preset, status, targets=None, fallback=None):
+    out = {"figure": figure, "preset": preset, "status": status,
+           "targets": targets or {"mover-ne": [1, 1, 1]}}
+    if fallback:
+        out["fallback"] = fallback
+    return out
+
+
+ROOM = show_room.load_room({
+    "size": {"x": 5.0, "y": 4.0, "z": 2.6}, "assumed": True,
+    "fixtures": {"mover-ne": [5, 4, 2.3]}, "booth": [2.5, 4, 1.2],
+    "aims": {
+        "coluna": _aim("colunas", "Up", "configured"),
+        "cruzado": _aim("X", "Crossed Over", "configured"),
+        "centro-da-pista": _aim("centro", "Dance Floor Centre", "configured"),
+        "apice": _aim("tenda", "Apex", "pending", fallback="coluna"),
+    },
+})
+
+
+def with_room(src_inp, room=ROOM):
+    src, inp = src_inp
+    inp.room = room
+    return src, inp
+
+
+def movers_cue(**movers):
+    return [{"at": 17, "until": 21, "name": "aim", "look": {"movers": {"move": "sweep", "every": "1bar", **movers}},
+             "__line__": 7}]
+
+
+def test_aim_id_compiles_to_its_preset():
+    t = compiled(*with_room(one_track(movers_cue(position="coluna")))).tracks[0]
+    s = section(t, "aim")
+    assert s.layers["movers"]["position"] == "Up" and s.origin.aims == ("coluna",)
+
+
+def test_pending_aim_compiles_to_its_fallback():
+    show = compiled(*with_room(one_track(movers_cue(positions=["apice", "cruzado"]))))
+    s = section(show.tracks[0], "aim")
+    assert s.layers["movers"]["positions"] == ["Up", "Crossed Over"]
+    assert s.origin.aims == ("apice", "cruzado")
+    assert "Dançarina: aim 'apice' is pending; bar 17-20 uses 'coluna' (Up)" in show.decisions
+
+
+def test_aim_ids_work_inside_gestures():
+    src, inp = with_room(two_track_show())
+    cue = src.track_files[FILE_1]["cues"][1]
+    cue["with"]["aims"] = ["coluna", "cruzado"]
+    show = compiled(src, inp)
+    spiral = [s for s in show.tracks[0].sections if s.origin.gesture == "spiral"]
+    assert [s.layers["movers"]["position"] for s in spiral] == ["Up", "Crossed Over"]
+    assert [s.origin.aims for s in spiral] == [("coluna",), ("cruzado",)]
+
+
+def test_unknown_aim_id_is_a_finding():
+    _, findings = compile_show(*with_room(one_track(movers_cue(position="apic"))))
+    assert found(findings) == [(PATH_1, 7, "show-source",
+                                "cue 'aim': position 'apic' is not an aim of lightshows/room.yml; "
+                                "did you mean 'apice'?")]
+
+
+def test_aim_id_without_room_is_a_finding():
+    _, findings = compile_show(*one_track(movers_cue(position="coluna")))
+    assert len(findings) == 1 and "lightshows/room.yml" in findings[0].message
+    assert findings[0].line == 7 and "'coluna'" in findings[0].message
+
+
+def test_raw_presets_still_compile():
+    for room in (None, ROOM):
+        t = compiled(*with_room(one_track(movers_cue(position="Dance Floor Centre")), room)).tracks[0]
+        s = section(t, "aim")
+        assert s.layers["movers"]["position"] == "Dance Floor Centre" and s.origin.aims == ()
+
+
+def test_the_bridge_carries_the_handovers_aims():
+    src, inp = with_room(two_track_show())
+    src.track_files[FILE_1]["handover"]["look"] = {"movers": {"move": "sweep", "every": "1bar",
+                                                              "position": "apice"}}
+    show = compiled(src, inp)
+    bridge = next(s for s in show.tracks[1].sections if s.origin.kind == "bridge")
+    assert bridge.origin.aims == ("apice",) and bridge.layers["movers"]["position"] == "Up"

@@ -471,8 +471,11 @@ uv run scripts/nextrack_show.py vocab [<show>]                # anchors, layer w
   `advice` section, what the compiler decided on its own (bridges, default ends) and the
   findings.
 - `vocab` prints what an agent needs to write a show without reading the docs (the anchors,
-  each layer's words and mapping keys, the gestures, the rules); with a show it adds its
-  palette and looks.
+  each layer's words and mapping keys, the gestures, the rules, and the aims of a valid
+  `lightshows/room.yml`, the pending ones as presets to create in SoundSwitch); with a show it
+  adds its palette and looks. An aim id stands wherever a preset name stands (`position`,
+  `positions`, a gesture's `aims`); the compiler swaps it for the preset of the first configured
+  aim along its fallback chain and notes each fallback among its decisions.
 
 **Output and exit status.** Findings are `path:line: rule-id: message` (`show-source`,
 `show-rules`), like `check_repo.py`, followed by `N finding(s)`. Advice has the same form with
