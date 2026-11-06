@@ -419,3 +419,39 @@ def test_one_bar_stab_inside_a_break_is_not_a_drop():
     m = make(render(kick=full, bass=full))
     assert spans(m) == [("groove", 1, 8), ("break", 9, 16), ("drop", 17, 24)]
     assert [d["bar"] for d in m["drops"]] == [17]
+
+
+def kick_string(events, total_ms, bpm=130.0):
+    z = silence(total_ms)
+    drums = place(total_ms, events)
+    stems = {"vocals": z, "drums": drums, "bass": z.copy(), "other": z.copy()}
+    voices = mm.voices_from_stems(stems, SR)
+    edges = mm.step_edges_ms(Grid([(0, bpm)]), int(total_ms))
+    return mm.kick_onsets(drums, voices["kick"], SR, edges)
+
+
+def test_quiet_intro_kicks_are_kept():
+    beat = 60000 / 130
+    quiet = real_kick(SR, 300) * db(-20)
+    events = [(i * beat, quiet if i < 16 else real_kick(SR, 300)) for i in range(32)]
+    digits, times = kick_string(events, 32 * beat)
+    assert [i for i, c in enumerate(digits[:16]) if c != "."] == [0, 4, 8, 12]
+
+
+def test_two_kicks_90_ms_apart_are_both_kept():
+    events = [(500, real_kick(SR, 300)), (590, real_kick(SR, 300)), (2000, real_kick(SR, 300))]
+    _, times = kick_string(events, 3000)
+    assert len(times) == 3 and times == sorted(set(times))
+    assert all(abs(t - p) <= 10 for t, p in zip(times, (500, 590, 2000)))
+
+
+def test_a_kick_at_the_file_start_is_kept():
+    _, times = kick_string([(0, real_kick(SR, 300)), (500, real_kick(SR, 300))], 1500)
+    assert len(times) == 2 and abs(times[0]) <= 10
+
+
+def test_short_full_stretch_after_the_intro_is_a_drop():
+    full = [*range(5, 6), *range(9, 25)]
+    m = make(render(kick=full, bass=full))
+    assert spans(m)[0] == ("intro", 1, 4) and spans(m)[1] == ("drop", 5, 5)
+    assert [d["bar"] for d in m["drops"]][:2] == [5, 9]
