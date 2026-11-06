@@ -273,9 +273,11 @@ if (MAP) {
     row += 8;
   }
   for (const d of MAP.drops) el('line', { x1: X(d.t), x2: X(d.t), y1: lanes0 - 15, y2: row, stroke: '#ff5a6e', 'stroke-width': 1.5 }, tl);
-  for (const c of MAP.cues) {
-    el('line', { x1: X(c.t), x2: X(c.t), y1: lanes0 - 15, y2: row, stroke: '#ffd27a', 'stroke-width': 1 }, tl);
-    el('text', { x: X(c.t) + 2, y: row + 8, fill: '#ffd27a', 'font-size': 8 }, tl).textContent = c.name;
+  const cueNames = new Map();             // cues at the same time share one label: "A B"
+  for (const c of MAP.cues) cueNames.set(c.t, [...(cueNames.get(c.t) || []), c.name]);
+  for (const [t, names] of cueNames) {
+    el('line', { x1: X(t), x2: X(t), y1: lanes0 - 15, y2: row, stroke: '#ffd27a', 'stroke-width': 1 }, tl);
+    el('text', { x: X(t) + 2, y: row + 8, fill: '#ffd27a', 'font-size': 8 }, tl).textContent = names.join(' ');
   }
   row += 8;
   tl.setAttribute('viewBox', `0 0 1000 ${row + 16}`);

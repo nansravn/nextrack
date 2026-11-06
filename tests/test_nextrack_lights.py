@@ -188,6 +188,16 @@ def test_map_sim_data_times():
     assert out["cues"] == [{"name": "A", "t": 0}, {"name": "B", "t": 8000}, {"name": "C", "t": 4600}]
 
 
+def test_map_sim_data_clamps_times_to_the_page():
+    d = a_map()
+    d["hot_cues"] = {"A": "1.1-200ms", "B": "8.4+900ms"}
+    out = mm.map_sim_data(d, end_ms=15000)
+    assert out["cues"] == [{"name": "A", "t": 0}, {"name": "B", "t": 15000}]
+    assert out["sections"][-1]["end"] == 15000
+    assert max(t for t, _ in out["voices"]["kick"]) <= 15000
+    assert mm.map_sim_data(d)["cues"][0] == {"name": "A", "t": 0}   # a negative time is clamped without an end
+
+
 def test_map_sim_data_without_hot_cues():
     d = a_map()
     d["hot_cues"] = None

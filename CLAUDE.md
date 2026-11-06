@@ -36,6 +36,8 @@ Install uv once if it is missing: `curl -LsSf https://astral.sh/uv/install.sh | 
 | Validate repo data | `uv run scripts/check_repo.py` |
 | Run tests | `uv run pytest` |
 | Library tool | `uv run scripts/nextrack_tags.py <cmd>` |
+| Set up the musical map tools (optional, heavy, not in CI) | `uv sync --group analysis` |
+| Musical maps and set timeline | `uv run scripts/nextrack_map.py <cmd>` |
 
 `pyproject.toml` exists, so setup is `uv sync`. Do not use poetry or pip; the
 system Python is externally managed.
@@ -50,6 +52,16 @@ Library tool (`audit`, `clean-names`, `fix-tags`, `pull-bpm`; see
   two is required. Never hard-code a machine path.
 - `pull-bpm --apply` edits the `bpm`/`key` lines of `tracks/*.yml` in place.
   Review it with `git diff tracks`.
+
+Map tool (`analyze`, `cues`, `show`, `timeline`; see
+[scripts/README.md](scripts/README.md#nextrack_mappy)):
+
+- `lightshows/maps/*.yml` are generated: never edit them by hand, redo them with
+  `analyze` (stale maps are redone on their own) and `cues`.
+- It only reads audio, rekordbox and the SoundSwitch project. Folders come from
+  `--project`/`NEXTRACK_SOUNDSWITCH_PROJECT`, `--root`/`NEXTRACK_AUDIO_ROOT` and
+  `--rekordbox`/`NEXTRACK_REKORDBOX_DIR`. rekordbox's database is read from a copy.
+- `analyze`, `cues` and `timeline` need `uv sync --group analysis` (not in CI).
 
 ## Change checklists
 

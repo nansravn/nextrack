@@ -495,7 +495,8 @@ def sim_data(script: ssf.TrackScript, venues: list[ssf.VenueInfo], presets: list
 
     Keys: title, end (ms), grid ([[ms, bpm]]), sections ({name, bars, intent, start, end}),
     rig (see `_rig_data`), before, after, cues ({bar, t, fixture, what} the compiler left to
-    the owner), map (`musical_map.map_sim_data` of `musical_map`, else None). Raises `lightshow.CompileError` when the choreography does not fit the script."""
+    the owner), map (`musical_map.map_sim_data` of `musical_map`, clamped to `end`, else
+    None). Raises `lightshow.CompileError` when the choreography does not fit the script."""
     after, cues = None, []
     if choreo is not None:
         after, cues = ls.compile_choreography(choreo, script, rig, venues, presets, duration_ms=duration_ms)
@@ -525,9 +526,10 @@ def sim_data(script: ssf.TrackScript, venues: list[ssf.VenueInfo], presets: list
         return out
 
     g = ssf.grid(script) if choreo and choreo.sections else None
+    end = max(script_end(script, duration_ms), script_end(after) if after else 0)
     return {
         "title": title,
-        "end": max(script_end(script, duration_ms), script_end(after) if after else 0),
+        "end": end,
         "grid": [[t, bpm] for t, bpm in script.tempo],
         "sections": [{"name": s.name, "bars": list(s.bars), "intent": s.intent,
                       "start": g.ms(s.bars[0]), "end": g.ms(s.bars[1] + 1)}
@@ -536,7 +538,7 @@ def sim_data(script: ssf.TrackScript, venues: list[ssf.VenueInfo], presets: list
         "before": export(script),
         "after": export(after) if after else None,
         "cues": [{"bar": c.bar, "t": c.time_ms, "fixture": c.fixture, "what": c.what} for c in cues],
-        "map": mm.map_sim_data(musical_map) if musical_map else None,
+        "map": mm.map_sim_data(musical_map, end) if musical_map else None,
     }
 
 
@@ -629,7 +631,8 @@ def _yaml_checked(path: Path, problems) -> dict | None:
 
 def _find_map(repo_root: Path, guid: str, tempo) -> dict | None:
     """The musical map of the track `guid` in `<repo>/lightshows/maps/`, or None when there is
-    none, it does not parse, or its tempo anchors differ from the script's (a warning then)."""
+    none, it does not parse, or its tempo anchors differ from the script's (a warning then).
+    The first map (by file name) whose `soundswitch` is the GUID is the one used."""
     for path in sorted((repo_root / "lightshows" / "maps").glob("*.yml")):
         try:
             data = mm.load_map(path)
