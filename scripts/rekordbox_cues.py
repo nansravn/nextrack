@@ -7,14 +7,13 @@ from __future__ import annotations
 
 import contextlib
 import importlib.util
-import re
 import shutil
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Iterator, Protocol
 
-from musical_map import fold_name
+from musical_map import base_name, fold_name
 
 ANALYSIS_HINT = "the analysis tools are not installed: run uv sync --group analysis"
 
@@ -61,11 +60,6 @@ def pick_playlist(names: list[str], want: str) -> str:
     raise LookupError(f"{len(hits)} playlists match {want!r}: " + ", ".join(hits))
 
 
-def _base_name(path: str) -> str:
-    parts = [p for p in re.split(r"[\\/]", path) if p]
-    return parts[-1] if parts else ""
-
-
 def pick_playlist_row(rows: list, want: str):
     """The playlist row for `want`: folders (`Attribute == 1` without songs) are skipped, and
     a name shared by two playlists is a `LookupError`."""
@@ -77,7 +71,7 @@ def pick_playlist_row(rows: list, want: str):
 def pick_content_row(rows: Iterable, file_name: str):
     """The only content row whose path ends in `file_name`, or None; several are a `LookupError`."""
     want = fold_name(file_name)
-    hits = [c for c in rows if fold_name(_base_name(c.FolderPath or "")) == want]
+    hits = [c for c in rows if fold_name(base_name(c.FolderPath or "")) == want]
     if len(hits) > 1:
         raise LookupError(f"{len(hits)} tracks named {file_name!r}: " + ", ".join(c.FolderPath for c in hits))
     return hits[0] if hits else None

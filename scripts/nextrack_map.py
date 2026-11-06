@@ -26,7 +26,6 @@ import hashlib
 import importlib.util
 import io
 import os
-import re
 import sys
 from pathlib import Path
 
@@ -96,11 +95,6 @@ def make_separator(device: str | None):
 
 
 # ------------------------------------------------------------------ helpers ----
-
-
-def _base(path: str) -> str:
-    parts = [p for p in re.split(r"[\\/]", path) if p]
-    return parts[-1] if parts else ""
 
 
 def _label(artist: str, title: str) -> str:
@@ -180,8 +174,8 @@ class Session:
         if self._by_base is None:
             self._by_base = {}
             for ref in self.project.trackmap():
-                self._by_base.setdefault(mm.fold_name(_base(ref.path)), []).append(ref)
-        hits = self._by_base.get(mm.fold_name(_base(rb_track.path)), [])
+                self._by_base.setdefault(mm.fold_name(mm.base_name(ref.path)), []).append(ref)
+        hits = self._by_base.get(mm.fold_name(mm.base_name(rb_track.path)), [])
         if not hits:
             raise Refused("not in the SoundSwitch project")
         if len(hits) > 1:
@@ -209,7 +203,7 @@ class Session:
         """`(rekordbox track, note)`: the note says why there is no track."""
         if self.reader is None:
             return None, "rekordbox not configured"
-        t = known or self.reader.track_for_file(_base(ref.path))
+        t = known or self.reader.track_for_file(mm.base_name(ref.path))
         return (t, None) if t is not None else (None, "not in the rekordbox collection")
 
 
