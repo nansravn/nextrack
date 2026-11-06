@@ -28,14 +28,14 @@ sections:
   - bars: [101, 104]
     name: subida
     intent: "Quatro compassos enchendo as Vorlanes, as movings acelerando."
-    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF"}
+    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF", position: Up}
     matrix: {draw: fill-up, rate: "1/2", colour: "#0A2CFF", mirror: true}
     hue: dark
 
   - bars: [105, 120]
     name: chegada
     intent: "A chegada do Akan: colunas em ciano andando pelas paredes, os cantos respondem."
-    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF", position: Dance Floor Centre}
     matrix: {draw: columns, rate: "1/8", colour: "#00B8FF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 

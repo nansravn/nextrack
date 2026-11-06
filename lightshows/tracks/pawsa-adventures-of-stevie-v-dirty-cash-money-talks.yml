@@ -16,21 +16,21 @@ sections:
   - bars: [17, 42]
     name: ponte
     intent: "Ponte: a mesma luz da música anterior, copiada camada por camada, até a chegada."
-    movers: {move: blink, every: "1/4", colour: "#FF0A2A"}
+    movers: {move: blink, every: "1/4", colour: "#FF0A2A", position: Dance Floor Centre}
     matrix: {draw: centre-out, rate: "1/16", colour: "#FF0A2A", mirror: true}
     hue: {state: pulse, colour: "#FF0A2A"}
 
   - bars: [43, 44]
     name: subida
     intent: "Dois compassos enchendo em vermelho, o centro escuro."
-    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF"}
+    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF", position: Up}
     matrix: {draw: fill-up, rate: "1/4", colour: "#FF0A2A", mirror: true}
     hue: dark
 
   - bars: [45, 46]
     name: chegada
     intent: "A chegada: a seta vermelha sobe; movings revezando."
-    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF", position: Dance Floor Centre}
     matrix: {draw: arrow-up, rate: "1/4", colour: "#FF0A2A", mirror: true}
     hue: {state: pulse, colour: "#FF0A2A"}
 
@@ -44,7 +44,7 @@ sections:
   - bars: [57, 62]
     name: drop-estrobo
     intent: "O drop maior: estrobo no 1, as Vorlanes batendo NW e SW alternando, movings piscando."
-    movers: {move: blink, every: "1/4", colour: "#FF0A2A"}
+    movers: {move: blink, every: "1/4", colour: "#FF0A2A", position: Crossed Over}
     matrix: {draw: solid, rate: "1/4", colour: "#FF0A2A", pingpong: true}
     strobe: {hit: ["57.1"]}
     hue: {state: pulse, colour: "#FF0A2A"}
@@ -59,7 +59,7 @@ sections:
   - bars: [65, 70]
     name: drop
     intent: "Zigue-zague vermelho espelhado."
-    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF", position: Dance Floor Centre}
     matrix: {draw: zigzag, rate: "1/8", colour: "#FF0A2A", mirror: true}
     hue: {state: pulse, colour: "#FF0A2A"}
 
@@ -73,7 +73,7 @@ sections:
   - bars: [81, 88]
     name: drop
     intent: "Colunas vermelhas alternando, movings revezando."
-    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF", position: Crossed Over}
     matrix: {draw: columns, rate: "1/8", colour: "#FF0A2A", pingpong: true}
     hue: {state: pulse, colour: "#FF0A2A"}
 
@@ -87,7 +87,7 @@ sections:
   - bars: [105, 110]
     name: drop
     intent: "O centro abre em vermelho."
-    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF", position: Dance Floor Centre}
     matrix: {draw: centre-out, rate: "1/8", colour: "#FF0A2A", mirror: true}
     hue: {state: pulse, colour: "#FF0A2A"}
 
@@ -101,7 +101,7 @@ sections:
   - bars: [113, 114]
     name: final-rolo
     intent: "O final: rolo de estrobo e a fita branca no 1; a seta sobe em vermelho."
-    movers: {move: blink, every: "1/8", colour: "#FF0A2A"}
+    movers: {move: blink, every: "1/8", colour: "#FF0A2A", position: Crossed Over}
     matrix: {draw: arrow-up, rate: "1/8", colour: "#FF0A2A", mirror: true}
     white: {accent: ["113.1"]}
     strobe: {roll: [113, 114]}
@@ -110,7 +110,7 @@ sections:
   - bars: [115, 119]
     name: final-flash
     intent: "A fita branca em flash, a única vez da noite; tudo batendo junto."
-    movers: {move: blink, every: "1/4", colour: "#FF0A2A"}
+    movers: {move: blink, every: "1/4", colour: "#FF0A2A", position: Dance Floor Centre}
     matrix: {draw: solid, rate: "1/4", colour: "#FF0A2A"}
     white: {flash: "1/4"}
     hue: {state: pulse, colour: "#FF0A2A"}

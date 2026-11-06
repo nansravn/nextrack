@@ -28,7 +28,7 @@ sections:
   - bars: [47, 77]
     name: chegada
     intent: "A chegada: o desenho sai do centro pras bordas em ciano, como palmas; movings revezando."
-    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF", position: Dance Floor Centre}
     matrix: {draw: centre-out, rate: "1/8", colour: "#00B8FF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 
@@ -49,7 +49,7 @@ sections:
   - bars: [89, 122]
     name: drop-do-corpo
     intent: "O drop do corpo: o centro das Vorlanes explode rápido; o coração bate."
-    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF", position: Crossed Over}
     matrix: {draw: centre-out, rate: "1/16", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 
@@ -63,7 +63,7 @@ sections:
   - bars: [134, 145]
     name: drop-final
     intent: "Último drop antes da entrega: o centro abre de novo, em azul."
-    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF", position: Dance Floor Centre}
     matrix: {draw: centre-out, rate: "1/8", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 

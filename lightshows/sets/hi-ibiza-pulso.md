@@ -97,6 +97,30 @@ espiral de verdade, cada luz da sala acendendo em volta até fechar no centro, �
 **Contraluz.** Vorlanes `off`, lustre `dark` e só os dois feixes, azul-gelo, baixos e cruzados
 (`hold` em Crossed Over, 0.35), cortando a neblina: o momento mais Hï da sala.
 
+## Gramática dos feixes
+Os feixes na neblina são o visual da noite, então **nenhuma seção escrita deixa a mira com o
+autoscript**: sem posição, ele troca de preset a cada 2 compassos, em ordem aleatória, sempre com
+o mesmo balanço. Toda seção de movings tem a sua mira:
+
+| momento | mira |
+|---|---|
+| grooves | `sweep` lento entre dois presets (Dance Floor Centre e Crossed Over, ou Stage Left e Stage Right) |
+| drops e chegadas | `pingpong` ou `blink` numa mira por seção, alternando Dance Floor Centre (os feixes convergem no centro da pista) e Crossed Over (os feixes se cruzam) de uma seção para a seguinte |
+| subidas | `Up`: os feixes sobem para a neblina enquanto a música sobe |
+| breaks e contraluz | `hold` baixo (Crossed Over, Down, Up ou DJ Booth) |
+| ponte da aceleração | `pingpong` saltando entre Dance Floor Centre, Crossed Over e Up a cada meio compasso |
+| ponte do pico | `pingpong` em Crossed Over |
+| picos entregues (Pick Up, Can't Decide) | `blink` no centro da pista |
+| espirais | a 1/2 e 1/4, a mira salta entre Crossed Over, Up e Dance Floor Centre; a 1/8 e 1/16 fecha no centro da pista |
+
+Onde cada preset aponta na sala ainda é palpite (os cantos do rig não foram confirmados): confira
+Dance Floor Centre, Crossed Over, Up e Down na sala antes de afinar esta tabela.
+
+O compilador ainda imprime `manual cue … shape block … removed whole` quando a borda de uma seção
+corta um bloco de movimento do autoscript. Neste set não se perde nada: os dois lados de toda
+borda ouvida têm mira própria, e o que sobra do autoscript fica antes do B, que ninguém ouve. Cortar
+o bloco na borda em vez de removê-lo inteiro é uma melhoria do compilador (projeto B).
+
 ## Paleta
 | nome | cor | papel |
 |---|---|---|
@@ -152,7 +176,7 @@ O set dura cerca de 44 minutos.
 7. **As Vorlanes conversam:** NW e SW nunca são clones (`mirror` ou `pingpong`; o `solid` da
    virada e do final é a exceção: o coração inteiro bate junto).
 8. **Movings: uma acesa, a outra no escuro** nos drops (`pingpong`); nos grooves, `sweep` ou
-   `hold` numa posição por seção.
+   `hold`. Toda seção tem mira própria, pela gramática dos feixes; a mira muda com a seção.
 9. **Ponte é cópia exata.** A seção `entrega` de uma faixa e a seção `ponte` da seguinte têm as
    mesmas camadas com os mesmos valores (os acentos de um compasso só, estrobo e fita, ficam na
    faixa que sai).

@@ -16,7 +16,7 @@ sections:
   - bars: [1, 15]
     name: ponte
     intent: "Ponte: a mesma luz da música anterior, copiada camada por camada, até a chegada."
-    movers: {move: pingpong, every: "1/2", colour: "#6A1CFF"}
+    movers: {move: pingpong, every: "1/2", colour: "#6A1CFF", positions: [Dance Floor Centre, Crossed Over, Up]}
     matrix: {draw: rows-up, rate: "1/2", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 
@@ -30,7 +30,7 @@ sections:
   - bars: [21, 24]
     name: o-kick-volta
     intent: "O kick volta, o grave ainda filtrado: colunas violetas, o coração em vermelho vivo."
-    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF"}
+    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF", position: Dance Floor Centre}
     matrix: {draw: columns, rate: "1/4", colour: "#6A1CFF", mirror: true}
     hue: {state: pulse, colour: "#FF0A2A"}
 
@@ -44,28 +44,28 @@ sections:
   - bars: [41, 42]
     name: espiral-1-2
     intent: "Espiral da virada: os lados revezam cada vez mais rápido, do azul ao vermelho."
-    movers: {move: pingpong, every: "1/2", colour: "#0A2CFF"}
+    movers: {move: pingpong, every: "1/2", colour: "#0A2CFF", positions: [Crossed Over, Up, Dance Floor Centre]}
     matrix: {draw: columns, rate: "1/2", colour: "#0A2CFF", pingpong: true}
     hue: dark
 
   - bars: [43, 44]
     name: espiral-1-4
     intent: "Espiral da virada: os lados revezam cada vez mais rápido, do azul ao vermelho."
-    movers: {move: pingpong, every: "1/4", colour: "#6A1CFF"}
+    movers: {move: pingpong, every: "1/4", colour: "#6A1CFF", positions: [Crossed Over, Up, Dance Floor Centre]}
     matrix: {draw: columns, rate: "1/4", colour: "#6A1CFF", pingpong: true}
     hue: dark
 
   - bars: [45, 46]
     name: espiral-1-8
     intent: "Espiral da virada: os lados revezam cada vez mais rápido, do azul ao vermelho."
-    movers: {move: pingpong, every: "1/8", colour: "#6A1CFF"}
+    movers: {move: pingpong, every: "1/8", colour: "#6A1CFF", position: Dance Floor Centre}
     matrix: {draw: columns, rate: "1/8", colour: "#6A1CFF", pingpong: true}
     hue: dark
 
   - bars: [47, 47]
     name: espiral-1-16
     intent: "Espiral da virada: os lados revezam cada vez mais rápido, do azul ao vermelho."
-    movers: {move: pingpong, every: "1/16", colour: "#FF0A2A"}
+    movers: {move: pingpong, every: "1/16", colour: "#FF0A2A", position: Dance Floor Centre}
     matrix: {draw: columns, rate: "1/16", colour: "#FF0A2A", pingpong: true}
     hue: dark
 
@@ -79,7 +79,7 @@ sections:
   - bars: [49, 56]
     name: virada
     intent: "A virada: primeiro estrobo e a fita branca no 1; as Vorlanes inteiras batendo em vermelho a cada 1/8, as movings piscando."
-    movers: {move: blink, every: "1/4", colour: "#FF0A2A"}
+    movers: {move: blink, every: "1/4", colour: "#FF0A2A", position: Crossed Over}
     matrix: {draw: solid, rate: "1/8", colour: "#FF0A2A"}
     white: {accent: ["49.1"]}
     strobe: {hit: ["49.1"]}
@@ -88,20 +88,20 @@ sections:
   - bars: [57, 72]
     name: pico-1
     intent: "Depois da virada: filas caindo espelhadas em azul, as movings em vermelho revezando."
-    movers: {move: pingpong, every: "1/4", colour: "#FF0A2A"}
+    movers: {move: pingpong, every: "1/4", colour: "#FF0A2A", position: Dance Floor Centre}
     matrix: {draw: rows-down, rate: "1/8", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#FF0A2A"}
 
   - bars: [73, 88]
     name: pico-2
     intent: "Colunas vermelhas alternando NW e SW, feixes azuis revezando."
-    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF", position: Crossed Over}
     matrix: {draw: columns, rate: "1/8", colour: "#FF0A2A", pingpong: true}
     hue: {state: pulse, colour: "#FF0A2A"}
 
   - bars: [89, 115]
     name: entrega
     intent: "Entrega: do G até o fim, o look que a próxima música copia na ponte."
-    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF", position: Crossed Over}
     matrix: {draw: rows-up, rate: "1/4", colour: "#FF0A2A", mirror: true}
     hue: {state: pulse, colour: "#FF0A2A"}
