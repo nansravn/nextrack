@@ -91,9 +91,10 @@ def _tempo(leg: Leg) -> tuple[float, float]:
     return bpm, bpm
 
 
-def _seconds(tempo: tuple[float, float], played: int, bars: int) -> float:
+def seconds(tempo: tuple[float, float], played: int, bars: int) -> float:
     """Seconds of the first `bars` bars of a leg that plays `played` bars, the tempo ramping
-    linearly over them (each bar at its mid tempo; bars past the end keep the end tempo)."""
+    linearly over them (each bar at its mid tempo; bars past the end keep the end tempo):
+    the sum over k < bars of 240 / (t0 + (t1 - t0) * min((k + 0.5) / played, 1))."""
     t0, t1 = tempo
     total = 0.0
     for k in range(bars):
@@ -120,7 +121,7 @@ def timeline(legs: list[Leg]) -> tuple[list[Transition], float, list[str]]:
     clock = 0.0
     for i, leg in enumerate(legs):
         starts.append(clock)
-        clock += _seconds(_tempo(leg), played[i], played[i])
+        clock += seconds(_tempo(leg), played[i], played[i])
     transitions: list[Transition] = []
     for i in range(n - 1):
         out, inc = legs[i], legs[i + 1]
@@ -140,7 +141,7 @@ def timeline(legs: list[Leg]) -> tuple[list[Transition], float, list[str]]:
         peak = max(candidates, key=lambda d: (d[1], -d[0]))[0] if candidates else None
         clock_arrival = None
         if arrival is not None:
-            clock_arrival = starts[i + 1] + _seconds(_tempo(inc), played[i + 1], arrival - b)
+            clock_arrival = starts[i + 1] + seconds(_tempo(inc), played[i + 1], arrival - b)
         transitions.append(Transition(
             out_name=out.name, in_name=inc.name, g_bar=g, b_bar=b, offset_bars=b - g,
             overlap_bars=overlap, overlap_sections=sections, arrival_bar=arrival, peak_bar=peak,
