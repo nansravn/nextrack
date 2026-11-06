@@ -413,6 +413,17 @@ def test_zoom_follows_the_rig_and_names_aims(mini_repo, capsys):
     labels = [line[:11].strip() for line in out.splitlines() if "|" in line]
     assert "mover NE" in labels and "mover SE" not in labels and not any(l.startswith("vorl.") for l in labels)
     assert any(line.startswith("  aim      |Crossed Over") for line in out.splitlines())
+    assert out.splitlines()[0].startswith("Dançarina · bar 16 · bars 16-16 · ")   # a bare bar: no "16 (bar 16)"
+
+
+def test_zoom_counts_rule_findings_on_stderr(mini_repo, capsys):
+    put_show(mini_repo)
+    _edit_yaml(mini_repo, f"{SHOW}/show.yml", _budget_zero)
+    code = nextrack_show.main(["zoom", "teste", "virada", "--repo", str(mini_repo.root)])
+    captured = capsys.readouterr()
+    assert code == 0 and captured.out.startswith("Dançarina · virada (bar 21)")
+    assert captured.err == "1 rule finding(s): see nextrack_show.py report\n"
+    assert "show-rules" not in captured.out
 
 
 def test_zoom_prints_source_findings_and_exits_one(mini_repo, capsys):

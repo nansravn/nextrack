@@ -13,18 +13,25 @@ Each section's envelopes come from the compiler's own generators (`lightshow.mov
   colour cells (a hit for one beat, a roll over its bars).
 They are shaped as the compiler shapes them and timed with its own steps and ticks (its
 private helpers `lightshow._shape`, `_steps` and `_ticks`, read, never changed). They are
-sampled at the start of each step on the map's grid (`soundswitch_format.Grid` on the map's
-tempo anchors), taking the level in force there: linear between keys, as
-`soundswitch_format.level_at` reads a lane. A section keeps the beat of its first step, as the
-compiler does, so across a tempo anchor inside a section the light drifts from the grid there
-too. `tests/test_show_zoom.py` checks every lane against a script compiled by
-`lightshow.compile_choreography`.
+read once per step on the map's grid (`soundswitch_format.Grid` on the map's tempo anchors),
+`SAMPLE_OFFSET_MS` (2 ms) after the step's start, taking the level in force there: linear
+between keys, as `soundswitch_format.level_at` reads a lane.
+
+Why 2 ms in: the map's anchors are the script's own tempo map (`musical_map.build_map` takes
+them from the script, and a map whose anchors differ is stale), so a compiled time differs from
+the grid's only by rounding. Each time is rounded on its own (the section's start, each
+`_steps` step, frame, tick and pulse), at most 1 ms from the grid's step start, and `_shape` puts
+a dark key 1 ms before every rise. Read on the step's start, a rise 1 ms late reads dark. 2 ms
+in is past both, and far inside the step (a 1/16 is over 100 ms below 150 BPM). A section keeps
+the beat of its first step, as the compiler does, so across a tempo anchor inside a section the
+light drifts from the grid there too. `tests/test_show_zoom.py` checks every lane against a
+script compiled by `lightshow.compile_choreography`, at the same instants.
 
 The zoom needs no SoundSwitch project, so it assumes every rig fixture is in the venue and
 every preset is in the script's palette. Where the compiler would leave a manual cue instead,
 the zoom still draws the light. Nothing here reads a file or raises on bad content.
 
-Python API: `render_zoom`, `step_times`, `colour_letters`, `moment_names`, `moment_target`.
+Python API: `render_zoom`, `step_times`, `sample_times`, `colour_letters`, `moment_names`, `moment_target`.
 """
 from __future__ import annotations
 
@@ -43,6 +50,7 @@ from show_language import CompiledSection, CompiledShow, CompiledTrack, layer_wo
 from soundswitch_format import Key
 
 STEPS_PER_BAR = 16
+SAMPLE_OFFSET_MS = 2      # each step is read this far after its start on the grid (see the docstring)
 LABEL_WIDTH = 11
 MUSIC_LANES = (("kick", "onsets"), ("perc", "onsets"), ("bass", "steps"), ("vocals", "steps"),
                ("other", "steps"))
@@ -97,11 +105,17 @@ def _grid(map_data: dict) -> ssf.Grid | None:
 
 def step_times(map_data: dict, first: int, last: int) -> list[int]:
     """The start, in ms, of every 1/16 step of bars `first`..`last` on the map's grid: step j
-    (0-15) of bar b is `Grid.ms(b, 1 + j / 4)` on the map's tempo anchors. [] without a grid."""
+    (0-15) of bar b is `Grid.ms(b, 1 + j / 4)` on the map's tempo anchors. [] without a grid.
+    The zoom reads each step at its start + `SAMPLE_OFFSET_MS` (`sample_times`)."""
     grid = _grid(map_data)
     if grid is None:
         return []
     return [grid.ms(b, 1 + j / 4) for b in range(first, last + 1) for j in range(STEPS_PER_BAR)]
+
+
+def sample_times(map_data: dict, first: int, last: int) -> list[int]:
+    """The instants the zoom reads, one per step: `step_times` + `SAMPLE_OFFSET_MS`."""
+    return [t + SAMPLE_OFFSET_MS for t in step_times(map_data, first, last)]
 
 
 def _beat(text: object) -> tuple[int, int] | None:
@@ -126,6 +140,7 @@ class _Light:
     white: _Envelope | None              # the white layer's W cells
     strobe: list[tuple[int, int, _Envelope]] | None   # the windows the strobe writes over
     hue: _Envelope | None
+    hue_colour: str                      # the legend key of the hue's colour (the lustre's heart)
     aims: list[tuple[int, str]] | None   # (time, aim) as the movers' position flags; [] dark
     uv: str                              # the uv lane's glyph over the section
 
@@ -287,13 +302,14 @@ def _light(section: CompiledSection, ctx: _Context) -> _Light:
     if hu != "auto":
         state = hu["state"] if isinstance(hu, dict) else ("dark" if hu == "off" else hu)
         hue = _shaped(lightshow.hue_keys(state, start, end, beat), start, end)
+    hue_colour = ctx.colour_key(hu.get("colour") if isinstance(hu, dict) else None)  # none: Main keeps its own
 
     if uv == "on" or isinstance(mv, dict) and mv.get("move") == "uv":
         uv_glyph = "u"                            # the UV the choreography writes (spec section 9)
     else:
         uv_glyph = " " if uv == "off" else "~"
     return _Light(section.name, movers, mover_colour, units, unit_white, matrix_colour, white, strobe, hue,
-                  aims, uv_glyph)
+                  hue_colour, aims, uv_glyph)
 
 
 # ------------------------------------------------------------------ glyphs --
@@ -401,15 +417,19 @@ def render_zoom(show: CompiledShow, track_index: int, bar: int, before: int, aft
       with a clock, their span on the set clock (`show_views.clock_text`);
     - the bar numbers and the section that holds each bar (`~`: none, the autoscript plays);
     - `music`: `onsets.kick`, `onsets.perc`, `steps.bass`, `steps.vocals`, `steps.other`;
-    - `light`, sampled at each step's start (see the module docstring). A mover or a Vorlane
-      (whether any of its colour cells is lit) shows the colour's legend letter, upper case at
-      or above half level, lower case below, `.` dark. The lustre shows its level 0-9 (`.`
-      dark). `white` (`#`), `strobe` (`x`) and `uv` (`u`) mark the steps their layer fills.
-      The aim lane names the aim in force (`show_views.section_aims`, aim ids through
-      `room`), one change per movers step for `positions`; a bar where it changes, or whose
-      name is longer than a bar, shows a legend digit per aim; `-` when the movers are dark.
-      A layer at `auto` (or no section) is `~` all along;
+    - `light`, read `SAMPLE_OFFSET_MS` after each step's start (see the module docstring). A
+      mover or a Vorlane (whether any of its colour cells is lit) shows the colour's legend
+      letter, upper case at or above half level, lower case below, `.` dark. The lustre shows
+      its level 0-9 (`.` dark). `white` (`#`), `strobe` (`x`) and `uv` (`u`) mark the steps
+      their layer fills; the strobe also writes over the movers and the colour cells for its
+      span, and `uv` is intent only (the compiler leaves it as a manual cue). The aim lane
+      names the aim in force (`show_views.section_aims`, aim ids through `room`), one change
+      per movers step for `positions`; a bar where it changes, or whose name is longer than a
+      bar, shows a legend digit per aim; `-` when the movers are dark. A layer at `auto` (or
+      no section) is `~` all along;
     - the legend: each colour shown, one unique letter per palette colour (`colour_letters`);
+      the lustre's colour per run of bars where it is lit; the aims' digits; the pending aims
+      and their fallback;
     - with `frames` (`<bar>.<beat>` texts), both Vorlanes' 8x7 cells at each beat, side by
       side, rows top to bottom, `#` lit, `.` dark, `~` unknown.
 
@@ -430,7 +450,8 @@ def render_zoom(show: CompiledShow, track_index: int, bar: int, before: int, aft
     out = [" · ".join(head)]
     grid = _grid(data)
     if grid is None or first > last:
-        out.append(f"  nothing to zoom: {'the map has no tempo anchors' if grid is None else f'the map has {total} bars'}")
+        why = "the map has no tempo anchors" if grid is None else f"the map has {total} bars"
+        out.append(f"  nothing to zoom: {why}")
         return "\n".join(out) + "\n"
 
     mover_corners, unit_corners, white_max = _fixtures(rig)
@@ -453,7 +474,7 @@ def render_zoom(show: CompiledShow, track_index: int, bar: int, before: int, aft
         return lights[i]
 
     bars = list(range(first, last + 1))
-    times = {b: [grid.ms(b, 1 + j / 4) for j in range(STEPS_PER_BAR)] for b in bars}
+    times = {b: [grid.ms(b, 1 + j / 4) + SAMPLE_OFFSET_MS for j in range(STEPS_PER_BAR)] for b in bars}
     held = {b: light_of(b) for b in bars}
     blank = "~" * STEPS_PER_BAR
 
@@ -511,12 +532,17 @@ def render_zoom(show: CompiledShow, track_index: int, bar: int, before: int, aft
     out.append(_row("  strobe", per_step(lambda lt, t: lt.strobe_glyph(t))))
 
     shown = [name for name in order if name in used]
-    legend = []
-    if shown:
-        legend.append(", ".join(f"{letters[n]}/{letters[n].upper()} {n}" for n in shown)
-                      + " (lower case: below half level; . dark)")
-    legend += ["lustre 0-9 (. dark)", "white #, strobe x, uv u (blank: none)", "~ autoscript (auto, or no section)"]
-    out.append("legend: " + "; ".join(legend))
+    colours = ", ".join(f"{letters[n]}/{letters[n].upper()} {n}" for n in shown)
+    out.append("legend: " + (f"{colours} (lower case: below half level; . dark); " if shown else "")
+               + "~ autoscript (auto, or no section)")
+    def heart_lit(b: int) -> bool:
+        lt = held[b]
+        return lt is not None and lt.hue is not None and any(lt.hue.at(t) > 0 for t in times[b])
+
+    hearts = _ranges([(b, held[b].hue_colour) for b in bars if heart_lit(b)])
+    out.append("  lustre 0-9 (. dark)" + (f": {hearts}" if hearts else ""))
+    out.append("  white #, strobe x, uv u (blank: none); the strobe writes over the movers and the Vorlanes "
+               "for its span; uv shows intent only (not compiled yet: a manual cue)")
     if digits:
         out.append("aims: " + ", ".join(f"{d} {name}" for name, d in digits.items()))
     pending = _pending(aims_shown, room)
@@ -525,6 +551,18 @@ def render_zoom(show: CompiledShow, track_index: int, bar: int, before: int, aft
     if frames:
         out += _frames(frames, total, grid, light_of, unit_corners)
     return "\n".join(out) + "\n"
+
+
+def _ranges(bars: list[tuple[int, str]]) -> str:
+    """`name a-b, name c` of `(bar, name)` pairs in bar order: each run of consecutive bars with
+    one name, as `a-b` (or `a` for one bar)."""
+    runs: list[list] = []
+    for bar, name in bars:
+        if runs and runs[-1][0] == name and runs[-1][2] == bar - 1:
+            runs[-1][2] = bar
+        else:
+            runs.append([name, bar, bar])
+    return ", ".join(f"{name} {a}" + (f"-{b}" if b > a else "") for name, a, b in runs)
 
 
 def _pending(aims: list[str], room: show_room.Room | None) -> list[str]:
@@ -555,7 +593,7 @@ def _frames(frames: list[str], total: int, grid: ssf.Grid, light_of: Callable[[i
         if not 1 <= b <= total:
             out.append(f"  {text}: bar {b} is outside 1-{total}")
             continue
-        t = grid.ms(b, beat)
+        t = grid.ms(b, beat) + SAMPLE_OFFSET_MS
         lt = light_of(b)
         out.append(f"  {b}.{beat} · {lt.name if lt else '~'}")
         out.append("    " + "  ".join(f"vorl. {c}".ljust(lightshow.MATRIX_COLS) for c in unit_corners))
