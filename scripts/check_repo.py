@@ -1456,9 +1456,14 @@ def show_compiled(repo: Repo) -> Iterable[Finding]:
                 actual = read_text(path)
             except (UnicodeDecodeError, OSError):
                 continue  # the loader reported it
-            if show_language.owner_of(actual) not in (None, source.folder):
+            owner = show_language.owner_of(actual)
+            if owner not in (None, source.folder):
                 continue  # another header: the owner clauses below report it
-            if actual != show_language.emit_choreography(track.choreography, source.folder):
+            if owner is None:  # build refuses a hand-written file without --adopt
+                yield Finding(rel, 0, "show-compiled",
+                              f"differs from what {source.folder} compiles to and is hand-written; run uv run "
+                              f"scripts/nextrack_show.py build {source.show_id} --adopt to take it over")
+            elif actual != show_language.emit_choreography(track.choreography, source.folder):
                 yield Finding(rel, 0, "show-compiled",
                               f"differs from what {source.folder} compiles to; run uv run scripts/nextrack_show.py "
                               f"build {source.show_id}")

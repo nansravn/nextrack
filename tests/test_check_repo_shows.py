@@ -111,6 +111,17 @@ def test_an_invalid_map_is_named_as_invalid(mini_repo):
                              "(or redo it with uv run scripts/nextrack_map.py analyze)")]
 
 
+def test_show_compiled_says_adopt_for_a_hand_written_file(mini_repo):
+    from check_repo import check
+
+    put_show(mini_repo)
+    mini_repo.write(TRACK_1, "\n".join(mini_repo.read(TRACK_1).splitlines()[2:]) + "\n")  # no header
+    found = [f for f in check(mini_repo.root) if f.rule == "show-compiled"]
+    assert [(f.path, f.line, f.message) for f in found] == [
+        (TRACK_1, 0, f"differs from what {SHOW} compiles to and is hand-written; run uv run "
+                     "scripts/nextrack_show.py build teste --adopt to take it over")]
+
+
 def test_rules_table_lists_the_show_rules():
     text = (Path(__file__).resolve().parents[1] / "scripts/README.md").read_text(encoding="utf-8")
     for rule_id in RULES:

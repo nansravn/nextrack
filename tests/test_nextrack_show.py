@@ -4,6 +4,7 @@ import pytest
 import yaml
 from showdata import FILE_1, FILE_2, put_show
 
+import lightshow
 import nextrack_show
 
 SHOW = "lightshows/shows/teste"
@@ -137,6 +138,43 @@ def test_a_show_outside_the_repo_builds_only_with_out(mini_repo, tmp_path, capsy
     assert (mini_repo.read(T1), mini_repo.read(T2)) == before
 
 
+def test_a_relative_show_path_is_read_under_repo_first(mini_repo_at, tmp_path, capsys, monkeypatch):
+    here = mini_repo_at(tmp_path / "here")          # the current folder: its show fails a rule
+    put_show(here)
+    _edit_yaml(here, f"{SHOW}/show.yml", _budget_zero)
+    there = mini_repo_at(tmp_path / "there")        # --repo: a clean copy
+    put_show(there)
+    monkeypatch.chdir(here.root)
+    assert run(there, capsys, "build", SHOW, "--check") == (0, "")
+    assert run(there, capsys, "build", "teste", "--check") == (0, "")
+    # not under --repo: the folder found from the current one is outside it, and the error names it
+    there.path(f"{SHOW}/show.yml").unlink()
+    assert nextrack_show.main(["build", SHOW, "--repo", str(there.root)]) == 2
+    err = capsys.readouterr().err
+    assert str(here.path(SHOW).resolve()) in err and "only with --out" in err
+    assert nextrack_show.main(["build", "nope", "--repo", str(there.root)]) == 2
+    err = capsys.readouterr().err
+    root = there.root.resolve()
+    assert str(root / "nope") in err and str(root / "lightshows/shows/nope") in err
+
+
+def test_build_names_stale_files_it_owns(mini_repo, capsys):
+    put_show(mini_repo)
+    stale = "lightshows/tracks/extra.yml"               # this show's header, a track it does not compile
+    mini_repo.write(stale, mini_repo.read(T1))
+    line = f"stale {stale}: owned by this show, which no longer compiles it; delete it"
+    code, out = run(mini_repo, capsys, "build", "teste")
+    assert code == 1
+    assert out.splitlines() == [f"unchanged {T1}", f"unchanged {T2}", line]
+    code, out = run(mini_repo, capsys, "build", "teste", "--check")
+    assert (code, out.splitlines()) == (1, [line])
+    assert mini_repo.path(stale).exists()                # named, never deleted
+    hand = "lightshows/tracks/other.yml"                 # a hand-written file is not this show's
+    mini_repo.path(stale).unlink()
+    mini_repo.write(hand, "\n".join(mini_repo.read(T1).splitlines()[2:]) + "\n")
+    assert run(mini_repo, capsys, "build", "teste", "--check") == (0, "")
+
+
 def test_unknown_show_is_a_usage_error(mini_repo, capsys):
     put_show(mini_repo)
     assert nextrack_show.main(["report", "nope", "--repo", str(mini_repo.root)]) == 2
@@ -209,6 +247,13 @@ def test_vocab_lists_anchors_gestures_rules_and_the_shows_looks(mini_repo, capsy
     assert "anchor := term" in out and "intro" in out and "outro" in out
     for word in ("sweep", "rows-up", "pulse", "1/16", "bar"):
         assert word in out
+    lines = out.splitlines()
+    assert f"  movers: auto | off | {{{', '.join(lightshow.MOVER_KEYS)}}}" in lines
+    assert f"  matrix: auto | off | {{{', '.join(lightshow.MATRIX_KEYS)}}}" in lines
+    assert "  white: auto | off | {accent, flash}" in lines
+    assert "  uv: auto | off | on" in lines
+    assert "  strobe: auto | off | {hit, roll}" in lines
+    assert "  hue: auto | off | dark | pulse | bright | {state, colour}" in lines
     for name in show_gestures.GESTURES:
         assert f"gesture {name}" in out
     for name in show_rules.RULES:
