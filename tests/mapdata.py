@@ -45,3 +45,20 @@ def good_map(bars: int = 4, **overrides) -> dict:
     }
     data.update(copy.deepcopy(overrides))
     return data
+
+
+def cue_ms(bar: int, beat: int = 1) -> int:
+    """Milliseconds of a bar.beat on the 120 BPM grid that starts at 0 ms (`timeline_map`)."""
+    return round(((bar - 1) * 4 + beat - 1) * 500)
+
+
+def timeline_map(bars: int, *, sections=None, drops=(), silences=(), hot=None) -> dict:
+    """A valid map of `bars` bars at 120 BPM from 0 ms (bar n starts at (n - 1) * 2000 ms) with
+    the given sections, `(bar, db)` drops, silences and stored hot cues."""
+    d = good_map(bars)
+    d["grid"]["anchors"] = [[0, 120.0]]
+    d["sections"] = sections or [{"bars": [1, bars], "kind": "groove"}]
+    d["drops"] = [{"bar": b, "db": db} for b, db in drops]
+    d["silences"] = [list(s) for s in silences]
+    d["hot_cues"] = hot
+    return d

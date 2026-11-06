@@ -7,13 +7,14 @@ import uuid
 
 import pytest
 import soundfile as sf
+import yaml
 
 import musical_map as mm
 import nextrack_map as nm
 import soundswitch_format as ssf
 import synth
 from conftest import PROJECT_GUIDS
-from mapdata import good_map
+from mapdata import good_map, timeline_map
 from rekordbox_cues import RbTrack
 
 SR = 22050
@@ -336,30 +337,27 @@ def test_a_missing_project_is_reported(capsys):
     assert nm.main(["analyze", "x"]) == 2
 
 
-
 # ----------------------------------------------------------------- timeline ----
 
 SECOND = "Chiclete com Banana — Voa Voa (Ao Vivo)"
 
 
-def _timeline_env(env, with_second_map=True):
-    from test_set_timeline import make
+def _ms(bar):
+    return (bar - 1) * 2000
 
+
+def _timeline_env(env, with_second_map=True):
     maps = env.repo.path("lightshows/maps")
     maps.mkdir(parents=True, exist_ok=True)
-    first = make(60, hot={"G": "20.1"}, drops=[(5, 5.0)])
+    first = timeline_map(60, hot={"G": "20.1"}, drops=[(5, 5.0)])
     first["track"] = "Pedro Sampaio & MC Pedrinho — Dançarina"
-    second = make(80, hot={"B": "5.1", "G": "70.1"}, drops=[(10, 6.0), (50, 9.0)])
+    second = timeline_map(80, hot={"B": "5.1", "G": "70.1"}, drops=[(10, 6.0), (50, 9.0)])
     second["track"] = SECOND
     for d in (first, second) if with_second_map else (first,):
         (maps / f"{mm.slug(d['track'])}.yml").write_text(mm.dump_map(d), encoding="utf-8")
-
-    def ms(bar):
-        return (bar - 1) * 2000
-
     voa = RbTrack(title="Voa Voa", artist="Chiclete com Banana", path=r"C:\Music\b.mp3", bpm=120.0,
-                  key="8A", cues={"B": ms(5), "G": ms(70)})
-    env.reader.tracks = [rb(r"C:\Music\a.mp3", cues={"G": ms(20)}), voa]
+                  key="8A", cues={"B": _ms(5), "G": _ms(70)})
+    env.reader.tracks = [rb(r"C:\Music\a.mp3", cues={"G": _ms(20)}), voa]
 
 
 def test_timeline_prints_the_table(env, capsys):
@@ -368,24 +366,52 @@ def test_timeline_prints_the_table(env, capsys):
     out = capsys.readouterr().out
     assert "Dançarina G20 → " in out and "Voa Voa (Ao Vivo) B5" in out
     assert "bar 50" in out  # the peak
+    assert "| 0:38 |" in out  # bars [1, 20) at 120 BPM
 
 
 def test_timeline_yaml_and_block_tempos(env, capsys, tmp_path):
     _timeline_env(env)
     block = tmp_path / "set.md"
-    block.write_text("## Tracklist\n\n1. Pedro Sampaio & MC Pedrinho — Dançarina  · 8A · 120 · e6\n"
+    block.write_text("## Tracklist\n\n1. Pedro Sampaio & MC Pedrinho — Dançarina  · 8A · 100 · e6\n"
                      "2. Chiclete com Banana — Voa Voa (Ao Vivo)  · 8A · 120-128 · e6\n", encoding="utf-8")
     assert env.run("timeline", "--playlist", "Warm", "--block", str(block), "--yaml") == 0
-    import yaml
     data = yaml.safe_load(capsys.readouterr().out)
-    assert data["transitions"][0]["out"].endswith("Dançarina")
-    assert data["transitions"][0]["clock_g_s"] == pytest.approx(40.0)  # bars 1..20 at 120 BPM
+    t = data["transitions"][0]
+    assert t["out"].endswith("Dançarina")
+    assert t["clock_g_s"] == pytest.approx(19 * 2.4)  # 19 bars at 100 BPM, not 120
+
+    def ramp(bars):  # the second track plays bars 5..80 (76 bars) at 120 -> 128
+        return sum(240 / (120 + 8 * (k + 0.5) / 76) for k in range(bars))
+
+    assert t["arrival_bar"] == 50
+    assert t["clock_arrival_s"] == pytest.approx(19 * 2.4 + ramp(45), abs=0.01)
+    assert data["total_s"] == pytest.approx(19 * 2.4 + ramp(76), abs=0.01)
 
 
 def test_timeline_a_missing_map_is_a_warning_and_breaks_the_chain(env, capsys):
     _timeline_env(env, with_second_map=False)
     assert env.run("timeline", "--playlist", "Warm") == 0
-    assert "no map for Chiclete com Banana — Voa Voa" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "no map for Chiclete com Banana — Voa Voa" in out
+    assert "clock restarts after Chiclete com Banana — Voa Voa: no map" in out
+    assert "(incomplete: 1 tracks without a map)" in out
+
+
+def test_timeline_clocks_after_a_missing_map_are_relative(env, capsys):
+    _timeline_env(env)
+    env.reader.tracks.insert(0, rb(r"C:\Music\zzz.mp3", title="Unknown"))
+    assert env.run("timeline", "--playlist", "Warm") == 0
+    out = capsys.readouterr().out
+    assert "| +0:38 |" in out and "(+" in out
+    assert "clock restarts after Pedro Sampaio — Unknown: no map" in out
+    assert "(incomplete: 1 tracks without a map)" in out
+
+
+def test_timeline_an_unreadable_map_breaks_the_chain(env, capsys):
+    _timeline_env(env)
+    env.repo.path(f"lightshows/maps/{mm.slug(SECOND)}.yml").write_text("a: [unclosed\n", encoding="utf-8")
+    assert env.run("timeline", "--playlist", "Warm") == 0
+    assert "unreadable map" in capsys.readouterr().out
 
 
 def test_timeline_needs_rekordbox(env, capsys):
