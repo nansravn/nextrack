@@ -789,3 +789,28 @@ def test_the_bridge_carries_the_handovers_aims():
     show = compiled(src, inp)
     bridge = next(s for s in show.tracks[1].sections if s.origin.kind == "bridge")
     assert bridge.origin.aims == ("apice",) and bridge.layers["movers"]["position"] == "Up"
+
+
+def test_a_bad_aim_in_gesture_defaults_is_one_finding_at_show_yml():
+    src, inp = with_room(two_track_show())
+    _defaults_at(src)
+    _spiral_in_both_tracks(src)
+    src.show["gesture_defaults"]["spiral"]["aims"] = ["coluna", "apic"]
+    _, findings = compile_show(src, inp)
+    assert found(findings) == [(SHOW_PATH, 21, "show-source",
+                                "position 'apic' is not an aim of lightshows/room.yml; did you mean 'apice'? "
+                                "(from gesture_defaults.spiral in show.yml)")]
+    # a cue that gives its own `aims` leaves the defaults unread
+    for name in (FILE_1, FILE_2):
+        for cue in src.track_files[name]["cues"]:
+            if cue.get("gesture") == "spiral":
+                cue["with"]["aims"] = ["coluna", "cruzado"]
+    assert compile_show(src, inp)[1] == []
+
+
+def test_a_pending_aim_with_no_configured_end_is_a_finding():
+    aims = dict(ROOM.aims)
+    aims["apice"] = show_room.Aim("apice", "tenda", "Apex", "pending", None, {})
+    room = show_room.Room(ROOM.size, True, ROOM.fixtures, ROOM.booth, aims)
+    _, findings = compile_show(*with_room(one_track(movers_cue(position="apice")), room))
+    assert len(findings) == 1 and "no configured aim" in findings[0].message
