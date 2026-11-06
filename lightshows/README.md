@@ -198,7 +198,8 @@ room), `pingpong` (the first Vorlane gets the even steps and the second the odd 
   by `render`, `compile` and `apply`: `uv`, `move: uv`, the whole-track haze (one per
   compile, to confirm the machine reacts; or why it was skipped), a position preset the
   venue or script does not have, a shape block cut by a position change where the removed
-  part would have shown (not where another section aims the movers or keeps them dark), a
+  part would have shown (not where another section keeps the movers dark or aims them at a
+  preset in this script's palette), a
   strobe `off` over SoundSwitch's own strobe blocks. Add these in SoundSwitch by hand.
 - **Nothing outside the sections changes.** `apply` refuses unless everything outside the
   rig's tracks and Main equals the base, and outside the sections every venue track and

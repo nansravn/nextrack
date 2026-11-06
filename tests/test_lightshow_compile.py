@@ -316,6 +316,27 @@ def test_a_cut_shape_block_is_a_cue_only_where_its_movement_is_lost(room, neighb
     assert ssf.track(out, 1167).shapes.items == []        # removed whole either way
 
 
+def test_a_cut_shape_block_is_a_cue_next_to_a_preset_the_script_palette_lacks(room):
+    """The venue has the preset but this script's palette does not: the neighbour writes no
+    position, the autoscript's movement stays there, so the removed movement would show."""
+    script = room()
+    border = ms(4)
+    ssf.track(script, 1167).shapes = ssf.Shapes(1, 1, [shape(border - 1000, border + 1000)])
+    presets = PRESETS + [ssf.Preset("Laser Wall", "aaaaaaaa-0000-0000-0000-000000000000")]
+    sections = [section(2, 3, movers={"move": "hold", "position": "DJ Booth"}),
+                section(4, 5, movers={"move": "hold", "position": "Laser Wall"})]
+    _, cues = ls.compile_choreography(choreo(*sections), script, RIG, VENUES, presets)
+    assert any("shape block" in c.what for c in section_cues(cues))
+
+
+def test_a_cut_shape_block_covered_on_one_side_only_is_a_cue(room):
+    script = room()                                       # bar 1 unchoreographed | bars 2-3 | bars 4-5
+    ssf.track(script, 1167).shapes = ssf.Shapes(1, 1, [shape(ms(2) - 1000, ms(4) + 1000)])
+    _, cues = compile_(script, section(2, 3, movers={"move": "hold", "position": "DJ Booth"}),
+                       section(4, 5, movers={"move": "hold", "position": "Up"}))
+    assert any("shape block" in c.what for c in section_cues(cues))
+
+
 def test_a_cut_shape_block_reaching_a_gap_between_aimed_sections_is_a_cue(room):
     script = room()
     border = ms(4)                                        # bars 2-3 | bar 4 unchoreographed | bars 5-6
