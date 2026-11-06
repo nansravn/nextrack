@@ -1,22 +1,29 @@
-"""show_language.py — the show language: anchors, schema checks and looks.
+"""show_language.py — the show language: anchors, schema checks, looks and the compiler.
 
 A show (`lightshows/shows/<name>/`) is a `show.yml` plus one cue list per track. This module
-holds the first layer of it: resolving an anchor (`drop.2 - 1`, `B`, `end`) to a bar of a
-musical map, the pure `problems_*` schema checks of `show.yml` and of a track file, and the
-look algebra (`extends`, `with` overrides, palette colours). The checks take parsed YAML
-(possibly with the loader's `__line__` keys) and return `(line, message)` items; they never
-raise on bad content. See docs/superpowers/specs/2026-11-06-show-language-design.md.
+resolves an anchor (`drop.2 - 1`, `B`, `end`) to a bar of a musical map, holds the pure
+`problems_*` schema checks of `show.yml` and of a track file, the look algebra (`extends`,
+`with` overrides, palette colours), and `compile_show`, which turns a show, its maps and the
+set's track order into one choreography per track. The checks take parsed YAML (possibly with
+the loader's `__line__` keys) and return `(line, message)` items; nothing here raises on bad
+content or reads a file. See docs/superpowers/specs/2026-11-06-show-language-design.md.
 
 Python API: `clean`, `layer_word`, `resolve_anchor`, `problems_show`, `problems_track_file`,
-`merge_layers`, `flatten_looks`, `expand_look`, `resolve_colours`.
+`merge_layers`, `flatten_looks`, `expand_look`, `resolve_colours`, `compile_show` and its
+types `ShowSource`, `ShowInputs`, `ShowFinding`, `CompiledShow`, `CompiledTrack`,
+`CompiledSection`, `Provenance`.
 """
 from __future__ import annotations
 
 import copy
 import difflib
 import re
+from collections.abc import Callable
+from dataclasses import dataclass, field
 
-from lightshow import COLOUR_RE, LAYERS
+from lightshow import COLOUR_RE, LAYERS, problems_choreography
+from musical_map import slug
+from show_gestures import GESTURES, GestureContext, run_gesture
 
 SHOW_VERSION = 1
 SECTION_KINDS = ("intro", "groove", "break", "build", "drop", "outro")
@@ -408,3 +415,580 @@ def resolve_colours(layers: dict, palette: dict[str, str]) -> tuple[dict, list[s
         elif not COLOUR_RE.fullmatch(colour):
             problems.append(f"colour {colour!r} is not in the palette ({', '.join(palette)}) nor #RRGGBB")
     return out, problems
+
+
+# ---------------------------------------------------------------- compiler --
+
+SOURCE = "show-source"
+_SECTION_RE = re.compile(r"section (?P<i>[0-9]+)(?: \([^)]*\))?: (?P<rest>.*)", re.S)
+_ACCENT_LAYER = {"white": "white", "strobe": "strobe", "strobe-roll": "strobe"}
+
+
+@dataclass
+class Provenance:
+    """Where a compiled section came from. Rules read it; their findings point at `path:line`."""
+    kind: str                 # "cue" | "bridge" | "handover"
+    track: str                # Artist — Title of the choreography that holds the section
+    look: str | None
+    gesture: str | None
+    role: str | None          # "arrival" only on the first section of its cue
+    moment: str | None
+    path: str                 # file a finding points at (for a bridge: the outgoing track's file)
+    line: int                 # the cue's or handover's line there
+
+
+@dataclass
+class CompiledSection:
+    bars: tuple[int, int]
+    name: str
+    intent: str | None
+    layers: dict[str, object]  # final IR values: colours #RRGGBB, anchors resolved, words normalised
+    origin: Provenance
+
+
+@dataclass
+class CompiledTrack:
+    track: str
+    slug: str
+    path: str                  # the track file
+    map: dict
+    choreography: dict         # track, soundswitch, grid {bpm, downbeat}, story, [budget], base, sections
+    sections: list[CompiledSection]
+
+
+@dataclass
+class CompiledShow:
+    show_id: str
+    folder: str                # e.g. "lightshows/shows/hi-ibiza-pulso"
+    data: dict                 # clean(show.yml)
+    tracks: list[CompiledTrack]  # set order
+    decisions: list[str]       # what the compiler inferred, one line each (bridges, default ends)
+
+
+@dataclass
+class ShowFinding:
+    path: str
+    line: int
+    rule: str                  # "show-source" | "show-rules" | "show-compiled"
+    message: str
+
+
+@dataclass
+class ShowSource:
+    show_id: str
+    folder: str
+    show: object               # parsed show.yml (with __line__)
+    track_files: dict[str, object]   # file name ("<slug>.yml") -> parsed YAML
+    parse_failed: bool = False
+
+
+@dataclass
+class ShowInputs:
+    maps: dict[str, dict]              # slug -> valid map
+    set_tracks: list[tuple[str, str]] | None   # (artist, title) in set order
+    set_problem: str | None            # why set_tracks is None
+    same_track: Callable[[str, str, str, str], bool]
+
+
+@dataclass
+class _Show:
+    """What every track reads from a valid `show.yml`."""
+    folder: str
+    palette: dict
+    looks: dict                # flattened: `extends` merged in
+    bridge: dict | None        # {name, intent}; None: no bridges
+    handover: dict             # the default {name, intent} of a handover, or {}
+    defaults: dict             # gesture name -> parameters
+
+
+@dataclass
+class _Prev:
+    """The previous track in set order, as the next track's bridge sees it."""
+    title: str
+    has_handover: bool
+    layers: dict | None = None         # its handover's resolved layers without the accents
+    origin: Provenance | None = None   # its handover's provenance
+
+
+@dataclass
+class _Part:
+    """A section being built: `label` names its cue in findings, `accented` the layers its
+    accents added (the bridge leaves them out)."""
+    bars: tuple[int, int]
+    name: str
+    intent: str | None
+    layers: dict
+    origin: Provenance
+    label: str
+    accented: set = field(default_factory=set)
+
+
+def _title(track: str) -> str:
+    return track.split(" — ", 1)[1] if " — " in track else track
+
+
+def _cue_label(cue: dict) -> str:
+    return f"cue {cue['name']!r}"
+
+
+def _shown(bar: int, raw: object) -> str:
+    """A resolved bar, plus the anchor it came from when that is not the bar itself."""
+    if isinstance(raw, int) and not isinstance(raw, bool):
+        return str(bar)
+    return f"{bar} ({str(raw).strip()})"
+
+
+def _ordered(layers: dict) -> dict:
+    """Layers in the vocabulary's order (anything else after, for the validator to name), with
+    the YAML 1.1 words given back."""
+    out = {k: layer_word(layers[k]) for k in LAYERS if k in layers}
+    out.update((k, layer_word(v)) for k, v in layers.items() if k not in out)
+    return out
+
+
+def _section_dict(part: _Part) -> dict:
+    out = {"bars": list(part.bars), "name": part.name}
+    if part.intent is not None:
+        out["intent"] = part.intent
+    out.update(copy.deepcopy(part.layers))
+    return out
+
+
+class _TrackCompiler:
+    """One track file against its map, steps 1-7 of the spec's "Compiling". `run` returns the
+    compiled track, or None with the reasons in `findings`. Each step runs only when the ones
+    before it found nothing, so one mistake is reported once."""
+
+    def __init__(self, show: _Show, name: str, data: dict, map_data: dict, prev: _Prev | None):
+        self.show, self.data, self.map, self.prev = show, data, map_data, prev
+        self.path = f"{show.folder}/{name}"
+        self.track = map_data["track"]
+        self.title = _title(self.track)
+        self.cues: list[dict] = data["cues"]
+        self.handover: dict | None = data.get("handover")
+        self.findings: list[ShowFinding] = []
+        self.decisions: list[str] = []
+        self.parts: list[_Part] = []
+        self.groups: list[tuple[dict, list[_Part]]] = []   # each cue (and the handover) and its sections
+        self.h_start = self.h_until = self.h_span = self.bridge_span = None
+        self.handover_part: _Part | None = None
+        self.resolved = False
+
+    def find(self, line: int, message: str) -> None:
+        finding = ShowFinding(self.path, line, SOURCE, message)
+        if finding not in self.findings:
+            self.findings.append(finding)
+
+    def run(self) -> CompiledTrack | None:
+        if self.data["track"] != self.track:
+            self.find(_line(self.data), f"track {self.data['track']!r} is not written as in its map: {self.track!r}")
+        for step in (self._anchors, self._spans, self._expand, self._accents, self._resolve):
+            before = len(self.findings)
+            step()
+            if len(self.findings) > before:
+                return None
+        self.resolved = True
+        choreography = self._choreography()
+        self._validate(choreography)
+        if self.findings:
+            return None
+        self._decide()
+        sections = [CompiledSection(p.bars, p.name, p.intent, p.layers, p.origin) for p in self.parts]
+        return CompiledTrack(self.track, slug(self.track), self.path, self.map, choreography, sections)
+
+    def next_prev(self) -> _Prev:
+        """What the next track's bridge reads of this one."""
+        part = self.handover_part
+        if part is None or not self.resolved:
+            return _Prev(self.title, self.handover is not None)
+        layers = {k: copy.deepcopy(v) for k, v in part.layers.items() if k not in part.accented}
+        return _Prev(self.title, True, layers, part.origin)
+
+    # step 1
+    def _anchor(self, node: dict, key: str, label: str, *, until: bool = False) -> int | None:
+        bar, problem = resolve_anchor(node[key], self.map, until=until)
+        if problem:
+            self.find(_line(node), f"{label}: {problem}")
+        return bar
+
+    def _anchors(self) -> None:
+        """Every `at` and `until` to a bar (an `until` may be bars + 1); the handover's `at`
+        defaults to G and its `until` to bars + 1."""
+        self.starts = [self._anchor(c, "at", _cue_label(c)) for c in self.cues]
+        self.untils = [self._anchor(c, "until", f"{_cue_label(c)}: until", until=True) if "until" in c else None
+                       for c in self.cues]
+        h = self.handover
+        if h is None:
+            return
+        if "at" in h:
+            self.h_start = self._anchor(h, "at", "handover")
+        else:
+            self.h_start, problem = resolve_anchor("G", self.map)
+            if problem:
+                self.find(_line(h), f"handover: {problem}; a handover starts at G unless it has an at")
+        self.h_until = (self._anchor(h, "until", "handover: until", until=True) if "until" in h
+                        else self.map["bars"] + 1)
+
+    # step 2
+    def _spans(self) -> None:
+        """A cue runs to the bar before the next start, or to `until - 1`; the last one to the
+        bar before the handover, or to the map's end. The handover runs from its `at`."""
+        cues, starts, untils, h = self.cues, self.starts, self.untils, self.handover
+        for i in range(1, len(cues)):
+            if starts[i] <= starts[i - 1]:
+                self.find(_line(cues[i]), f"{_cue_label(cues[i])} at {_shown(starts[i], cues[i]['at'])} does not "
+                          f"come after {_cue_label(cues[i - 1])} at {_shown(starts[i - 1], cues[i - 1]['at'])}")
+        if h is not None and cues and self.h_start <= starts[-1]:
+            self.find(_line(h), f"handover at {_shown(self.h_start, h.get('at', 'G'))} does not come after "
+                      f"{_cue_label(cues[-1])} at {_shown(starts[-1], cues[-1]['at'])}")
+        nexts = [(starts[i + 1], _cue_label(cues[i + 1])) for i in range(len(cues) - 1)]
+        nexts.append((self.h_start, "the handover") if h is not None else (self.map["bars"] + 1, "the map's end"))
+        self.spans = []
+        for cue, start, until, (nxt, what) in zip(cues, starts, untils, nexts):
+            if until is not None and until <= start:
+                self.find(_line(cue), f"{_cue_label(cue)}: until {_shown(until, cue['until'])} is not after "
+                          f"its at {_shown(start, cue['at'])}")
+            elif until is not None and until > nxt:
+                self.find(_line(cue), f"{_cue_label(cue)}: until {_shown(until, cue['until'])} is after {what} "
+                          f"starts at {nxt}; until is the first bar after the cue, so at most {nxt}")
+            self.spans.append((start, (nxt if until is None else until) - 1))
+        if h is not None:
+            if self.h_until <= self.h_start:
+                self.find(_line(h), f"handover: until {self.h_until} is not after its at {self.h_start}")
+            self.h_span = (self.h_start, self.h_until - 1)
+        self._bridge_span()
+
+    def _bridge_span(self) -> None:
+        """With a bridge in the show and a handover before, this track opens with a bridge from
+        B to the bar before its first cue (or its handover, or the map's end)."""
+        prev = self.prev
+        if self.show.bridge is None or prev is None or not prev.has_handover or self.data.get("bridge") is False:
+            return
+        b, problem = resolve_anchor("B", self.map)
+        if problem:
+            self.find(_line(self.data), f"bridge from {prev.title}: {problem}; add hot cue B in rekordbox and "
+                      "run uv run scripts/nextrack_map.py cues, or write bridge: false")
+            return
+        if self.cues:
+            node, first, label = self.cues[0], self.starts[0], _cue_label(self.cues[0])
+        elif self.handover is not None:
+            node, first, label = self.handover, self.h_start, "handover"
+        else:
+            self.bridge_span = (b, self.map["bars"])
+            return
+        if first <= b:
+            self.find(_line(node), f"{label} at {first} is not after hot cue B ({b}): no room for the bridge "
+                      f"from {prev.title}; start it after bar {b}, or write bridge: false")
+            return
+        self.bridge_span = (b, first - 1)
+
+    # step 3
+    def _expand(self) -> None:
+        """The bridge's copy, each cue's look or gesture, the handover's look."""
+        prev = self.prev
+        if self.bridge_span is not None and prev.layers is not None:
+            o = prev.origin
+            self.parts.append(_Part(self.bridge_span, self.show.bridge["name"], self.show.bridge["intent"],
+                                    copy.deepcopy(prev.layers),
+                                    Provenance("bridge", self.track, o.look, None, None, o.moment, o.path, o.line),
+                                    "bridge"))
+        for cue, span in zip(self.cues, self.spans):
+            parts = self._gesture(cue, span) if "gesture" in cue else self._look(cue, span, "cue")
+            self.groups.append((cue, parts))
+            self.parts += parts
+        if self.handover is not None:
+            parts = self._look(self.handover, self.h_span, "handover")
+            self.groups.append((self.handover, parts))
+            self.parts += parts
+            self.handover_part = parts[0] if parts else None
+
+    def _look(self, node: dict, span: tuple[int, int], kind: str) -> list[_Part]:
+        label = _cue_label(node) if kind == "cue" else "handover"
+        layers, problems = expand_look(node["look"], node.get("with"), self.show.looks)
+        for p in problems:
+            self.find(_line(node), f"{label}: {p}")
+        name, intent = node.get("name"), node.get("intent")
+        if kind == "handover":
+            name = node.get("name", self.show.handover.get("name"))
+            intent = node.get("intent", self.show.handover.get("intent"))
+            if name is None or intent is None:
+                self.find(_line(node), "handover: needs a name and an intent, and show.yml has no handover to "
+                          "take them from: add handover: {name, intent} to show.yml or write them here")
+                return []
+        if layers is None:
+            return []
+        look = node["look"] if isinstance(node["look"], str) else None
+        origin = Provenance(kind, self.track, look, None, node.get("role"), node.get("moment"), self.path,
+                            _line(node))
+        return [_Part(span, name, intent, layers, origin, label)]
+
+    def _gesture(self, cue: dict, span: tuple[int, int]) -> list[_Part]:
+        """Run the cue's gesture with the show's `gesture_defaults` under its `with` (the cue wins,
+        a null removes a default)."""
+        label, name = _cue_label(cue), cue["gesture"]
+        params = {**self.show.defaults.get(name, {}), **clean(cue.get("with") or {})}
+        params = {k: v for k, v in params.items() if v is not None}
+        ctx = GestureContext(span[0], span[1], cue["name"], cue.get("intent"), self.map,
+                             lambda ref, with_: expand_look(ref, with_, self.show.looks))
+        try:
+            sections, problems = run_gesture(name, ctx, params)
+        except Exception as exc:  # noqa: BLE001 — a bug in a gesture is a finding, not a crash
+            sections, problems = [], [f"gesture {name!r} failed ({exc!r}): a bug in scripts/show_gestures.py"]
+        problems = problems + [f"gesture {name!r} returned layers {s.layers!r} for section {s.name!r}, "
+                               "not a mapping: a bug in scripts/show_gestures.py"
+                               for s in sections if not isinstance(s.layers, dict)]
+        for p in problems:
+            self.find(_line(cue), f"{label}: {p}")
+        if problems:
+            return []
+        return [_Part(tuple(s.bars), s.name, s.intent, clean(s.layers),
+                      Provenance("cue", self.track, s.look, name, cue.get("role") if i == 0 else None,
+                                 cue.get("moment"), self.path, _line(cue)), label)
+                for i, s in enumerate(sections)]
+
+    # step 4
+    def _accents(self) -> None:
+        """A cue's accents go on its first section: `white` and `strobe` on its first beat,
+        `strobe-roll` over the whole section."""
+        for node, parts in self.groups:
+            if not parts:
+                continue
+            first = parts[0]
+            a, b = first.bars
+            for accent in node.get("accents") or []:
+                layer = _ACCENT_LAYER[accent]
+                if layer in first.layers:
+                    by = "an earlier accent" if layer in first.accented else "its look"
+                    self.find(first.origin.line, f"{first.label}: accent {accent!r} sets {layer} on bar {a}, "
+                              f"which {by} already sets; remove the accent or that layer")
+                    continue
+                first.layers[layer] = ({"accent": [f"{a}.1"]} if accent == "white"
+                                       else {"hit": [f"{a}.1"]} if accent == "strobe" else {"roll": [a, b]})
+                first.accented.add(layer)
+
+    # step 5
+    def _resolve(self) -> None:
+        """Palette names to `#RRGGBB` and `faster_from` anchors to bars."""
+        for part in self.parts:
+            if part.origin.kind == "bridge":
+                continue          # a copy of layers the previous track resolved
+            layers, problems = resolve_colours(part.layers, self.show.palette)
+            movers = layers.get("movers")
+            if isinstance(movers, dict) and "faster_from" in movers:
+                bar, problem = resolve_anchor(movers["faster_from"], self.map)
+                if problem:
+                    problems.append(f"faster_from {problem}")
+                else:
+                    movers["faster_from"] = bar
+            for p in problems:
+                self.find(part.origin.line, f"{part.label}: {p}")
+            part.layers = _ordered(layers)
+
+    # step 6
+    def _choreography(self) -> dict:
+        """The low-level choreography, keys in the order of the file."""
+        grid = self.map["grid"]
+        bpm = grid["bpm"]
+        if isinstance(bpm, float) and bpm.is_integer():
+            bpm = int(bpm)
+        out = {"track": self.track, "soundswitch": self.map["soundswitch"],
+               "grid": {"bpm": bpm, "downbeat": grid["downbeat"]}, "story": self.data["story"]}
+        if "budget" in self.data:
+            out["budget"] = self.data["budget"]
+        out["base"] = "autoscript"
+        out["sections"] = [_section_dict(p) for p in self.parts]
+        return out
+
+    # step 7
+    def _validate(self, choreography: dict) -> None:
+        """`lightshow`'s own check; a section's problem points at the cue that made it."""
+        for message in problems_choreography(choreography, None):
+            m = _SECTION_RE.fullmatch(message)
+            if m is None:
+                self.find(_line(self.data), message)
+                continue
+            part = self.parts[int(m["i"]) - 1]
+            if part.origin.kind == "bridge":
+                continue          # the handover it copies reports the same problem in its own track
+            where = part.label + (f" (section {part.name!r})" if part.origin.gesture is not None else "")
+            self.find(part.origin.line, f"{where}: {m['rest']}")
+
+    def _decide(self) -> None:
+        """What the compiler inferred for this track: its bridge, and the end of its last cue."""
+        if self.parts and self.parts[0].origin.kind == "bridge":
+            (a, b), look = self.parts[0].bars, self.parts[0].origin.look
+            self.decisions.append(f"{self.title}: bridge {a}-{b} copies the handover of {self.prev.title} "
+                                  f"({'look ' + look if look else 'inline'})")
+        if self.cues and self.untils[-1] is None:
+            until = "the handover" if self.handover is not None else "the map's end"
+            self.decisions.append(f"{self.title}: {_cue_label(self.cues[-1])} runs to bar {self.spans[-1][1]} "
+                                  f"({until})")
+
+
+def _show_context(source: ShowSource, folder: str) -> tuple[_Show | None, list[ShowFinding]]:
+    """`show.yml` checked and prepared for the tracks, or None with its findings."""
+    data = source.show
+    problems = problems_show(data)
+    flat: dict[str, dict] = {}
+    if not problems:
+        looks = data.get("looks", {})
+        flat, found = flatten_looks(looks)
+        problems = [(_line(looks.get(name)) or _line(looks), f"looks.{name}: {p}") for name, p in found]
+        defaults = data.get("gesture_defaults", {})
+        problems += [(_line(defaults), f"gesture_defaults.{name}: unknown gesture {name!r}; "
+                                       f"gestures: {', '.join(sorted(GESTURES))}")
+                     for name in _keys(defaults) if name not in GESTURES]
+    if problems:
+        return None, [ShowFinding(f"{folder}/show.yml", line, SOURCE, m) for line, m in problems]
+    return _Show(folder, clean(data["palette"]), flat, clean(data.get("bridge")),
+                 clean(data.get("handover", {})), clean(data.get("gesture_defaults", {}))), []
+
+
+def _file_hint(artist: str, title: str, maps: dict[str, dict], same: Callable) -> str:
+    for name in sorted(maps):
+        track = maps[name].get("track")
+        if isinstance(track, str) and " — " in track and same(artist, title, *track.split(" — ", 1)):
+            return f": add {name}.yml with track: {track}"
+    return ": add one, named <slug>.yml like the track's musical map"
+
+
+def _match(source: ShowSource, folder: str, files: dict[str, tuple[object, bool]],
+           inputs: ShowInputs) -> tuple[list[tuple[str, dict] | None], list[ShowFinding]]:
+    """Each set track's one track file, as `(file name, data)` per set position (None when it
+    has none, several, or one that fails its schema), plus the findings. `files` maps a file
+    name to `(data, schema ok)`."""
+    show_path, show_line = f"{folder}/show.yml", _line(source.show)
+    set_tracks, same = inputs.set_tracks, inputs.same_track
+    out = []
+
+    def at_show(message: str) -> None:
+        out.append(ShowFinding(show_path, show_line, SOURCE, message))
+
+    again: dict[int, int] = {}            # set position -> the earlier position of the same track
+    for j, (artist, title) in enumerate(set_tracks):
+        first = next((i for i in range(j) if i not in again and same(*set_tracks[i], artist, title)), None)
+        if first is not None:
+            again[j] = first
+            at_show(f"set track {j + 1}, {artist} — {title}, is set track {first + 1} again: a track has one "
+                    "choreography; play it once in the set")
+    claims: dict[int, list[str]] = {}
+    unreadable = False                    # a file without a readable track may be the missing one
+    for name, (data, _) in files.items():
+        track = data.get("track") if isinstance(data, dict) else None
+        if not (isinstance(track, str) and " — " in track):
+            unreadable = True
+            continue
+        path, line = f"{folder}/{name}", _line(data)
+        if name != slug(track) + ".yml":
+            out.append(ShowFinding(path, line, SOURCE,
+                                   f"file name {name!r} does not match its track {track!r}: rename it to "
+                                   f"{slug(track)}.yml"))
+        hits = [i for i, (a, t) in enumerate(set_tracks) if i not in again and same(a, t, *track.split(" — ", 1))]
+        if not hits:
+            close = difflib.get_close_matches(track, [f"{a} — {t}" for a, t in set_tracks], n=1, cutoff=0.6)
+            hint = f"did you mean {close[0]!r}? Otherwise delete this file" if close else "delete this file"
+            out.append(ShowFinding(path, line, SOURCE,
+                                   f"track {track!r} is not in the set {source.show.get('set')}: {hint}"))
+        elif len(hits) > 1:
+            listed = ", ".join(f"{i + 1}. {set_tracks[i][0]} — {set_tracks[i][1]}" for i in hits)
+            out.append(ShowFinding(path, line, SOURCE, f"track {track!r} matches {len(hits)} set tracks "
+                                                       f"({listed}): write it as its map does"))
+        else:
+            claims.setdefault(hits[0], []).append(name)
+    order: list[tuple[str, dict] | None] = []
+    for i, (artist, title) in enumerate(set_tracks):
+        names = claims.get(i, [])
+        if len(names) > 1:
+            at_show(f"set track {i + 1}, {artist} — {title}, has {len(names)} track files "
+                    f"({', '.join(names)}): keep one")
+        elif not names and i not in again and not unreadable:
+            at_show(f"set track {i + 1}, {artist} — {title}, has no track file"
+                    + _file_hint(artist, title, inputs.maps, same))
+        ok = len(names) == 1 and files[names[0]][1]
+        order.append((names[0], files[names[0]][0]) if ok else None)
+    return order, out
+
+
+def _compile_tracks(show: _Show, order: list[tuple[str, dict] | None], maps: dict[str, dict],
+                    linked: bool) -> tuple[list[CompiledTrack], list[str], list[ShowFinding], list]:
+    """Compile the tracks in order. With `linked`, each track sees the one before it (bridges)."""
+    tracks, decisions, findings, entries = [], [], [], []
+    prev: _Prev | None = None
+    for entry in order:
+        if entry is None:
+            entries.append(None)
+            prev = None
+            continue
+        name, data = entry
+        map_data = maps.get(slug(data["track"]))
+        entries.append((name, data, map_data))
+        if map_data is None:
+            findings.append(ShowFinding(f"{show.folder}/{name}", _line(data), SOURCE,
+                                        f"no musical map for {data['track']}: run uv run "
+                                        f"scripts/nextrack_map.py analyze \"{data['track']}\""))
+            prev = _Prev(_title(data["track"]), "handover" in data) if linked else None
+            continue
+        compiler = _TrackCompiler(show, name, data, map_data, prev)
+        track = compiler.run()
+        findings += compiler.findings
+        decisions += compiler.decisions
+        if track is not None:
+            tracks.append(track)
+        prev = compiler.next_prev() if linked else None
+    return tracks, decisions, findings, entries
+
+
+def _missing_handovers(show: _Show, entries: list) -> list[ShowFinding]:
+    """A track whose map has G, followed by a track that would take a bridge, needs a handover."""
+    if show.bridge is None:
+        return []
+    out = []
+    for here, after in zip(entries, entries[1:]):
+        if here is None or after is None or here[2] is None or after[2] is None:
+            continue
+        (name, data, map_data), (next_name, next_data, next_map) = here, after
+        hot = map_data.get("hot_cues")
+        if "handover" in data or not (isinstance(hot, dict) and "G" in hot):
+            continue
+        if next_data.get("bridge") is False or resolve_anchor("B", next_map)[1] is not None:
+            continue
+        out.append(ShowFinding(f"{show.folder}/{name}", _line(data), SOURCE,
+                               f"the map has hot cue G ({hot['G']}) and the next track, "
+                               f"{_title(next_data['track'])}, opens with a bridge: add a handover here (its look "
+                               f"plays from G to the end and the bridge copies it), or write bridge: false in "
+                               f"{next_name}"))
+    return out
+
+
+def compile_show(source: ShowSource, inputs: ShowInputs) -> tuple[CompiledShow | None, list[ShowFinding]]:
+    """Compile a show into one choreography per set track (spec, "Compiling"). Returns
+    `(show, [])`, or `(None, findings)` (all `show-source`) when anything is wrong. Pure: the
+    files, the maps and the set's order come in `source` and `inputs`."""
+    folder = source.folder.rstrip("/")
+    show_path = f"{folder}/show.yml"
+    if source.parse_failed:
+        return None, [ShowFinding(show_path, 0, SOURCE, "a file of this show does not parse: fix its parse-error")]
+    show, findings = _show_context(source, folder)
+    files: dict[str, tuple[object, bool]] = {}
+    for name in sorted(source.track_files):
+        data = source.track_files[name]
+        problems = problems_track_file(data)
+        findings += [ShowFinding(f"{folder}/{name}", line, SOURCE, m) for line, m in problems]
+        files[name] = (data, not problems)
+    if show is None:
+        return None, findings
+    if inputs.set_tracks is None:            # no order: each track alone, no bridges
+        findings.append(ShowFinding(show_path, _line(source.show), SOURCE,
+                                    inputs.set_problem or "the set's track order could not be read"))
+        order, linked = [(name, data) for name, (data, ok) in files.items() if ok], False
+    else:
+        order, found = _match(source, folder, files, inputs)
+        findings += found
+        linked = True
+    tracks, decisions, found, entries = _compile_tracks(show, order, inputs.maps, linked)
+    findings += found
+    if linked:
+        findings += _missing_handovers(show, entries)
+    if findings:
+        return None, findings
+    return CompiledShow(source.show_id, folder, clean(source.show), tracks, decisions), []
