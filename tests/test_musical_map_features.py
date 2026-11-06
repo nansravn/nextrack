@@ -455,3 +455,38 @@ def test_short_full_stretch_after_the_intro_is_a_drop():
     m = make(render(kick=full, bass=full))
     assert spans(m)[0] == ("intro", 1, 4) and spans(m)[1] == ("drop", 5, 5)
     assert [d["bar"] for d in m["drops"]][:2] == [5, 9]
+
+
+def test_a_loud_kick_only_intro_is_intro_until_the_bass_enters():
+    allbars = list(range(1, 25))
+    stems = render(kick=allbars, bass=range(9, 25), kick_db={b: -18 for b in allbars},
+                   bass_db={b: 18 for b in range(9, 25)})
+    voices = mm.voices_from_stems(stems, SR)
+    edges = np.arange(25) * BAR_MS
+    kick, bass = mm.rms_db(voices["kick"], SR, edges), mm.rms_db(voices["bass"], SR, edges)
+    assert kick[:8].min() >= bass[8:].max() + 18  # the kick alone is far louder than the bass will be
+    m = make(stems)
+    assert spans(m) == [("intro", 1, 8), ("drop", 9, 24)]
+    assert [d["bar"] for d in m["drops"]] == [9]
+
+
+def test_kick_back_a_bar_before_the_bass_drops_on_the_bass_bar():
+    allbars = list(range(1, 25))
+    kick = [b for b in allbars if b not in range(9, 13)]
+    bass = [b for b in allbars if b not in range(9, 14)]
+    m = make(render(kick=kick, bass=bass, kick_db={b: -18 for b in allbars}))
+    # bar 13 (the kick alone) stays in the break; the kick's click rising in `perc` may make
+    # the break's end a build
+    assert spans(m)[0] == ("groove", 1, 8) and spans(m)[1][:2] == ("break", 9)
+    assert {kind for kind, *_ in spans(m)[1:-1]} <= {"break", "build"} and spans(m)[-2][2] == 13
+    assert spans(m)[-1] == ("drop", 14, 24)
+    assert [d["bar"] for d in m["drops"]] == [14]
+
+
+def test_full_needs_kick_and_bass_each_within_15_db_of_their_loud_level():
+    silent = np.full(12, -120.0)
+    kick = np.full(12, -6.0)
+    bass = np.array([-26.0] * 4 + [-24.0] * 2 + [-10.0] * 6)  # 16 dB under its loud level, then 14
+    sections, drops = mm.sections_and_drops({"kick": kick, "bass": bass, "perc": silent, "other": silent})
+    assert sections == [{"bars": [1, 4], "kind": "intro"}, {"bars": [5, 12], "kind": "drop"}]
+    assert [d["bar"] for d in drops] == [5]

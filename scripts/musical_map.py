@@ -754,9 +754,10 @@ def phrases(step_levels: str, register: str) -> list[dict]:
 # ------------------------------------------------- sections, drops, grid, the map ----
 
 FULL_DB = 6.0           # the low end (kick + bass) within this of its loud level: "full"
+PRESENT_DB = 15.0       # ... and kick and bass each within this of their own loud level
 WELL_BELOW_DB = 9.0     # the low end at least this far under its loud level: well below full
 BREAK_MIN_BARS = 2
-MIN_DROP_BARS = 2       # fewer full bars than this between two breaks are a stab in one break
+MIN_DROP_BARS = 2       # a drop shorter than this between two breaks is a stab in one break
 BUILD_MIN_BARS = 2
 BUILD_MAX_BARS = 16
 BUILD_RISE_DB = 1.0     # a build bar is this much louder (perc + other) than the bar before
@@ -773,25 +774,29 @@ def _power_sum_db(*dbs):
 
 def sections_and_drops(bar_db: dict) -> tuple[list[dict], list[dict]]:
     """Sections (`intro`, `groove`, `break`, `build`, `drop`, `outro`) and drops from the bar
-    dB of the voices. The low end is the power sum of kick and bass; a bar is full when it is
-    within `FULL_DB` of the low end's loud level and well below full when it is at least
-    `WELL_BELOW_DB` under it (a filtered bass and kick count). A break is >= 2 well-below-full
-    bars between full bars. Fewer than `MIN_DROP_BARS` bars between two breaks are a stab and
-    join them into one break; this applies between two breaks only, so a short full stretch
-    right after the intro still starts a drop. The track's last full bar ends its groove/drop
-    and the rest is the outro; before the first full bar is the intro (none when bar 1 is full:
-    a groove). A break's trailing bars where perc + other rise bar over bar (2 to 16, never its
-    first bar) are the build. A drop starts at the first full bar after the intro and after
-    each break; its size is the kick + bass dB of that bar minus the mean of the (up to) two
-    bars before, to one decimal; the levels are floored `DROP_FLOOR_DB` under the loudest bar,
-    so a silent break is a bounded jump."""
+    dB of the voices. The low end is the power sum of kick and bass. A bar is full when the low
+    end is within `FULL_DB` of its loud level and kick and bass are each within `PRESENT_DB` of
+    their own loud level (a loud kick alone is not full); it is well below full when the low end
+    is at least `WELL_BELOW_DB` under its loud level (a filtered bass and kick count). A break
+    starts with >= 2 well-below-full bars after full bars and runs until the next full bar: the
+    bars after it that are neither full nor well below stay in it. A drop shorter than
+    `MIN_DROP_BARS` between two breaks is a stab and joins them into one break; this applies
+    between two breaks only, so a short full stretch right after the intro still starts a drop.
+    The track's last full bar ends its groove/drop and the rest is the outro; before the first
+    full bar is the intro (none when bar 1 is full: a groove). A break's trailing bars where
+    perc + other rise bar over bar (2 to 16, never its first bar) are the build. A drop starts
+    at the first full bar after the intro and after each break; its size is the kick + bass dB
+    of that bar minus the mean of the (up to) two bars before, to one decimal; the levels are
+    floored `DROP_FLOOR_DB` under the loudest bar, so a silent break is a bounded jump."""
     import numpy as np
 
-    kb = _power_sum_db(bar_db["kick"], bar_db["bass"])
+    kick, bass = (np.asarray(bar_db[v], dtype=np.float64) for v in ("kick", "bass"))
+    kb = _power_sum_db(kick, bass)
     n = len(kb)
     loud = loud_db(kb)
     live = loud > SILENT_DB + 10
-    full = [bool(live and d >= loud - FULL_DB) for d in kb]
+    present = (kick >= loud_db(kick) - PRESENT_DB) & (bass >= loud_db(bass) - PRESENT_DB)
+    full = [bool(live and d >= loud - FULL_DB and p) for d, p in zip(kb, present)]
     low = [bool(live and d <= loud - WELL_BELOW_DB) for d in kb]
     if not any(full):
         return [{"bars": [1, n], "kind": "intro"}], []
@@ -804,12 +809,14 @@ def sections_and_drops(bar_db: dict) -> tuple[list[dict], list[dict]]:
             while j + 1 <= last and low[j + 1]:
                 j += 1
             if j - i + 1 >= BREAK_MIN_BARS:
+                while not full[j + 1]:  # the break lasts until the next full bar (`last` is one)
+                    j += 1
                 breaks.append((i, j))
             i = j + 1
         else:
             i += 1
     merged = []
-    for a, b in breaks:  # a run of bars between two breaks shorter than a drop is part of the break
+    for a, b in breaks:  # a drop between two breaks shorter than MIN_DROP_BARS is part of the break
         if merged and a - merged[-1][1] - 1 < MIN_DROP_BARS:
             a = merged.pop()[0]
         merged.append((a, b))

@@ -271,18 +271,20 @@ voices: `vocals`, `kick`, `perc`, `bass`, `other`.
   `phrases` lists the vocal phrases as `from`/`to` (`bar.beat`) with a `register` (`low`,
   `mid`, `high`) and a `level`; a gap shorter than a beat does not split one.
 
-**Sections.** Every bar has a kind, cut from the audio by the kick and the bass measured
-together (the low end). A bar is *full* when the low end is within 6 dB of its loud level and
-*well below* when it is at least 9 dB under it. Tech house often filters the bass in a break
-instead of removing it, so a break need not be silent.
+**Sections.** Every bar has a kind, cut from the audio by the kick and the bass. The *low end*
+is the two measured together (their power sum). A bar is *full* when the low end is within 6 dB
+of its loud level **and** the kick and the bass are each within 15 dB of their own loud level,
+so a loud kick alone is not full: the bass entering under a steady kick is a drop. A bar is
+*well below* full when the low end is at least 9 dB under its loud level. Tech house often
+filters the bass in a break instead of removing it, so a break need not be silent.
 
 | kind | meaning |
 |---|---|
-| `intro` | from bar 1 to the first full bar (none when the track starts full) |
+| `intro` | from bar 1 to the bar before the first full bar (none when the track starts full), so a kick-only intro is an intro and the bass's entry is a drop |
 | `groove` | full from bar 1, until the first break |
-| `break` | at least 2 bars well below full, after full bars; a one-bar stab inside a break does not end it |
+| `break` | starts with at least 2 bars well below full, after full bars, and lasts until the next full bar: bars that are neither full nor well below (the kick back before the bass) stay in it; a drop shorter than 2 bars between two breaks is a stab inside one break |
 | `build` | the end of a break (2 to 16 bars) where percussion and the high end rise bar over bar, into a drop |
-| `drop` | from the bar the track turns full after the intro or after a break, until the next break |
+| `drop` | from the first full bar after the intro or after a break, until the next break |
 | `outro` | after the last full bar |
 
 `drops` lists the first bar of every drop with its size `db` (kick plus bass against the two
