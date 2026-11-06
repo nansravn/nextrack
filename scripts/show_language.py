@@ -71,6 +71,8 @@ def resolve_anchor(value: object, map_data: dict, *, until: bool = False) -> tup
     elif m["hot"] is not None:
         cues = map_data.get("hot_cues") or {}
         name = m["hot"]
+        if not isinstance(cues, dict):
+            return None, f"{name}: the map's hot_cues is not a mapping"
         if name not in cues:
             return None, f"{name}: the map has no hot cue {name} (it has {_listing(sorted(cues))})"
         where = _BEAT_RE.fullmatch(str(cues[name]))
@@ -200,7 +202,10 @@ def _gesture_defaults(defaults: object) -> list[tuple[int, str]]:
 def _naming_block(node: object, where: str) -> list[tuple[int, str]]:
     if not isinstance(node, dict):
         return [(0, f"{where} {node!r} is not a mapping")]
-    return _check_keys(node, (), ("name", "intent"), where) + _check_naming(node, where)
+    out = _check_keys(node, ("name", "intent"), (), where) + _check_naming(node, where)
+    if isinstance(node.get("intent"), str) and not node["intent"].strip():
+        out.append((_line(node), f"{where}.intent is empty"))
+    return out
 
 
 def _anchor_type(node: dict, key: str, where: str) -> list[tuple[int, str]]:
@@ -315,16 +320,24 @@ def merge_layers(base: dict, override: dict) -> dict:
 def flatten_looks(looks: dict) -> tuple[dict[str, dict], list[tuple[str, str]]]:
     """Every look with its `extends` chain merged in, and `(look name, problem)` for an unknown
     base or a cycle. A look with a problem, or built on one, is left out."""
-    looks = clean(looks)
     flat: dict[str, dict] = {}
     problems: list[tuple[str, str]] = []
+    if not isinstance(looks, dict):
+        return flat, [("looks", f"looks {looks!r} is not a mapping")]
+    looks = clean(looks)
 
     def build(name: str, chain: list[str]) -> dict | None:
         if name in flat:
             return flat[name]
         raw = looks[name]
+        if not isinstance(raw, dict):
+            problems.append((name, f"look {raw!r} is not a mapping of layers"))
+            return None
         own = {k: v for k, v in raw.items() if k != "extends"}
         base_name = raw.get("extends")
+        if base_name is not None and not isinstance(base_name, str):
+            problems.append((name, f"extends {base_name!r} is not a look name"))
+            return None
         if base_name is None:
             flat[name] = own
             return own
@@ -349,12 +362,16 @@ def flatten_looks(looks: dict) -> tuple[dict[str, dict], list[tuple[str, str]]]:
 def expand_look(ref: object, with_: object, looks: dict[str, dict]) -> tuple[dict | None, list[str]]:
     """The layers of a cue's `look` (a name in `looks`, or a mapping) with `with_` merged on top;
     `layer_word` applied to every top-level layer."""
+    if not isinstance(looks, dict):
+        return None, [f"looks {looks!r} is not a mapping"]
     if isinstance(ref, str):
         if ref not in looks:
             close = difflib.get_close_matches(ref, list(looks), n=1, cutoff=0.6)
             hint = (f"did you mean {close[0]!r}?" if close
                     else f"defined: {', '.join(sorted(looks)) or 'none'}")
             return None, [f"look {ref!r} is not defined; {hint}"]
+        if not isinstance(looks[ref], dict):
+            return None, [f"look {ref!r} is not a mapping of layers"]
         layers = clean(looks[ref])
     elif isinstance(ref, dict):
         layers = clean(ref)
@@ -366,12 +383,19 @@ def expand_look(ref: object, with_: object, looks: dict[str, dict]) -> tuple[dic
     if with_ is not None:
         if not isinstance(with_, dict):
             return None, [f"with {with_!r} is not a mapping"]
+        bad = [k for k in clean(with_) if k not in LAYERS]
+        if bad:
+            return None, [f"with has {bad[0]!r}, which is not a layer ({', '.join(LAYERS)})"]
         layers = merge_layers(layers, clean(with_))
     return {k: layer_word(v) for k, v in layers.items()}, []
 
 
 def resolve_colours(layers: dict, palette: dict[str, str]) -> tuple[dict, list[str]]:
     """Replace palette names in the `colour` of movers, matrix and hue by their `#RRGGBB`."""
+    if not isinstance(layers, dict):
+        return layers, [f"layers {layers!r} is not a mapping"]
+    if not isinstance(palette, dict):
+        return layers, [f"palette {palette!r} is not a mapping"]
     out = copy.deepcopy(layers)
     problems = []
     for layer in COLOUR_LAYERS:
