@@ -200,11 +200,11 @@ map (0-9). Vocals are shown separately (see [Voices](#5-voices)).
 
 | layer | value in 0-1 |
 |---|---|
-| movers | `off` 0; `hold`, `sweep`: `level` (default 0.85); `pingpong`, `blink`: `level` × 0.5; `uv`: 0.3 |
+| movers | `off` 0; `hold`, `sweep`: `level` (default 0.85); `pingpong`, `blink`: 0.5 flat; `uv`: 0.3 |
 | matrix | `off` 0; per draw, the lit share of the colour cells: `solid` 1, `fill-up` 0.6, `rows-*` 1/6, `columns` 1/8, `centre-out` 0.25, `arrow-up` 0.15, `zigzag` 1/48; × 0.5 with `pingpong`; then × 0.6 (draws pulse and decay) |
 | hue | `dark`, `off` 0; `pulse` 0.5; `bright` 0.85 |
 
-The level is `round(9 × (0.4 × movers + 0.4 × matrix + 0.2 × hue))`. A section whose
+`pingpong` and `blink` light at full in the compiler, so their `level` does not count. The level is `round(9 × (0.4 × movers + 0.4 × matrix + 0.2 × hue))`. A section whose
 movers, matrix or hue is `auto` (or unset) is `~` (unknown: the autoscript decides). The
 `white`, `strobe` and `uv` layers do not enter the level; they show as accents. The formula
 lives in one function with this table in its docstring, and the manual repeats it, so

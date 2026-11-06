@@ -332,7 +332,7 @@ def test_report_has_strips_peaks_and_hits(mini_repo, capsys):
     row = lines[peaks + 2]
     assert " · drop " not in row and "+12.5 dB" in row and " · light " in row and ">" in row
     hits = lines.index("hit checks")
-    assert peaks < hits < lines.index("budget") if "budget" in lines else peaks < hits
+    assert peaks < hits < lines.index("decided by the compiler")
     assert any(" · arrival" in l and "kick" in l for l in lines[hits + 2:])
     assert any("moment virada" in l and "kick" in l for l in lines[hits + 2:])
 

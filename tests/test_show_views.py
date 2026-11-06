@@ -81,8 +81,10 @@ def test_light_level_table():
     assert values({"movers": {"move": "hold", "level": 0.5}, "matrix": "off", "hue": "off"})[0] == 0.5
     assert values({"movers": {"move": "sweep"}, "matrix": "off", "hue": "off"})[0] == 0.85
     assert values({"movers": {"move": "pingpong", "level": 0.6}, "matrix": "off", "hue": "off"})[0] == \
-        pytest.approx(0.3)
-    assert values({"movers": {"move": "blink"}, "matrix": "off", "hue": "off"})[0] == pytest.approx(0.425)
+        pytest.approx(0.5)
+    # the compiler lights pingpong and blink at full, so their `level` does not count
+    assert values({"movers": {"move": "pingpong"}, "matrix": "off", "hue": "off"})[0] == 0.5
+    assert values({"movers": {"move": "blink", "level": 0.2}, "matrix": "off", "hue": "off"})[0] == 0.5
     assert values({"movers": {"move": "uv"}, "matrix": "off", "hue": "off"})[0] == 0.3
     shares = {"solid": 1, "fill-up": 0.6, "rows-down": 1 / 6, "rows-up": 1 / 6, "columns": 1 / 8,
               "centre-out": 0.25, "arrow-up": 0.15, "zigzag": 1 / 48}
@@ -173,6 +175,25 @@ def test_clock_past_g_for_handover_events():
     # past G the outgoing track keeps its end tempo, as set_timeline.seconds does
     assert clock.at(0, 29) == pytest.approx(g + 4 * 240 / 128)
     assert clock.at(0, 29) == pytest.approx(set_timeline.seconds(tempo, 24, 28))
+
+
+def test_clock_matches_set_timeline_on_three_tracks():
+    """build_clock and set_timeline.timeline model the legs twice; their G clocks and the
+    total must not drift apart."""
+    src, inp = three_track_show()
+    inp.maps[FILE_3[:-4]]["silences"] = [[1, 1], [30, 32]]
+    show = compiled(src, inp)
+    tempos = {TRACK_1: (120.0, 126.0), TRACK_2: (126.0, 124.0)}
+    clock = sv.build_clock(show, tempos)
+    legs = []
+    for track in show.tracks:
+        cues = {k: 61 + (int(str(v).split(".")[0]) - 1) * 2000 for k, v in track.map["hot_cues"].items()
+                if k in ("B", "G")}
+        legs.append(set_timeline.Leg(track.track, track.map, cues, tempos.get(track.track)))
+    transitions, total, warnings = set_timeline.timeline(legs)
+    assert warnings == [] and len(transitions) == 2
+    assert [t.clock_g_s for t in transitions] == pytest.approx([c.start_s for c in clock.tracks[1:]])
+    assert clock.total_s == pytest.approx(total)
 
 
 def test_clock_text():
@@ -290,7 +311,7 @@ def test_peaks_include_drops_during_the_mix():
         (16.0, 0, 9, 12.5, 5, None, 4, [], None),                       # bar 8 is the autoscript's
         (40.0, 0, 21, 30.0, 5, 2, 5, ["white", "strobe"], "virada"),
         (52.0, 0, 27, 6.0, 5, 3, 3, [], "passagem"),                    # Dançarina's handover, past G
-        (56.0, 1, 9, 8.0, 5, 3, 2, ["white"], None),                    # bar 3 is before Voa Voa's B: left out
+        (56.0, 1, 9, 8.0, 5, 3, 3, ["white"], None),                    # bar 3 is before Voa Voa's B: left out
         (80.0, 1, 21, 10.0, 5, 3, 3, ["roll"], "final"),
     ]
     assert [r["track"] for r in rows] == [TRACK_1, TRACK_1, TRACK_1, TRACK_2, TRACK_2]
@@ -315,7 +336,7 @@ def test_hit_checks_report_voices_in_a_dark_bar_before():
         (40.0, 0, 21, False, "virada", "7", 0, 5, ["white", "strobe"],
          {"track": TRACK_1, "bars": (17, 20), "voices": {"kick": 0, "bass": 0, "vocals": 9, "perc": 0, "other": 3}}),
         (48.0, 0, 25, False, "passagem", "9", 5, 3, ["white"], None),   # the handover, at its own clock
-        (56.0, 1, 9, True, None, "9", 3, 2, [], None),                  # the bridge's copied moment is no hit
+        (56.0, 1, 9, True, None, "9", 3, 3, [], None),                  # the bridge's copied moment is no hit
         (80.0, 1, 21, False, "final", "9", 3, 3, ["roll"], None),
     ]
 
@@ -332,7 +353,7 @@ def test_strips_wrap_nothing_and_use_tilde_for_unknown():
     assert music == "5" * 72
     assert light == "~" * 8 + "4" * 8 + "2" * 4 + "5" * 52                  # 1-8 is the autoscript's
     music, light = sv.strips(show.tracks[1], clock.tracks[1])
-    assert light == "3" * 4 + "2" * 8 + "~" * 4 + "3" * 12                   # subida's matrix is auto
+    assert light == "3" * 12 + "~" * 4 + "3" * 12                   # subida's matrix is auto
 
 
 def test_before_b_is_the_outgoing_tracks_last_leg_section():
@@ -354,7 +375,7 @@ def test_before_b_is_the_outgoing_tracks_last_leg_section():
         inp.maps[KEY_1]["voices"][voice]["bars"] = bar_string(32, {b: level for b in range(21, 25)})
     show = compiled(src, inp)
     (row,) = [r for r in sv.hit_checks(show, sv.build_clock(show, {})) if r["index"] == 1 and r["bar"] == 5]
-    assert (row["clock_s"], row["arrival"], row["before"], row["at"]) == (48.0, True, 0, 2)
+    assert (row["clock_s"], row["arrival"], row["before"], row["at"]) == (48.0, True, 0, 3)
     assert row["dark"] == {"track": TRACK_1, "bars": (21, 24),
                            "voices": {"kick": 0, "bass": 0, "vocals": 9, "perc": 0, "other": 2}}
 
