@@ -88,7 +88,9 @@ def env(tmp_path, make_project, mini_repo, monkeypatch):
     monkeypatch.setattr(nm, "open_rekordbox", lambda folder: contextlib.nullcontext(e.reader))
 
     def run(*args, rekordbox=True):
-        argv = [args[0], "--project", str(e.project), "--repo", str(mini_repo.root)]
+        argv = [args[0], "--repo", str(mini_repo.root)]
+        if args[0] != "timeline":
+            argv += ["--project", str(e.project)]
         if args[0] == "analyze":
             argv += ["--root", str(e.root)]
         if rekordbox:
@@ -332,3 +334,60 @@ def test_demucs_needs_the_analysis_group(monkeypatch):
 
 def test_a_missing_project_is_reported(capsys):
     assert nm.main(["analyze", "x"]) == 2
+
+
+
+# ----------------------------------------------------------------- timeline ----
+
+SECOND = "Chiclete com Banana — Voa Voa (Ao Vivo)"
+
+
+def _timeline_env(env, with_second_map=True):
+    from test_set_timeline import make
+
+    maps = env.repo.path("lightshows/maps")
+    maps.mkdir(parents=True, exist_ok=True)
+    first = make(60, hot={"G": "20.1"}, drops=[(5, 5.0)])
+    first["track"] = "Pedro Sampaio & MC Pedrinho — Dançarina"
+    second = make(80, hot={"B": "5.1", "G": "70.1"}, drops=[(10, 6.0), (50, 9.0)])
+    second["track"] = SECOND
+    for d in (first, second) if with_second_map else (first,):
+        (maps / f"{mm.slug(d['track'])}.yml").write_text(mm.dump_map(d), encoding="utf-8")
+
+    def ms(bar):
+        return (bar - 1) * 2000
+
+    voa = RbTrack(title="Voa Voa", artist="Chiclete com Banana", path=r"C:\Music\b.mp3", bpm=120.0,
+                  key="8A", cues={"B": ms(5), "G": ms(70)})
+    env.reader.tracks = [rb(r"C:\Music\a.mp3", cues={"G": ms(20)}), voa]
+
+
+def test_timeline_prints_the_table(env, capsys):
+    _timeline_env(env)
+    assert env.run("timeline", "--playlist", "Warm") == 0
+    out = capsys.readouterr().out
+    assert "Dançarina G20 → " in out and "Voa Voa (Ao Vivo) B5" in out
+    assert "bar 50" in out  # the peak
+
+
+def test_timeline_yaml_and_block_tempos(env, capsys, tmp_path):
+    _timeline_env(env)
+    block = tmp_path / "set.md"
+    block.write_text("## Tracklist\n\n1. Pedro Sampaio & MC Pedrinho — Dançarina  · 8A · 120 · e6\n"
+                     "2. Chiclete com Banana — Voa Voa (Ao Vivo)  · 8A · 120-128 · e6\n", encoding="utf-8")
+    assert env.run("timeline", "--playlist", "Warm", "--block", str(block), "--yaml") == 0
+    import yaml
+    data = yaml.safe_load(capsys.readouterr().out)
+    assert data["transitions"][0]["out"].endswith("Dançarina")
+    assert data["transitions"][0]["clock_g_s"] == pytest.approx(40.0)  # bars 1..20 at 120 BPM
+
+
+def test_timeline_a_missing_map_is_a_warning_and_breaks_the_chain(env, capsys):
+    _timeline_env(env, with_second_map=False)
+    assert env.run("timeline", "--playlist", "Warm") == 0
+    assert "no map for Chiclete com Banana — Voa Voa" in capsys.readouterr().out
+
+
+def test_timeline_needs_rekordbox(env, capsys):
+    assert env.run("timeline", "--playlist", "Warm", rekordbox=False) == 2
+    assert "--rekordbox" in capsys.readouterr().err
