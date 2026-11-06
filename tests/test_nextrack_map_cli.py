@@ -171,11 +171,85 @@ def test_analyze_playlist_survives_a_corrupt_audio_file(env, capsys):
 def test_cues_refuses_a_map_without_a_hot_cues_line(env, capsys):
     env.run("analyze", "Dançarina", rekordbox=False)
     path = env.repo.path(MAP_REL)
-    lines = [x for x in path.read_text(encoding="utf-8").splitlines()
-             if not x.startswith(("hot_cues:", "hot_cues_note:"))]
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    # a valid map whose keys are quoted: the line cues rewrites is not there
+    text = path.read_text(encoding="utf-8")
+    path.write_text(text.replace("\nhot_cues:", '\n"hot_cues":').replace("\nhot_cues_note:", '\n"hot_cues_note":'),
+                    encoding="utf-8")
+    assert mm.problems_map(mm.load_map(path)) == []
     assert env.run("cues", "Dançarina") == 1
     assert "no hot_cues line" in capsys.readouterr().out
+
+
+def test_cues_refuses_a_map_that_breaks_the_schema(env, capsys):
+    env.run("analyze", "Dançarina", rekordbox=False)
+    path = env.repo.path(MAP_REL)
+    _edit_map(path, lambda d: d.pop("sections"))
+    before = path.read_text(encoding="utf-8")
+    capsys.readouterr()
+    assert env.run("cues", "Dançarina") == 1
+    out = capsys.readouterr().out
+    assert "refused Pedro Sampaio — Dançarina: unreadable map" in out and "sections is missing" in out
+    assert "run analyze --force to rebuild it" in out
+    assert path.read_text(encoding="utf-8") == before
+
+
+def test_cues_refuses_a_cue_past_the_last_bar(env, capsys):
+    env.run("analyze", "Dançarina", rekordbox=False)
+    path = env.repo.path(MAP_REL)
+    bars = mm.load_map(path)["bars"]
+    before = path.read_text(encoding="utf-8")
+    env.reader.tracks[0].cues = {"A": 0, "G": cue_ms(bars + 2)}
+    capsys.readouterr()
+    assert env.run("cues", "Dançarina") == 1
+    assert f"hot cue G at {bars + 2}.1 is past the map's last bar ({bars})" in capsys.readouterr().out
+    assert path.read_text(encoding="utf-8") == before
+
+
+def test_analyze_writes_the_hot_cues_in_letter_order(env):
+    env.reader.tracks[0].cues = {"G": 8000, "A": 0, "B": 4000}
+    assert env.run("analyze", "Dançarina") == 0
+    assert list(mm.load_map(env.repo.path(MAP_REL))["hot_cues"]) == ["A", "B", "G"]
+
+
+def test_analyze_redoes_an_invalid_map_and_says_so(env, capsys):
+    path = env.repo.path(MAP_REL)
+    env.run("analyze", "Dançarina")
+    _edit_map(path, lambda d: d.pop("sections"))
+    capsys.readouterr()
+    assert env.run("analyze", "Dançarina") == 0
+    assert f"redone (invalid) {path}" in capsys.readouterr().out
+    assert mm.problems_map(mm.load_map(path)) == []
+
+
+def test_analyze_refuses_a_map_that_does_not_parse_and_hints_force(env, capsys):
+    path = env.repo.path(MAP_REL)
+    env.run("analyze", "Dançarina")
+    path.write_text("a: [unclosed\n", encoding="utf-8")
+    capsys.readouterr()
+    assert env.run("analyze", "Dançarina") == 1
+    out = capsys.readouterr().out
+    assert "refused Pedro Sampaio — Dançarina: unreadable map" in out
+    assert "run analyze --force to rebuild it" in out and len(out.strip().splitlines()) == 1
+    assert env.run("analyze", "Dançarina", "--force") == 0
+    assert f"written {path}" in capsys.readouterr().out
+
+
+def test_analyze_playlist_gives_the_real_refusal_reason(env, capsys):
+    (env.project / "SoundSwitchTrackMap.bin").write_bytes(trackmap([
+        (5, PROJECT_GUIDS[0], "Dançarina", "Pedro Sampaio", r"C:\Music\a.mp3", 120, 16000),
+        (5, PROJECT_GUIDS[1], "Voa Voa", "Chiclete com Banana", r"D:\Other\a.mp3", 120, 16000)]))
+    env.reader.tracks = [rb(r"C:\Music\a.mp3")]
+    assert env.run("analyze", "--playlist", "Warm") == 1
+    out = capsys.readouterr().out
+    assert "refused Pedro Sampaio — Dançarina: several SoundSwitch tracks share this file name" in out
+    assert "not in the SoundSwitch project" not in out
+
+
+@pytest.mark.parametrize("cmd", ["analyze", "cues", "timeline"])
+def test_an_empty_playlist_is_refused(env, capsys, cmd):
+    env.reader.tracks = []
+    assert env.run(cmd, "--playlist", "Warm") == 1
+    assert "playlist Warm has no tracks" in capsys.readouterr().err
 
 
 def test_show_skips_a_map_that_does_not_parse(env, capsys):
@@ -409,6 +483,16 @@ def test_timeline_an_unreadable_map_breaks_the_chain(env, capsys):
     assert env.run("timeline", "--playlist", "Warm") == 0
     out = capsys.readouterr().out
     assert "unreadable map" in out
+    assert "clock restarts after Chiclete com Banana — Voa Voa: no map" in out
+    assert "(incomplete: 1 track without a map)" in out
+
+
+def test_timeline_an_invalid_map_breaks_the_chain(env, capsys):
+    _timeline_env(env)
+    _edit_map(env.repo.path(f"lightshows/maps/{mm.slug(SECOND)}.yml"), lambda d: d.pop("sections"))
+    assert env.run("timeline", "--playlist", "Warm") == 0
+    out = capsys.readouterr().out
+    assert "no map for Chiclete com Banana — Voa Voa: unreadable map" in out and "sections is missing" in out
     assert "clock restarts after Chiclete com Banana — Voa Voa: no map" in out
     assert "(incomplete: 1 track without a map)" in out
 

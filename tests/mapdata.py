@@ -56,7 +56,7 @@ def timeline_map(bars: int, *, sections=None, drops=(), silences=(), hot=None) -
     """A valid map of `bars` bars at 120 BPM from 0 ms (bar n starts at (n - 1) * 2000 ms) with
     the given sections, `(bar, db)` drops, silences and stored hot cues."""
     d = good_map(bars)
-    d["grid"]["anchors"] = [[0, 120.0]]
+    d["grid"].update(anchors=[[0, 120.0]], downbeat="0:00.000")
     d["sections"] = sections or [{"bars": [1, bars], "kind": "groove"}]
     d["drops"] = [{"bar": b, "db": db} for b, db in drops]
     d["silences"] = [list(s) for s in silences]
