@@ -396,15 +396,18 @@ def cmd_timeline(args) -> int:
         return 2
     repo = check_repo.load_repo(Path(args.repo))
     tempos = stl.block_tempos(Path(args.block).read_text(encoding="utf-8")) if args.block else []
-    with contextlib.ExitStack() as stack:
-        tracks = stack.enter_context(open_rekordbox(Path(args.rekordbox))).playlist(args.playlist)
+    with open_rekordbox(Path(args.rekordbox)) as reader:
+        tracks = reader.playlist(args.playlist)
     transitions, total, warnings = [], 0.0, []
     chain: list[stl.Leg] = []
+    missing = 0  # tracks whose map is absent or unreadable so far
 
     def flush() -> None:
         nonlocal total
         if chain:
             t, s, w = stl.timeline(chain)
+            for tr in t:
+                tr.relative = missing > 0  # a missing track has no known length
             transitions.extend(t)
             total += s
             warnings.extend(w)
@@ -413,20 +416,26 @@ def cmd_timeline(args) -> int:
     for t in tracks:
         label = _label(t.artist, t.title)
         try:
-            name = pool_track(repo, ssf.TrackRef(guid="", title=t.title, artist=t.artist, path=t.path, bpm=None, duration_ms=None))
+            ref = ssf.TrackRef(guid="", title=t.title, artist=t.artist, path=t.path, bpm=None, duration_ms=None)
+            name = pool_track(repo, ref)
             path = map_path(Path(args.repo), name)
             if not path.is_file():
                 raise Refused(f"no map at {path}: run analyze first")
-            data = mm.load_map(path)
-        except (Refused, OSError, yaml.YAMLError) as e:
-            warnings.append(f"no map for {label}: {e}; the chain breaks here")
+            try:
+                data = mm.load_map(path)
+            except (OSError, yaml.YAMLError, ValueError, TypeError) as e:
+                raise Refused(f"unreadable map {path.name}: {e}") from e
+        except Refused as e:
             flush()
+            missing += 1
+            warnings.append(f"no map for {label}: {e}")
+            warnings.append(f"clock restarts after {label}: no map")
             continue
         tempo = next((tp for a, ti, tp in tempos if check_repo.same_track(t.artist, t.title, a, ti)), None)
         chain.append(stl.Leg(name, data, dict(t.cues), tempo))
     flush()
     render = stl.render_yaml if args.yaml else stl.render_markdown
-    print(render(transitions, total, warnings))
+    print(render(transitions, total, warnings, missing))
     return 0
 
 

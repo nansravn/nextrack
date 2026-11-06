@@ -3,23 +3,7 @@ import pytest
 import yaml
 
 import set_timeline as st
-from mapdata import good_map
-
-# 120 BPM, anchor at 0 ms: bar n starts at (n - 1) * 2000 ms
-
-
-def cue_ms(bar, beat=1):
-    return round(((bar - 1) * 4 + beat - 1) * 500)
-
-
-def make(bars, *, sections=None, drops=(), silences=(), hot=None):
-    d = good_map(bars)
-    d["grid"]["anchors"] = [[0, 120.0]]
-    d["sections"] = sections or [{"bars": [1, bars], "kind": "groove"}]
-    d["drops"] = [{"bar": b, "db": db} for b, db in drops]
-    d["silences"] = [list(s) for s in silences]
-    d["hot_cues"] = hot
-    return d
+from mapdata import cue_ms, timeline_map as make
 
 
 def leg(name, bars, cues, tempo=None, **kw):
@@ -68,34 +52,34 @@ def test_peak_ignores_drops_at_or_before_b():
 
 
 def test_set_clock_constant_and_ramped():
-    first = leg("A", 20, {"G": 8})                      # bars 1..8 at 120 BPM: 16 s
+    first = leg("A", 20, {"G": 8})                      # bars [1, 8): 14 s
     _, total, _ = st.timeline([first, leg("B", 8, {"B": 1}, tempo=(120, 120))])
-    assert total == pytest.approx(16.0 + 16.0)
+    assert total == pytest.approx(14.0 + 16.0)
     expected = sum(240 / (120 + 8 * (k + 0.5) / 8) for k in range(8))
     assert expected == pytest.approx(15.47, abs=0.05)
     _, total, _ = st.timeline([first, leg("R", 8, {"B": 1}, tempo=(120, 128))])
-    assert total == pytest.approx(16.0 + expected, abs=0.05)
+    assert total == pytest.approx(14.0 + expected, abs=0.05)
 
 
 def test_clock_across_legs():
-    a = leg("A", 20, {"G": 8})                              # bars 1..8: 16 s
-    b = leg("B", 30, {"B": 5, "G": 12}, drops=[(9, 9.0)])   # bars 5..12: 16 s
+    a = leg("A", 20, {"G": 8})                              # bars [1, 8): 14 s
+    b = leg("B", 30, {"B": 5, "G": 12}, drops=[(9, 9.0)])   # bars [5, 12): 14 s
     c = leg("C", 30, {"B": 3})                              # bars 3..30: 28 bars
     ts, total, _ = st.timeline([a, b, c])
-    assert ts[0].clock_g_s == pytest.approx(16.0)
+    assert ts[0].clock_g_s == pytest.approx(14.0)
     # last A bar 20, offset -3 -> arrival >= 18; B has no such drop
     assert ts[0].arrival_bar is None and ts[0].clock_arrival_s is None
-    assert ts[1].clock_g_s == pytest.approx(32.0)
-    assert total == pytest.approx(32.0 + 28 * 2.0)
+    assert ts[1].clock_g_s == pytest.approx(28.0)
+    assert total == pytest.approx(28.0 + 28 * 2.0)
 
 
 def test_clock_arrival():
     a = leg("A", 12, {"G": 8})
     b = leg("B", 40, {"B": 1, "G": 30}, drops=[(10, 9.0)])
     (t,), _, _ = st.timeline([a, b])
-    # last A bar 12, offset -7 -> arrival >= 6 -> 10; B starts at 16 s and 9 bars have passed
+    # last A bar 12, offset -7 -> arrival >= 6 -> 10; B starts at 14 s and 9 bars have passed
     assert t.arrival_bar == 10
-    assert t.clock_arrival_s == pytest.approx(16.0 + 9 * 2.0)
+    assert t.clock_arrival_s == pytest.approx(14.0 + 9 * 2.0)
 
 
 def test_missing_g_skips_the_transition_and_warns():
@@ -159,3 +143,18 @@ def test_render_yaml_round_trips():
     data = yaml.safe_load(st.render_yaml(ts, total, warnings))
     assert len(data["transitions"]) == 2 and data["transitions"][0]["out"] == "A"
     assert data["total_s"] == pytest.approx(total, abs=0.01)
+
+
+def test_g_is_the_start_of_its_bar():
+    ts, _, _ = st.timeline([leg("A", 200, {"G": 169}), leg("B", 50, {"B": 1})])
+    assert ts[0].clock_g_s == pytest.approx(168 * 2.0)  # 5:36
+
+
+def test_a_cue_before_the_first_anchor_parses_and_a_misplaced_one_warns():
+    a = leg("A", 200, {"G": 80})
+    b = leg("B", 20, {"B": 2})
+    b.map["hot_cues"]["B"] = "1.1-2000ms"
+    b.cues["B"] = -2000
+    ts, _, warnings = st.timeline([a, b])
+    assert ts[0].b_bar == 1
+    assert any("B: hot cue B is not on a beat" in w for w in warnings)

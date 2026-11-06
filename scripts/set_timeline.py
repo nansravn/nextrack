@@ -5,9 +5,9 @@ cues B and G, the played tempo) into transitions (offset, overlap, the incoming 
 the overlap, arrival, peak) and the set clock. `nextrack_map.py timeline` feeds it.
 
 Bars are the maps' bars. The clock is the concatenation of the played bars: the first leg
-plays bars 1..G, middle legs B..G, the last B..its last non-silent bar, each at its played
-tempo (a linear ramp over its bars). `clock_g_s` is the clock when the outgoing leg's G bar
-has been played, which is where the incoming leg's B begins.
+plays bars [1, G), middle legs [B, G), the last [B, its last non-silent bar]: a hot cue is a point
+at the start of its bar, so the incoming B begins when the outgoing G begins. Each leg runs at
+its played tempo (a linear ramp over its bars). `clock_g_s` is the clock at the start of bar G.
 """
 from __future__ import annotations
 
@@ -46,6 +46,7 @@ class Transition:
     clock_g_s: float
     clock_arrival_s: float | None
     overlap_drops: list[tuple[int, float]] = field(default_factory=list)
+    relative: bool = False  # the clocks count from the start of a chain that follows a missing map
 
 
 def _grid(data: dict) -> ssf.Grid:
@@ -71,6 +72,9 @@ def _cue_bars(leg: Leg, warnings: list[str]) -> dict[str, int]:
             continue
         text = mm.cue_text(leg.cues[letter], grid)
         parsed = CUE_BAR_RE.fullmatch(text)
+        if parsed is None:
+            warnings.append(f"{leg.name}: hot cue {letter} cannot be placed on the grid ({text!r})")
+            continue
         bars[letter] = int(parsed[1])
         if parsed[2]:
             warnings.append(f"{leg.name}: hot cue {letter} is not on a beat (rekordbox {text})")
@@ -110,8 +114,8 @@ def timeline(legs: list[Leg]) -> tuple[list[Transition], float, list[str]]:
             warnings.append(f"{leg.name}: no G cue; the transition out of it is skipped")
     # the played range of each leg and the clock at which it starts
     first = [1 if i == 0 else cue_bars[i].get("B", 1) for i in range(n)]
-    ends = [cue_bars[i].get("G", lasts[i]) if i < n - 1 else lasts[i] for i in range(n)]
-    played = [max(ends[i] - first[i] + 1, 0) for i in range(n)]
+    stops = [cue_bars[i].get("G", lasts[i] + 1) if i < n - 1 else lasts[i] + 1 for i in range(n)]
+    played = [max(stops[i] - first[i], 0) for i in range(n)]  # bars [first, stop)
     starts: list[float] = []
     clock = 0.0
     for i, leg in enumerate(legs):
@@ -165,21 +169,22 @@ def block_tempos(block_text: str) -> list[tuple[str, str, tuple[float, float] | 
 # ---------------------------------------------------------------- rendering ----
 
 
-def _clock(seconds: float) -> str:
+def _clock(seconds: float, relative: bool = False) -> str:
     s = round(seconds)
-    return f"{s // 60}:{s % 60:02d}"
+    return ("+" if relative else "") + f"{s // 60}:{s % 60:02d}"
 
 
 def _arrival_text(t: Transition) -> str:
     if t.arrival_bar is not None:
-        return f"bar {t.arrival_bar} ({_clock(t.clock_arrival_s)})"
+        return f"bar {t.arrival_bar} ({_clock(t.clock_arrival_s, t.relative)})"
     if t.overlap_drops:
         listed = ", ".join(f"bar {bar} {db} dB" for bar, db in t.overlap_drops)
         return f"none (drops in overlap: {listed})"
     return "none"
 
 
-def render_markdown(transitions: list[Transition], total_s: float, warnings: list[str]) -> str:
+def render_markdown(transitions: list[Transition], total_s: float, warnings: list[str],
+                    incomplete: int = 0) -> str:
     lines = ["| # | out G → in B | clock | overlap | in-sections | arrival | peak |",
              "|---|---|---|---|---|---|---|"]
     for i, t in enumerate(transitions, 1):
@@ -187,15 +192,17 @@ def render_markdown(transitions: list[Transition], total_s: float, warnings: lis
         peak = "none" if t.peak_bar is None else (
             f"bar {t.peak_bar}" + (" (= arrival)" if t.peak_bar == t.arrival_bar else ""))
         lines.append(f"| {i} | {t.out_name} G{t.g_bar} → {t.in_name} B{t.b_bar} "
-                     f"(offset {t.offset_bars:+d}) | {_clock(t.clock_g_s)} | {t.overlap_bars} bars | "
-                     f"{secs} | {_arrival_text(t)} | {peak} |")
-    lines += ["", f"Set length: {_clock(total_s)}"]
+                     f"(offset {t.offset_bars:+d}) | {_clock(t.clock_g_s, t.relative)} | "
+                     f"{t.overlap_bars} bars | {secs} | {_arrival_text(t)} | {peak} |")
+    note = f" (incomplete: {incomplete} tracks without a map)" if incomplete else ""
+    lines += ["", f"Set length: {_clock(total_s)}{note}"]
     if warnings:
         lines += ["", "Warnings"] + [f"- {w}" for w in warnings]
     return "\n".join(lines)
 
 
-def render_yaml(transitions: list[Transition], total_s: float, warnings: list[str]) -> str:
+def render_yaml(transitions: list[Transition], total_s: float, warnings: list[str],
+                incomplete: int = 0) -> str:
     data = {
         "transitions": [{
             "out": t.out_name, "in": t.in_name, "g_bar": t.g_bar, "b_bar": t.b_bar,
@@ -205,8 +212,10 @@ def render_yaml(transitions: list[Transition], total_s: float, warnings: list[st
             "arrival_bar": t.arrival_bar, "peak_bar": t.peak_bar,
             "clock_g_s": round(t.clock_g_s, 2),
             "clock_arrival_s": None if t.clock_arrival_s is None else round(t.clock_arrival_s, 2),
+            "clock_relative": t.relative,
         } for t in transitions],
         "total_s": round(total_s, 2),
+        "tracks_without_map": incomplete,
         "warnings": warnings,
     }
     return yaml.safe_dump(data, allow_unicode=True, sort_keys=False)
