@@ -20,7 +20,7 @@ import check_repo
 import musical_map as mm
 import soundswitch_format as ssf
 
-CUE_BAR_RE = re.compile(r"([0-9]+)\.[1-4]([+-][0-9]+ms)?")
+CUE_BAR_RE = re.compile(r"([0-9]+)\.([1-4])([+-][0-9]+ms)?")
 TEMPO_RE = re.compile(r"([0-9]+(?:\.[0-9]+)?)(?:-([0-9]+(?:\.[0-9]+)?))?")
 
 
@@ -63,7 +63,8 @@ def last_bar(data: dict) -> int:
 
 
 def _cue_bars(leg: Leg, warnings: list[str]) -> dict[str, int]:
-    """Bar of each of the leg's B and G cues; warns on a moved cue or one off the beat."""
+    """Bar of each of the leg's B and G cues; warns on a moved cue, one off the beat, and one
+    off beat 1 (its bar is kept: the timeline counts whole bars from the start of it)."""
     grid = _grid(leg.map)
     stored = leg.map.get("hot_cues") or {}
     bars: dict[str, int] = {}
@@ -73,8 +74,10 @@ def _cue_bars(leg: Leg, warnings: list[str]) -> dict[str, int]:
         text = mm.cue_text(leg.cues[letter], grid)
         parsed = CUE_BAR_RE.fullmatch(text)
         bars[letter] = int(parsed[1])
-        if parsed[2]:
+        if parsed[3]:
             warnings.append(f"{leg.name}: hot cue {letter} is not on a beat (rekordbox {text})")
+        if parsed[2] != "1":
+            warnings.append(f"{leg.name}: hot cue {letter} at {text}: the timeline assumes cues on beat 1")
         if stored.get(letter) != text:
             warnings.append(f"{leg.name}: hot cue {letter} moved since the map "
                             f"(map {stored.get(letter, 'none')}, rekordbox {text}); run cues")

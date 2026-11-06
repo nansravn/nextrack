@@ -391,9 +391,10 @@ uv run scripts/nextrack_map.py timeline --playlist 1-hi-ibiza-lightshow --block 
   tracklist line (`122`, or a ramp `122-125`, linear in bars). After a track with no map the
   clock cannot be known, so the following clocks are relative and print as `+m:ss`. Warnings
   name a track missing `B` or `G` where the order needs it (the first needs no `B`, the last no
-  `G`), a cue not on a beat, a missing or unreadable map (one that does not parse or breaks the
-  schema counts as missing), and a map whose stored hot cues differ from rekordbox's (a cue
-  moved since: refresh with `cues`).
+  `G`), a cue not on a beat, a `B` or `G` not on beat 1 (`G at 137.3: the timeline assumes cues
+  on beat 1`; the timeline still counts from the start of its bar), a missing or unreadable map
+  (one that does not parse or breaks the schema counts as missing), and a map whose stored hot
+  cues differ from rekordbox's (a cue moved since: refresh with `cues`).
 
 With `--playlist`, a playlist with no tracks is an error for `analyze`, `cues` and `timeline`:
 `playlist NAME has no tracks`, exit status 1.

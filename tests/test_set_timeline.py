@@ -108,6 +108,16 @@ def test_cue_off_the_beat_warns():
     assert any(w.startswith("A: hot cue G is not on a beat") for w in warnings)
 
 
+def test_a_cue_off_beat_one_warns_and_keeps_its_bar():
+    a = leg("A", 200, {"G": 137})
+    a.cues["G"] = cue_ms(137, 3)
+    a.map["hot_cues"]["G"] = "137.3"
+    b = leg("B", 20, {"B": 2})
+    (t,), _, warnings = st.timeline([a, b])
+    assert warnings == ["A: hot cue G at 137.3: the timeline assumes cues on beat 1"]
+    assert t.g_bar == 137 and t.clock_g_s == pytest.approx(136 * 2.0)
+
+
 BLOCK = """---
 id: x
 ---
