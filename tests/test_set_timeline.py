@@ -3,12 +3,12 @@ import pytest
 import yaml
 
 import set_timeline as st
-from mapdata import cue_ms, timeline_map as make
+from mapdata import cue_ms, timeline_map
 
 
 def leg(name, bars, cues, tempo=None, **kw):
     hot = {k: f"{v}.1" for k, v in cues.items()}
-    return st.Leg(name, make(bars, hot=hot, **kw), {k: cue_ms(v) for k, v in cues.items()}, tempo)
+    return st.Leg(name, timeline_map(bars, hot=hot, **kw), {k: cue_ms(v) for k, v in cues.items()}, tempo)
 
 
 def three():
