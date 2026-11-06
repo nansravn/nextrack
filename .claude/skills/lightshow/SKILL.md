@@ -95,6 +95,9 @@ Copy this checklist into your reply and keep it current:
 - **Subtract:** `off` and `hue: dark` are effects; the section after a drop starts with less.
 - **Build into drops:** `hue: dark`, `matrix: {draw: fill-up, rate: 1bar}`, movers
   `pingpong` with `faster_from`/`faster_every` (an absolute bar).
+- **Aim:** every mover section names its aim (`position` or `positions`). Without one the
+  autoscript keeps aiming, jumping to a random preset every two bars; for a set, follow the
+  beam grammar of its light plan.
 - **Movers:** one lit, the other dark (`pingpong`); a verse `hold`s one position per
   section. The haze is a constant thin mist at the rig's level in every compiled track, so the beams always read a little; no section decides it.
 - **Vorlanes:** two 8×7 drawings, one draw per section, `mirror` or `pingpong` so NW and
