@@ -5,6 +5,7 @@ for checking that the repo agrees with itself.
 
 - [`nextrack_tags.py`](#nextrack_tagspy) — retag and rename the audio library, pull BPM/key into `tracks/`.
 - [`nextrack_lights.py`](#nextrack_lightspy) — read SoundSwitch's light scripts, simulate the room, compile choreographies onto a track's script.
+- [`nextrack_map.py`](#nextrack_mappy) — make the musical map of a track (Demucs, SoundSwitch tempo map, rekordbox cues) and print a playlist's set timeline.
 - [`check_repo.py`](#check_repopy) — validate the graph, docs, pools and blocks against each other.
 
 ## `nextrack_tags.py`
@@ -292,6 +293,120 @@ project folder (never the live one):
 ```bash
 NEXTRACK_SOUNDSWITCH_REAL=/path/to/copy-of-project uv run pytest
 ```
+
+## `nextrack_map.py`
+
+Makes the **musical map** of a track (`lightshows/maps/<artist-title-slug>.yml`, schema in
+[lightshows/README.md](../lightshows/README.md#musical-maps)) and prints the **set timeline**
+of a rekordbox playlist. `musical_map.py` (the file format, the features, the sections and the
+validator checks), `rekordbox_cues.py` (the rekordbox reader) and `set_timeline.py` (the
+timeline model) are its libraries. It reads audio, rekordbox and the SoundSwitch project and
+writes only map files in the repo.
+
+### Setup
+
+The default environment has what `show`, the validator and `render` need. `analyze`, `cues`
+and `timeline` also need the optional dependency group `analysis` (Demucs, PyTorch, pyrekordbox
+and its SQLCipher wheels: several GB with CUDA). It is not in CI, and the commands print the
+install line when it is missing:
+
+```bash
+uv sync --group analysis
+# machine-specific folders, so none of them is in the repo
+echo 'export NEXTRACK_SOUNDSWITCH_PROJECT="/path/to/SoundSwitch/project"' >> ~/.bashrc
+echo 'export NEXTRACK_AUDIO_ROOT="/path/to/your/library"' >> ~/.bashrc
+echo 'export NEXTRACK_REKORDBOX_DIR="/path/to/folder/with/master.db"' >> ~/.bashrc
+```
+
+| input | option | environment variable | used by |
+|---|---|---|---|
+| SoundSwitch project folder (the track's GUID, audio path and tempo map) | `--project` | `NEXTRACK_SOUNDSWITCH_PROJECT` | `analyze`, `cues` |
+| audio library root | `--root` | `NEXTRACK_AUDIO_ROOT` | `analyze` |
+| folder that holds rekordbox's `master.db` | `--rekordbox` | `NEXTRACK_REKORDBOX_DIR` | `cues`, `timeline`, and `analyze` (optional: without it the map has no hot cues) |
+| the NEXTRACK repo whose pools and maps are used | `--repo` (default: this repo) | | every command |
+
+The audio file is found under the root by the base name of the path SoundSwitch stores
+(Unicode-normalised, case-insensitive); several hits are narrowed to the one whose folder name
+matches, and still ambiguous is refused with the list. The map's `track` is the pool's
+`Artist — Title`; a track missing from its pool is refused (add it to the pool first).
+A *track* argument is a script GUID, a GUID prefix or `Artist — Title`.
+
+### Commands
+
+```bash
+# make the map of one track, or of every track of a rekordbox playlist
+uv run scripts/nextrack_map.py analyze "Artist — Title"
+uv run scripts/nextrack_map.py analyze --playlist 1-hi-ibiza-lightshow
+uv run scripts/nextrack_map.py analyze F41EB9E9 --force --device cpu --keep-stems /tmp/stems
+
+# reread the hot cues from rekordbox into existing maps (no audio)
+uv run scripts/nextrack_map.py cues --playlist 1-hi-ibiza-lightshow
+
+# print a map as text (reads only the map file)
+uv run scripts/nextrack_map.py show "Artist — Title"
+
+# the set timeline of a playlist: Markdown table, or --yaml
+uv run scripts/nextrack_map.py timeline --playlist 1-hi-ibiza-lightshow --block blocks/<block-id>.md
+```
+
+- **`analyze <track>` or `analyze --playlist NAME`**: separates the audio with Demucs `htdemucs`
+  (the GPU when there is one, else the CPU, or `--device cuda|cpu`) and writes the map. An
+  existing map is kept unless it is stale (the audio file's hash, the script's GUID or its tempo
+  anchors changed) or `--force` is given, so a playlist run only does what is missing or out of
+  date. One line per track says whether it was written, redone because stale, kept or refused
+  and why; a `grid warning` line follows when the kick onsets sit more than a quarter of a step
+  from the beat. `--keep-stems DIR` also writes the four stems (FLAC) under `DIR/<slug>/`;
+  without it they live in memory only. A refused track makes the exit status 1, and the
+  playlist run goes on.
+- **`cues <track>` or `cues --playlist NAME`**: rewrites only the `hot_cues` lines of existing
+  maps from rekordbox, leaving the rest of the file untouched.
+- **`show <track>`**: the map for directing, per 64 bars: a ruler, a `cues` line (the hot
+  cues at their bars, `*` where two share a bar), one line of per-bar levels per voice and a
+  `sections` line (`i` intro, `g` groove, `b` break, `u` build, `d` drop, `o` outro), then the
+  drops with their size and the vocal phrases. `<track>` is a map file, its slug or the
+  track's words.
+- **`timeline --playlist NAME [--block FILE] [--yaml]`**: the order comes from the rekordbox
+  playlist and the cues live from rekordbox; the maps give the bars. Needs no SoundSwitch
+  project and no audio. A leg plays bars `[B, G)` (the first from bar 1, the last to its last
+  non-silent bar) at its played tempo, and the set clock at `G` is the start of bar `G`, which
+  is where the next track's `B` begins. Per transition it prints:
+  - the outgoing track's `G` and the incoming track's `B`, and the **offset** in bars between
+    the two (`B - G`);
+  - the **overlap**: the bars the outgoing track still sounds after `G`, until its last
+    non-silent bar, and the incoming track's sections that fall in it;
+  - the **arrival**: the incoming track's first drop at or after the end of the overlap, with
+    its set clock; `none` (with the drops inside the overlap) when there is no such drop;
+  - the **peak**: the biggest drop strictly between the incoming `B` and its own `G` (the same
+    bar as the arrival when they agree). Which of the two carries the "new song" gesture is
+    the light plan's call.
+
+  The played tempo is the script's BPM, or with `--block` the BPM field of the block's
+  tracklist line (`122`, or a ramp `122-125`, linear in bars). After a track with no map the
+  clock cannot be known, so the following clocks are relative and print as `+m:ss`. Warnings
+  name a track missing `B` or `G` where the order needs it (the first needs no `B`, the last no
+  `G`), a cue not on a beat, a missing or unreadable map, and a map whose stored hot cues differ
+  from rekordbox's (a cue moved since: refresh with `cues`).
+
+### Safety model
+
+- **Read-only** on the audio library, the SoundSwitch project and rekordbox. The only files
+  written are `lightshows/maps/*.yml` of `--repo`, and `--keep-stems DIR` when asked.
+- **rekordbox's live database is never opened.** `master.db` (and its `-wal` and `-shm`) are
+  copied to a temporary folder, read there with pyrekordbox, and the copy is deleted when the
+  command ends, so rekordbox may be running. No key goes into the repo.
+- Audio and stems never enter the repo; tests make synthetic audio under `tmp_path` and inject
+  the separator and the rekordbox reader, so no test loads a model or a real database.
+- A map that would break its own schema is refused instead of written.
+
+### Known limits
+
+- A soft-attack kick can still raise a false `grid_warning` (seen on 2 of 15 real tracks, where
+  the grid agrees with rekordbox).
+- `onsets.perc` includes the kick's click, and quiet kicks within a second before a louder
+  section can be missing from `onsets.kick`.
+- The kick/percussion split is by frequency, so a low tom can read as kick.
+- rekordbox's database format is reverse-engineered by pyrekordbox; an update of rekordbox can
+  break the reader.
 
 ## `check_repo.py`
 

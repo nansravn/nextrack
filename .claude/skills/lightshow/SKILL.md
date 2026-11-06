@@ -14,7 +14,9 @@ little, and justify every spend against the show plan.
 Read these before the first proposal:
 [lightshows/README.md](../../../lightshows/README.md) (schemas, vocabulary, the 8×7 draws,
 what the compiler does), the [`nextrack_lights.py` section](../../../scripts/README.md#nextrack_lightspy)
-(commands, reading `dump`, safety model), [rig.yml](../../../lightshows/rig.yml), the example
+(commands, reading `dump`, safety model), the [Musical maps](../../../lightshows/README.md#musical-maps)
+section and the [`nextrack_map.py` section](../../../scripts/README.md#nextrack_mappy) (what a map says, `show`,
+`timeline`), [rig.yml](../../../lightshows/rig.yml), the example
 [Happier](../../../lightshows/tracks/marshmello-x-bastille-happier.yml),
 [autoscript-analysis.md](../../../docs/soundswitch/autoscript-analysis.md) (what you correct)
 and [experiments.md](../../../docs/soundswitch/experiments.md) (what is still unknown).
@@ -28,7 +30,7 @@ Copy this checklist into your reply and keep it current:
 
 ```
 - [ ] 1. Resolved: pool entry, block(s), set, show plan, full GUID, grid
-- [ ] 2. Autoscript read: dump, analyze, render "before"
+- [ ] 2. Music and autoscript read: map (show), dump, analyze, render "before"
 - [ ] 3. Context: block, show plan, budget tally, lyrics' themes
 - [ ] 4. Proposal in pt-BR sent; owner approved it
 - [ ] 5. YAML written; check_repo clean; render; compile to a copy; cues listed in pt-BR
@@ -49,8 +51,20 @@ Copy this checklist into your reply and keep it current:
   analyse it in SoundSwitch first) and stop.** Several rows: ask which file the owner plays.
 - `lightshows/tracks/<slug>.yml` exists already: read it; you are amending it.
 
-## 2. Read the autoscript
+## 2. Read the music, then the autoscript
 
+- The musical map: `lightshows/maps/<slug>.yml` exists when the track was analysed; read it with
+  `uv run scripts/nextrack_map.py show "<Artist — Title>"` (reads only the file; no project or
+  audio needed). It gives the sections (`i` intro, `g` groove, `b` break, `u` build, `d` drop,
+  `o` outro), the drops with their size, who plays per bar (vocals, kick, perc, bass, other),
+  the vocal phrases and the owner's hot cues (B enters, G is where the next track starts). Its
+  bars are the choreography's bars. A `grid warning` line means the grid may be off: say so.
+  No map: say so and fall back to `dump`; offer `nextrack_map.py analyze` (it needs the optional
+  `uv sync --group analysis`, the audio and rekordbox, so it is the owner's call).
+- A set: `uv run scripts/nextrack_map.py timeline --playlist "<rekordbox playlist>" --block blocks/<block-id>.md`
+  prints every transition (outgoing G, incoming B, overlap), the arrival of each new track (its
+  first drop once the old one has gone), the biggest drop before its own G (the peak) and the
+  set clock. The show of a set is built from those transitions; read it before the first track.
 - `uv run scripts/nextrack_lights.py dump <guid8>`: per 8-bar phrase and fixture, `src`
   (`own` block or following `main`), `lit` share, `pulses`, colours, positions, shapes.
   Vorlane cells fold into `<Vorlane> RGB` and `<Vorlane> W` rows. Many pulses on movers and
@@ -104,8 +118,10 @@ The proposal, in Portuguese, has four parts:
    `sections: []` (the haze still applies). Bar n starts at downbeat + (n − 1) × 240 / bpm seconds.
 4. **Dúvidas**: drop bar, positions, anything you guessed.
 
-Cut sections where the music changes (bass in, drop, break), not on the autoscript's
-8-bar lines: in a third of the tracks its first drop is 3-7 bars late. Write no YAML until
+Cut sections where the music changes, at the map's drops, breaks and builds (not on the
+autoscript's 8-bar lines: in a third of the tracks its first drop is 3-7 bars late). A drop's
+`db` tells a filter or a returning bass from the real drop: spend the big effects on the big
+ones. With no map, cut at the bass in, the drop and the break as `dump` shows them. Write no YAML until
 the owner approves; on amendments, send the revised proposal.
 
 ## 5. Write, check, preview, compile

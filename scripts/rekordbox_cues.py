@@ -27,8 +27,6 @@ class RbTrack:
     title: str
     artist: str
     path: str
-    bpm: float | None
-    key: str | None
     cues: dict[str, int]  # letter -> ms
 
 
@@ -95,8 +93,6 @@ class _PyrekordboxReader:
             title=c.Title or "",
             artist=c.Artist.Name if c.Artist is not None else "",
             path=c.FolderPath or "",
-            bpm=c.BPM / 100 if c.BPM else None,
-            key=c.Key.ScaleName if c.Key is not None else None,
             cues=cues_from_rows(rows),
         )
 

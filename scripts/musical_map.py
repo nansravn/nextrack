@@ -383,31 +383,36 @@ def step_edges_ms(grid, audio_ms: int):
     return np.minimum(np.array(edges, dtype=np.int64), audio_ms)
 
 
-def map_sim_data(m: dict) -> dict:
+def map_sim_data(m: dict, end_ms: int | None = None) -> dict:
     """What the simulator draws of a map, in ms from the map's own anchors: `voices`
     ({voice: [[t, digit]]}, one point per 1/16 step), `sections` ({kind, start, end}, the end
     being the start of the bar after), `drops` ({bar, t}) and `cues` ({name, t}, hot cues with
-    their stored offsets)."""
+    their stored offsets). Every time is clamped to [0, `end_ms`] (the page's end; no upper
+    bound when None), so a cue before bar 1 or a last bar past the audio stays on the axis."""
     from soundswitch_format import Grid
 
     grid = Grid([(int(ms), float(bpm)) for ms, bpm in m["grid"]["anchors"]])
     edges = step_edges_ms(grid, m["audio"]["ms"])
+
+    def clamp(t: int) -> int:
+        return max(0, t if end_ms is None else min(t, end_ms))
+
     voices = {}
     for voice in VOICES:
         text = "".join(m["steps"][voice])
-        voices[voice] = [[int(edges[i]), int(c) if c.isdigit() else 0]
+        voices[voice] = [[clamp(int(edges[i])), int(c) if c.isdigit() else 0]
                          for i, c in enumerate(text[:len(edges) - 1])]
     cues = []
     for name, where in sorted((m.get("hot_cues") or {}).items()):
         found = CUE_RE.fullmatch(where)
         bar, beat = where.split("+")[0].split("-")[0].split(".")
         off = int(found[1][:-2]) if found[1] else 0
-        cues.append({"name": name, "t": grid.ms(int(bar), int(beat)) + off})
+        cues.append({"name": name, "t": clamp(grid.ms(int(bar), int(beat)) + off)})
     return {
         "voices": voices,
-        "sections": [{"kind": s["kind"], "start": grid.ms(s["bars"][0]), "end": grid.ms(s["bars"][1] + 1)}
+        "sections": [{"kind": s["kind"], "start": clamp(grid.ms(s["bars"][0])), "end": clamp(grid.ms(s["bars"][1] + 1))}
                      for s in m["sections"]],
-        "drops": [{"bar": d["bar"], "t": grid.ms(d["bar"])} for d in m["drops"]],
+        "drops": [{"bar": d["bar"], "t": clamp(grid.ms(d["bar"]))} for d in m["drops"]],
         "cues": cues,
     }
 

@@ -55,7 +55,7 @@ class FakeReader:
 
 
 def rb(path, cues=None, title="Dançarina"):
-    return RbTrack(title=title, artist="Pedro Sampaio", path=path, bpm=120.0, key="8A",
+    return RbTrack(title=title, artist="Pedro Sampaio", path=path,
                    cues=cues if cues is not None else {"A": 0, "B": 4000})
 
 
@@ -351,8 +351,8 @@ def _timeline_env(env, with_second_map=True):
     second["track"] = SECOND
     for d in (first, second) if with_second_map else (first,):
         (maps / f"{mm.slug(d['track'])}.yml").write_text(mm.dump_map(d), encoding="utf-8")
-    voa = RbTrack(title="Voa Voa", artist="Chiclete com Banana", path=r"C:\Music\b.mp3", bpm=120.0,
-                  key="8A", cues={"B": cue_ms(5), "G": cue_ms(70)})
+    voa = RbTrack(title="Voa Voa", artist="Chiclete com Banana", path=r"C:\Music\b.mp3",
+                  cues={"B": cue_ms(5), "G": cue_ms(70)})
     env.reader.tracks = [rb(r"C:\Music\a.mp3", cues={"G": cue_ms(20)}), voa]
 
 
