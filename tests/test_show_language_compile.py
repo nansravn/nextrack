@@ -543,3 +543,65 @@ def test_every_gesture_example_compiles():
         t = show.tracks[0]
         assert t.sections[0].bars[0] == 1 and t.sections[-1].bars[1] == g.example_bars, name
         assert lightshow.problems_choreography(t.choreography, None) == [], name
+
+
+def _defaults_at(src, line=20):
+    """Give `gesture_defaults` and its `spiral` mapping the lines the loader would."""
+    defaults = src.show["gesture_defaults"]
+    defaults["__line__"] = line
+    defaults["spiral"]["__line__"] = line + 1
+
+
+def test_an_unknown_gesture_defaults_key_is_one_finding_at_show_yml():
+    src, inp = two_track_show()
+    _defaults_at(src)
+    spiral = src.show["gesture_defaults"]["spiral"]
+    spiral["rate"] = spiral.pop("rates")
+    _, findings = compile_show(src, inp)
+    assert found(findings) == [(SHOW_PATH, 21, "show-source",
+                                "gesture_defaults.spiral: unknown parameter 'rate'; did you mean 'rates'?")]
+    # a gesture no cue calls is checked too; without a close match, the parameters are listed
+    src, inp = two_track_show()
+    src.show["gesture_defaults"]["sequence"] = {"__line__": 30, "pasos": []}
+    _, findings = compile_show(src, inp)
+    assert found(findings) == [(SHOW_PATH, 30, "show-source",
+                                "gesture_defaults.sequence: unknown parameter 'pasos'; parameters: steps")]
+
+
+def _spiral_in_both_tracks(src):
+    """The second track calls the spiral too (its break, 17-20), with only its bars."""
+    src.track_files[FILE_2]["cues"][1] = {"at": "break.1", "name": "espiral", "gesture": "spiral",
+                                          "with": {"bars": [2, 2]}, "__line__": 9}
+
+
+def test_a_bad_gesture_default_is_reported_once_at_show_yml():
+    src, inp = two_track_show()
+    _defaults_at(src)
+    _spiral_in_both_tracks(src)
+    src.show["gesture_defaults"]["spiral"]["rates"] = ["1/3", "1/4"]
+    _, findings = compile_show(src, inp)
+    assert found(findings) == [(SHOW_PATH, 21, "show-source",
+                                "spiral: rates[0] '1/3' is not a rate (1/16, 1/8, 1/4, 1/2, <n>bar) "
+                                "(from gesture_defaults.spiral in show.yml)")]
+    # a palette name in the defaults that the palette lacks: the same, once, at show.yml
+    src, inp = two_track_show()
+    _defaults_at(src)
+    _spiral_in_both_tracks(src)
+    src.show["gesture_defaults"]["spiral"]["colours"] = ["azul", "rosa"]
+    _, findings = compile_show(src, inp)
+    assert found(findings) == [(SHOW_PATH, 21, "show-source",
+                                "colour 'rosa' is not in the palette (azul, vermelho, violeta) nor #RRGGBB "
+                                "(from gesture_defaults.spiral in show.yml)")]
+
+
+def test_a_cue_that_overrides_a_bad_default_has_no_finding():
+    src, inp = two_track_show()
+    src.show["gesture_defaults"]["spiral"].update(rates=["1/3", "1/4"], colours=["azul", "rosa"])
+    src.track_files[FILE_1]["cues"][1]["with"].update(rates=["1/2", "1/4"], colours=["azul", "violeta"])
+    assert compile_show(src, inp)[1] == []
+    # the cue's own bad value stays a finding at the cue
+    src.track_files[FILE_1]["cues"][1].update({"__line__": 12})
+    src.track_files[FILE_1]["cues"][1]["with"]["rates"] = ["1/5", "1/4"]
+    _, findings = compile_show(src, inp)
+    assert found(findings) == [(PATH_1, 12, "show-source",
+                                "cue 'espiral': spiral: rates[0] '1/5' is not a rate (1/16, 1/8, 1/4, 1/2, <n>bar)")]

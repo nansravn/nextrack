@@ -427,6 +427,22 @@ MAPS_DIR = "lightshows/maps"
 _SECTION_RE = re.compile(r"section (?P<i>[0-9]+)(?: \([^)]*\))?: (?P<rest>.*)", re.S)
 _ACCENT_LAYER = {"white": "white", "strobe": "strobe", "strobe-roll": "strobe"}
 _BAR_VALUES = (("movers", "faster_from"), ("white", "accent"), ("strobe", "hit"), ("strobe", "roll"))
+# A gesture names a bad parameter value first: `<gesture>: <param>[<i>] <value> is not ...`. A
+# problem of the cue's span (`bars add up to ...`) or of several parameters does not match.
+_VALUE_PROBLEM_RE = re.compile(r"(?P<gesture>[a-z0-9-]+): (?P<param>[a-z_]+)(?:\[[0-9]+\])? .+? is not ", re.S)
+
+
+def _strings(value: object) -> set[str]:
+    """Every string in parsed YAML."""
+    if isinstance(value, str):
+        return {value}
+    items = value.values() if isinstance(value, dict) else value if isinstance(value, list) else ()
+    return set().union(*(_strings(v) for v in items))
+
+
+def _names_a_colour_of(problem: str, params: dict) -> bool:
+    """Whether a `resolve_colours` problem is about a colour written in `params`."""
+    return any(problem.startswith(f"colour {s!r} ") for s in _strings(params))
 
 
 @dataclass
@@ -504,6 +520,7 @@ class _Show:
     bridge: dict | None        # {name, intent}; None: no bridges
     handover: dict             # the default {name, intent} of a handover, or {}
     defaults: dict             # gesture name -> parameters
+    default_lines: dict = field(default_factory=dict)   # gesture name -> its line in show.yml
 
 
 @dataclass
@@ -518,7 +535,8 @@ class _Prev:
 @dataclass
 class _Part:
     """A section being built: `label` names its cue in findings, `accented` the layers its
-    accents added (the bridge leaves them out)."""
+    accents added (the bridge leaves them out). For a gesture's section, `defaults` holds the
+    parameters that came only from `gesture_defaults` and `own` the cue's `with`."""
     bars: tuple[int, int]
     name: str
     intent: str | None
@@ -526,6 +544,8 @@ class _Part:
     origin: Provenance
     label: str
     accented: set = field(default_factory=set)
+    defaults: dict = field(default_factory=dict)
+    own: dict = field(default_factory=dict)
 
 
 def _title(track: str) -> str:
@@ -747,8 +767,10 @@ class _TrackCompiler:
         """Run the cue's gesture with the show's `gesture_defaults` under its `with` (the cue wins,
         a null removes a default)."""
         label, name = _cue_label(cue), cue["gesture"]
-        params = {**self.show.defaults.get(name, {}), **clean(cue.get("with") or {})}
+        own = clean(cue.get("with") or {})
+        params = {**self.show.defaults.get(name, {}), **own}
         params = {k: v for k, v in params.items() if v is not None}
+        defaults = {k: v for k, v in params.items() if k not in own}
         ctx = GestureContext(span[0], span[1], cue["name"], cue.get("intent"), self.map,
                              lambda ref, with_: expand_look(ref, with_, self.show.looks))
         try:
@@ -759,13 +781,24 @@ class _TrackCompiler:
                                "not a mapping: a bug in scripts/show_gestures.py"
                                for s in sections if not isinstance(s.layers, dict)]
         for p in problems:
-            self.find(_line(cue), f"{label}: {p}")
+            m = _VALUE_PROBLEM_RE.match(p)
+            if m is not None and m["gesture"] == name and m["param"] in defaults:
+                self._find_default(name, p)
+            else:
+                self.find(_line(cue), f"{label}: {p}")
         if problems:
             return []
         return [_Part(tuple(s.bars), s.name, s.intent, clean(s.layers),
                       Provenance("cue", self.track, s.look, name, cue.get("role") if i == 0 else None,
-                                 cue.get("moment"), self.path, _line(cue)), label)
+                                 cue.get("moment"), self.path, _line(cue)), label,
+                      defaults=defaults, own=own)
                 for i, s in enumerate(sections)]
+
+    def _find_default(self, gesture: str, problem: str) -> None:
+        """A problem of a parameter only `gesture_defaults` gave: once, at show.yml, for every
+        cue that calls the gesture without overriding it."""
+        self.find(self.show.default_lines.get(gesture, 0),
+                  f"{problem} (from gesture_defaults.{gesture} in show.yml)", path=f"{self.show.folder}/show.yml")
 
     # step 4
     def _accents(self) -> None:
@@ -802,7 +835,10 @@ class _TrackCompiler:
                 else:
                     movers["faster_from"] = bar
             for p in problems:
-                self.find(part.origin.line, f"{part.label}: {p}")
+                if _names_a_colour_of(p, part.defaults) and not _names_a_colour_of(p, part.own):
+                    self._find_default(part.origin.gesture, p)
+                else:
+                    self.find(part.origin.line, f"{part.label}: {p}")
             part.layers = _ordered(layers)
 
     # step 6
@@ -856,13 +892,31 @@ def _show_context(source: ShowSource, folder: str) -> tuple[_Show | None, list[S
         flat, found = flatten_looks(looks)
         problems = [(_line(looks.get(name)) or _line(looks), f"looks.{name}: {p}") for name, p in found]
         defaults = data.get("gesture_defaults", {})
-        problems += [(_line(defaults), f"gesture_defaults.{name}: unknown gesture {name!r}; "
-                                       f"gestures: {', '.join(sorted(GESTURES))}")
-                     for name in _keys(defaults) if name not in GESTURES]
+        problems += _default_keys(defaults)
     if problems:
         return None, [ShowFinding(f"{folder}/show.yml", line, SOURCE, m) for line, m in problems]
+    defaults = data.get("gesture_defaults", {})
+    lines = {name: _line(defaults[name]) or _line(defaults) for name in _keys(defaults)}
     return _Show(folder, clean(data["palette"]), flat, clean(data.get("bridge")),
-                 clean(data.get("handover", {})), clean(data.get("gesture_defaults", {}))), []
+                 clean(data.get("handover", {})), clean(defaults), lines), []
+
+
+def _default_keys(defaults: dict) -> list[tuple[int, str]]:
+    """Each `gesture_defaults.<gesture>` names a registered gesture and only its parameters."""
+    out = []
+    for name in _keys(defaults):
+        if name not in GESTURES:
+            out.append((_line(defaults), f"gesture_defaults.{name}: unknown gesture {name!r}; "
+                                         f"gestures: {', '.join(sorted(GESTURES))}"))
+            continue
+        params = list(GESTURES[name].params)
+        for key in _keys(defaults[name]):
+            if key not in params:
+                close = difflib.get_close_matches(str(key), params, n=1, cutoff=0.6)
+                hint = f"did you mean {close[0]!r}?" if close else f"parameters: {', '.join(params)}"
+                out.append((_line(defaults[name]) or _line(defaults),
+                            f"gesture_defaults.{name}: unknown parameter {key!r}; {hint}"))
+    return out
 
 
 def _matching_maps(artist: str, title: str, maps: dict[str, dict], same: Callable) -> list[str]:
@@ -978,7 +1032,7 @@ def _compile_tracks(show: _Show, order: list[tuple[str, dict] | None], inputs: S
             continue
         compiler = _TrackCompiler(show, name, data, key, map_data, prev)
         track = compiler.run()
-        findings += compiler.findings
+        findings += [f for f in compiler.findings if f not in findings]   # a show.yml finding once
         decisions += compiler.decisions
         if track is not None:
             tracks.append(track)
