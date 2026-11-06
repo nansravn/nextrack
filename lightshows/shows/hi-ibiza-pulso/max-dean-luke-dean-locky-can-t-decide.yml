@@ -1,0 +1,46 @@
+track: Max Dean, Luke Dean, LOCKY — Can't Decide
+story: >-
+  Can't Decide entra por baixo do drop final do Pick Up e herda o pico. A chegada abre do centro
+  em vermelho rápido; na subida as Vorlanes enchem, o último breu da noite, e o drop do c. 69
+  com estrobo é o pico que ele entrega ao Dirty Cash.
+budget: >-
+  Breu 5 de 5 (c. 68). Estrobo no drop do c. 69.
+cues:
+  - at: break.1
+    name: break
+    intent: 'O break: um feixe vermelho para cima, Vorlanes apagadas, centro escuro.'
+    look:
+      movers: {move: hold, position: Up, colour: vermelho, level: 0.4}
+      matrix: off
+      hue: dark
+  - at: 36
+    name: o-grave-volta
+    intent: 'O grave volta antes do kick: filas vermelhas subindo, um feixe parado, o coração batendo.'
+    look:
+      movers: {move: hold, position: Dance Floor Centre, colour: vermelho, level: 0.6}
+      matrix: {draw: rows-up, rate: 1/4, colour: vermelho, mirror: true}
+      hue: {state: pulse, colour: vermelho}
+  - at: drop.2
+    name: chegada
+    role: arrival
+    intent: 'A chegada com o kick: o centro das Vorlanes abre em vermelho a 1/16; movings revezando.'
+    look:
+      movers: {move: pingpong, every: 1/4, colour: azul-gelo, position: Dance Floor Centre}
+      matrix: {draw: centre-out, rate: 1/16, colour: vermelho, mirror: true}
+      hue: {state: pulse, colour: vermelho}
+  - at: break.2
+    name: subida
+    intent: 'Oito compassos enchendo em vermelho, as movings acelerando até 1/8.'
+    look:
+      movers: {move: pingpong, every: 1/2, colour: azul-gelo, faster_from: 66, faster_every: 1/8, position: Up}
+      matrix: {draw: fill-up, rate: 1bar, colour: vermelho, mirror: true}
+      hue: dark
+  - at: drop.3 - 1
+    name: breu
+    intent: 'O último breu da noite.'
+    look: breu
+handover:
+  look: pico-cant-decide
+  moment: cant-decide
+  accents: [strobe]
+  until: 92

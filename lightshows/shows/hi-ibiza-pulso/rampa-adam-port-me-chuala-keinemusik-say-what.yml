@@ -1,0 +1,47 @@
+track: Rampa, Adam Port, &ME, chuala, Keinemusik — Say What
+story: >-
+  Say What é pergunta e resposta: no drop as colunas pulam de uma Vorlane para a outra, NW
+  pergunta e SW responde. No break o canto fica em contraluz curto, e o último drop responde em
+  ciano.
+budget: >-
+  Nenhum efeito raro.
+cues:
+  - at: break.1
+    name: break
+    intent: 'Dois compassos de corte: o centro apaga, um feixe sobe.'
+    look:
+      movers: {move: hold, position: Up, colour: azul-gelo, level: 0.3}
+      matrix: off
+      hue: dark
+  - at: drop.1
+    name: chegada
+    role: arrival
+    intent: 'A chegada: colunas alternando NW e SW, pergunta e resposta; movings revezando.'
+    look:
+      movers: {move: pingpong, every: 1/4, colour: azul-gelo, position: Dance Floor Centre}
+      matrix: {draw: columns, rate: 1/8, colour: azul-profundo, pingpong: true}
+      hue: {state: pulse, colour: carmim}
+  - at: break.2
+    name: break-cantado
+    intent: 'O canto sozinho: feixes cruzados baixos, Vorlanes apagadas, centro escuro.'
+    look:
+      movers: {move: hold, position: Crossed Over, colour: azul-gelo, level: 0.4}
+      matrix: off
+      hue: dark
+  - at: build.1
+    name: subida
+    intent: 'Dois compassos enchendo.'
+    look:
+      movers: {move: pingpong, every: 1/4, colour: azul-gelo, position: Up}
+      matrix: {draw: fill-up, rate: 1/4, colour: azul-profundo, mirror: true}
+      hue: dark
+  - at: drop.2
+    name: drop-2
+    intent: 'A resposta final: colunas em ciano alternando.'
+    look:
+      movers: {move: pingpong, every: 1/4, colour: azul-gelo, position: Crossed Over}
+      matrix: {draw: columns, rate: 1/8, colour: ciano, pingpong: true}
+      hue: {state: pulse, colour: carmim}
+handover:
+  look: respiracao-azul
+  until: end

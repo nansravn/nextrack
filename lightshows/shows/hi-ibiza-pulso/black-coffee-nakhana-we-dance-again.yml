@@ -1,0 +1,32 @@
+track: Black Coffee, Nakhana — We Dance Again
+story: >-
+  We Dance Again não tem drop: o kick nunca para. A chegada é o grave entrando no c. 56, e a luz
+  responde com o batimento: as Vorlanes batem em azul, um lado de cada vez, como um coração.
+  Quando a voz volta, os feixes sobem com ela.
+budget: >-
+  Nenhum efeito raro. O desenho `solid` alternando lados é o batimento da noite em azul.
+cues:
+  - at: 56
+    name: chegada-o-grave
+    role: arrival
+    intent: 'O grave entra: as Vorlanes batem a cada tempo, NW e SW alternando, como um coração.'
+    look:
+      movers: {move: hold, position: Dance Floor Centre, colour: azul-gelo, level: 0.8}
+      matrix: {draw: solid, rate: 1/4, colour: azul-profundo, pingpong: true}
+      hue: {state: pulse, colour: carmim}
+  - at: 72
+    name: a-voz
+    intent: 'A voz volta e os feixes sobem com ela; as filas sobem no tempo.'
+    look:
+      movers: {move: sweep, every: 2bar, positions: [Up, Dance Floor Centre], colour: azul-gelo, level: 0.7}
+      matrix: {draw: rows-up, rate: 1/4, colour: azul-profundo, mirror: true}
+      hue: {state: pulse, colour: carmim}
+  - at: 104
+    name: brilho
+    intent: 'Ciano nas colunas, as movings revezando: a água brilha antes da entrega.'
+    look:
+      movers: {move: pingpong, every: 1/2, colour: azul-gelo, position: Dance Floor Centre}
+      matrix: {draw: columns, rate: 1/4, colour: ciano, mirror: true}
+      hue: {state: pulse, colour: carmim}
+handover:
+  look: respiracao-azul

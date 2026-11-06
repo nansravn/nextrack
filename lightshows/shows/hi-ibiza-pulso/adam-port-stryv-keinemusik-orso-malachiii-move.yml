@@ -1,0 +1,33 @@
+track: Adam Port, Stryv, Keinemusik, oRSo, Malachiii — Move
+story: >-
+  Move é a aceleração: o pitch sobe de 122 a 125 e a luz acelera junto. Quando o Yamore sai, a
+  primeira espiral da noite: os dois lados da sala revezando cada vez mais rápido, do violeta ao
+  vermelho. A chegada tem colunas violetas e o coração já bate em vermelho vivo.
+budget: >-
+  Espiral 1 de 3 (c. 25-28). Sem breu, sem fita branca, sem estrobo.
+cues:
+  - at: break.1
+    name: espiral
+    intent: 'Espiral: os lados da sala revezam, a cada compasso mais rápido, do violeta ao vermelho.'
+    gesture: spiral
+    with:
+      bars: [1, 1, 1, 1]
+      colours: [violeta, violeta, violeta, vermelho]
+  - at: drop.1
+    name: chegada
+    role: arrival
+    intent: 'A chegada: colunas violetas espelhadas; o coração em vermelho; as movings aceleram com o pitch.'
+    look:
+      movers: {move: pingpong, every: 1/4, colour: azul-gelo, faster_from: 45, faster_every: 1/8, position: Dance Floor Centre}
+      matrix: {draw: columns, rate: 1/8, colour: violeta, mirror: true}
+      hue: {state: pulse, colour: vermelho}
+  - at: 53
+    name: a-voz
+    intent: 'A voz volta: colunas alternando NW e SW, feixes varrendo.'
+    look:
+      movers: {move: sweep, every: 2bar, positions: [Dance Floor Centre, Crossed Over], colour: violeta, level: 0.8}
+      matrix: {draw: columns, rate: 1/8, colour: azul-profundo, pingpong: true}
+      hue: {state: pulse, colour: vermelho}
+handover:
+  look: aceleracao
+  until: 88

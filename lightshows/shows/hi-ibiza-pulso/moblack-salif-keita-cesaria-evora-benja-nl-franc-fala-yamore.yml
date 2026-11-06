@@ -1,0 +1,56 @@
+track: MoBlack, Salif Keita, Cesária Evora, Benja (NL), Franc Fala — Yamore
+story: >-
+  Yamore é o fim do transe e o maior drop afro da noite. As vozes conversam de um lado ao outro
+  da sala; no break as Vorlanes enchem por oito compassos e o drop sobe em seta, com a fita
+  branca uma batida. A saída já acelera: o violeta entra na entrega para o Move.
+budget: >-
+  Fita branca: chegada do Yamore (65.1). Sem breu e sem estrobo.
+cues:
+  - at: 33
+    name: as-vozes
+    intent: 'As vozes respondem de um lado ao outro: feixes varrendo esquerda e direita, filas subindo.'
+    look:
+      movers: {move: sweep, every: 2bar, positions: [Stage Left, Stage Right], colour: azul-gelo, level: 0.7}
+      matrix: {draw: rows-up, rate: 1/4, colour: azul-profundo, mirror: true}
+      hue: {state: pulse, colour: carmim}
+  - at: break.2
+    name: subida
+    intent: 'Oito compassos enchendo as Vorlanes, as movings acelerando, o centro escuro.'
+    look:
+      movers: {move: pingpong, every: 1bar, colour: azul-gelo, faster_from: 63, faster_every: 1/2, position: Up}
+      matrix: {draw: fill-up, rate: 1bar, colour: azul-profundo, mirror: true}
+      hue: dark
+  - at: 65
+    name: chegada
+    role: arrival
+    moment: yamore
+    accents: [white]
+    intent: 'O grave volta depois de oito compassos de silêncio, com as vozes: a seta sobe em ciano, a fita branca uma batida.'
+    look:
+      movers: {move: pingpong, every: 1/4, colour: azul-gelo, position: Dance Floor Centre}
+      matrix: {draw: arrow-up, rate: 1/4, colour: ciano, mirror: true}
+      hue: {state: pulse, colour: carmim}
+  - at: 74
+    name: respiro
+    intent: 'Respiro curto: feixes cruzados baixos, Vorlanes apagadas.'
+    look:
+      movers: {move: hold, position: Crossed Over, colour: azul-gelo, level: 0.4}
+      matrix: off
+      hue: dark
+  - at: 81
+    name: subida
+    intent: 'O grave volta e o kick provoca: as Vorlanes enchem, as movings revezando, o centro escuro.'
+    look:
+      movers: {move: pingpong, every: 1/2, colour: azul-gelo, faster_from: 86, faster_every: 1/4, position: Up}
+      matrix: {draw: fill-up, rate: 1bar, colour: azul-profundo, mirror: true}
+      hue: dark
+  - at: drop.2
+    name: o-kick-volta
+    intent: 'O kick volta: o último drop afro, filas subindo rápido.'
+    look:
+      movers: {move: pingpong, every: 1/4, colour: azul-gelo, position: Crossed Over}
+      matrix: {draw: rows-up, rate: 1/8, colour: azul-profundo, mirror: true}
+      hue: {state: pulse, colour: carmim}
+handover:
+  look: aceleracao
+  until: 120

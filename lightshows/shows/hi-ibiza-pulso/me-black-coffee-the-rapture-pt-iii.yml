@@ -1,0 +1,90 @@
+track: '&ME, Black Coffee — The Rapture Pt.III'
+story: >-
+  A Rapture abre a noite e apresenta a linguagem toda. Começa no breu, só a neblina; um feixe
+  azul acende na pista; o coração (o lustre) dá o primeiro batimento com o kick, em carmim. O
+  groove respira em azul. No grande break o grave vai embora aos poucos e a sala fica em
+  contraluz: dois feixes frios cruzando a neblina, nada mais. O kick volta subindo, a sala
+  escurece, um compasso de breu, e no drop a primeira cor viva da noite: o vermelho no centro e
+  a fita branca uma vez. A saída entrega a respiração azul para o Akan.
+budget: >-
+  Breu 1 de 5 (c. 144). Fita branca: a abertura (145.1). Contraluz 1 de 3 (c. 113-132). Sem
+  estrobo: estrobo só do TOO COOL em diante.
+cues:
+  - at: groove.1
+    name: breu-inicial
+    intent: 'A noite começa no escuro: só a neblina parada na sala.'
+    look: breu-inicial
+  - at: 9
+    name: primeiro-feixe
+    intent: 'Um feixe azul acende no centro da pista, só uma moving.'
+    look:
+      movers: {move: pingpong, every: 8bar, position: Dance Floor Centre, colour: azul-gelo, level: 0.5}
+      matrix: off
+      hue: dark
+  - at: 17
+    name: o-coracao-acorda
+    intent: 'O lustre começa a bater em carmim com o kick; o feixe troca de lado a cada 4 compassos.'
+    look:
+      movers: {move: pingpong, every: 4bar, position: Dance Floor Centre, colour: azul-gelo, level: 0.5}
+      matrix: off
+      hue: {state: pulse, colour: carmim}
+  - at: 33
+    name: o-grave-entra
+    intent: 'O grave entra cheio: as Vorlanes começam a respirar de baixo pra cima e os feixes varrem a pista.'
+    look: respiracao-azul
+  - at: 49
+    name: groove
+    intent: 'Groove longo: colunas azuis espelhadas, como percussão andando pelas paredes.'
+    look:
+      movers: {move: sweep, every: 2bar, positions: [Stage Left, Stage Right], colour: azul-gelo, level: 0.7}
+      matrix: {draw: columns, rate: 1/4, colour: azul-profundo, mirror: true}
+      hue: {state: pulse, colour: carmim}
+  - at: break.1
+    name: o-grave-se-vai
+    intent: 'O kick e o grave vão sumindo: as Vorlanes apagam e só o coração continua batendo.'
+    look:
+      movers: {move: hold, position: Crossed Over, colour: azul-gelo, level: 0.45}
+      matrix: off
+      hue: {state: pulse, colour: carmim}
+  - at: 113
+    name: contraluz
+    intent: 'Sem kick e sem grave: contraluz. Dois feixes frios cruzando a neblina, o centro escuro.'
+    look: contraluz
+  - at: 133
+    name: subida
+    intent: 'O grave volta e o kick sobe filtrado: as Vorlanes enchem de baixo pra cima, as movings aceleram.'
+    look:
+      movers: {move: pingpong, every: 1bar, colour: azul-gelo, faster_from: 141, faster_every: 1/4, position: Up}
+      matrix: {draw: fill-up, rate: 1bar, colour: azul-profundo, mirror: true}
+      hue: dark
+  - at: drop.1 - 1
+    name: breu
+    intent: 'Um compasso de breu total, o último antes do kick cheio.'
+    look: breu
+  - at: drop.1
+    name: abertura
+    role: arrival
+    moment: abertura
+    accents: [white]
+    intent: 'O drop da abertura: o vermelho acende no centro pela primeira vez, a fita branca uma batida, o desenho sai do meio pras bordas.'
+    look:
+      movers: {move: pingpong, every: 1/4, colour: azul-gelo, position: Dance Floor Centre}
+      matrix: {draw: centre-out, rate: 1/4, colour: azul-profundo, mirror: true}
+      hue: {state: pulse, colour: vermelho}
+  - at: break.2
+    name: respiro
+    intent: 'Dois compassos de respiro: o centro apaga, as Vorlanes sobem devagar.'
+    look:
+      movers: off
+      matrix: {draw: rows-up, rate: 1/2, colour: azul-profundo, mirror: true}
+      hue: dark
+  - at: drop.2
+    name: groove-final
+    intent: 'O groove volta: filas subindo rápido e as movings revezando.'
+    look:
+      movers: {move: pingpong, every: 1/2, colour: azul-gelo, position: Crossed Over}
+      matrix: {draw: rows-up, rate: 1/8, colour: azul-profundo, mirror: true}
+      hue: {state: pulse, colour: carmim}
+handover:
+  look: respiracao-azul
+  until: outro.1

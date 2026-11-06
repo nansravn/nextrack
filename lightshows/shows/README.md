@@ -19,7 +19,11 @@ palette and looks, always in step with the code.
 
 1. **Read the music.** `uv run scripts/nextrack_map.py show "<Artist — Title>"` gives the
    sections, the drops and the owner's hot cues. A track needs its
-   [musical map](../README.md#musical-maps) (`lightshows/maps/<slug>.yml`) first.
+   [musical map](../README.md#musical-maps) (`lightshows/maps/<slug>.yml`) first. `show`
+   draws the sections as a strip of letters, one per bar; to write `<kind>.<i>` anchors, read
+   the numbered list instead: `grep -E '^(bars|hot_cues|sections):' lightshows/maps/<slug>.yml`
+   prints the bar count, the hot cues and the sections in order, and `break.3` is the third
+   entry with `kind: break`.
 2. **Edit the show:** `show.yml` (the night) or one track file (its cues).
 3. **Build:** `uv run scripts/nextrack_show.py build <show-id>`. Findings come as
    `path:line: rule-id: message` and name the value and the fix.
@@ -70,7 +74,9 @@ values are English or pt-BR words as the owner's show uses them (`respiracao`, `
 
 YAML gotchas: an unquoted `off`/`on` is read as a boolean. A layer written `off`/`on` is fine
 (the compiler gives the words back), and booleans inside a layer mapping (`mirror: true`) stay
-booleans. Write `1/4` without quotes (it is a string); quote anything starting with `#`.
+booleans. Write `1/4` without quotes (it is a string); quote anything starting with `#`, `&`
+or `*` (`track: '&ME, Black Coffee — The Rapture Pt.III'`: unquoted, `&ME` is a YAML anchor
+and the file does not parse). Inside single quotes an apostrophe is doubled (`'Can''t'`).
 
 ## `show.yml`
 
@@ -188,7 +194,7 @@ A cue starts at an anchor and lasts until the next cue (a cue stack: no overlaps
 | `at` | required: an [anchor](#anchors), the cue's first bar |
 | `until` | optional: an anchor, the first bar **after** the cue (exclusive); leaves a gap that stays on the autoscript |
 | `name` | required: kebab-case; becomes the section name (a gesture derives its sections' names from it). May repeat in a track (`drop`, `corte`) |
-| `intent` | optional pt-BR prose, copied to the section |
+| `intent` | optional pt-BR prose, copied to every section the cue makes (each step of a gesture) |
 | `look` | a look name, or a mapping of layers. Exactly one of `look` and `gesture` |
 | `gesture` | a [gesture](#gestures) name |
 | `with` | optional. With `look`: layer overrides (see [Looks](#looks)). With `gesture`: its parameters |
@@ -454,14 +460,22 @@ The emitted text is deterministic (layers in a fixed order and key order, flow s
 same show gives the same bytes. `show-compiled` fails when a committed choreography is missing
 or differs from what its show compiles to; the message says to run `build <id>`.
 
+**Porting hand-written choreographies.** Copy the stories, budgets and intents verbatim, build
+with `--out <scratch>/out` first and compare each generated file with today's one, parsed
+(`yaml.safe_load`; the emitted file quotes `"off"`, so read a top-level `False` as `off`): the
+header and the formatting change, the data must not. Only then run `build <id> --adopt`, once.
+
 ## Writing a show, start to finish
 
 1. Pick the set (`sets/<set>.md`) and make sure every track has a map. `nextrack_map.py show`
-   each track; note its drops, breaks, and hot cues `B` and `G`.
+   each track; note its drops, breaks, and hot cues `B` and `G` (the numbered sections: see
+   [the loop](#the-loop), step 1).
 2. Write `show.yml`: `story`, `palette`, a few `looks`, `bridge` and `handover` (if the night
    flows through bridges), and `rules` last.
 3. Write one track file per track, named `<map slug>.yml`, `track` copied from the map. Start
-   with the arrival (`role: arrival`) and the handover; add cues with anchors, not bar numbers.
+   with the arrival (`role: arrival`) and the handover; add cues with anchors where the music
+   names the bar (a section start, a hot cue, `drop.2 - 1` for the bar before a drop). A bar
+   number is for a cue the light places inside a section.
 4. `build`. Fix findings from the top. Then `report`, and critique the whole night: budgets,
    arrivals, what repeats.
 5. `render` the tracks that matter; iterate.
