@@ -8,7 +8,7 @@ from check_repo import load_yaml
 from musical_map import slug
 from show_gestures import GESTURES, Gesture, GestureSection
 from show_language import compile_show
-from showdata import (FILE_1, FILE_2, SET_TRACKS, TRACK_1, TRACK_2, inputs, show_map, source,
+from showdata import (FILE_1, FILE_2, GUID_2, SET_TRACKS, TRACK_1, TRACK_2, inputs, show_map, source,
                       two_track_show)
 
 FOLDER = "lightshows/shows/teste"
@@ -111,6 +111,26 @@ def test_bridge_copies_the_previous_handover_without_accents():
     assert bridge.bars == (5, 8) and bridge.origin.track == TRACK_2 and bridge.origin.look == "pulso"
     assert bridge.intent == two_track_show()[0].show["bridge"]["intent"]
     assert bridge.layers is not handover.layers
+
+
+def test_a_bridge_never_copies_bar_numbers():
+    src, inp = two_track_show()
+    handover = src.track_files[FILE_1]["handover"]
+    handover.update({"with": {"movers": {"faster_from": "end - 2", "faster_every": "1/8"}}, "__line__": 30})
+    show, findings = compile_show(src, inp)
+    assert show is None
+    assert found(findings) == [(PATH_1, 30, "show-source",
+                                "handover: movers.faster_from 30 would be copied by the bridge into Voa Voa (Ao Vivo), "
+                                "where the bars of this track mean nothing: move it to a cue before the handover, "
+                                f"or write bridge: false in {FILE_2}")]
+    src.track_files[FILE_2]["bridge"] = False
+    assert compile_show(src, inp)[1] == []
+    # raw accent and strobe bars in the look count too; the handover's own `accents:` do not
+    src, inp = two_track_show()
+    src.track_files[FILE_1]["handover"].update({"with": {"strobe": {"roll": [31, 32]}}, "accents": ["white"]})
+    _, findings = compile_show(src, inp)
+    assert [f.path for f in findings] == [PATH_1]
+    assert "strobe.roll [31, 32]" in findings[0].message and "white" not in findings[0].message
 
 
 def test_first_cue_at_b_leaves_no_room_for_the_bridge():
@@ -316,7 +336,38 @@ def test_the_track_must_be_its_maps():
     _, findings = compile_show(src, inp)
     assert found(findings) == [(PATH_1, 0, "show-source",
                                 "track 'Pedro Sampaio — Dancarina' is not written as in its map: "
-                                "'Pedro Sampaio — Dançarina'")]
+                                f"write 'Pedro Sampaio — Dançarina' (lightshows/maps/{FILE_1})")]
+
+
+def test_a_track_written_as_the_set_writes_it():
+    # the block abbreviates the title; the file is named like the map, the track is not
+    src, inp = two_track_show()
+    src.track_files[FILE_2].update({"track": "Chiclete com Banana — Voa Voa", "__line__": 1})
+    show, findings = compile_show(src, inp)
+    assert show is None
+    assert found(findings) == [(PATH_2, 1, "show-source",
+                                "track 'Chiclete com Banana — Voa Voa' is not written as in its map: "
+                                f"write {TRACK_2!r} (lightshows/maps/{FILE_2})")]
+    inp.set_tracks, inp.set_problem = None, "no set"               # the same without the set's order
+    assert [f.message for f in compile_show(src, inp)[1]][1:] == [findings[0].message]
+    # misnamed too: the right name is the map's
+    src, inp = two_track_show()
+    src.track_files["voa-voa.yml"] = {**src.track_files.pop(FILE_2), "track": "Chiclete com Banana — Voa Voa"}
+    _, findings = compile_show(src, inp)
+    assert [f.message for f in findings] == [
+        f"file name 'voa-voa.yml' does not match its track 'Chiclete com Banana — Voa Voa': rename it to {FILE_2}",
+        f"track 'Chiclete com Banana — Voa Voa' is not written as in its map: write {TRACK_2!r} "
+        f"(lightshows/maps/{FILE_2})"]
+    # two maps that both match: name them, suggest neither
+    src, inp = two_track_show()
+    src.track_files[FILE_2]["track"] = "Chiclete com Banana — Voa Voa"
+    inp.maps["chiclete-com-banana-voa-voa-remix"] = show_map(track="Chiclete com Banana — Voa Voa (Remix)",
+                                                            soundswitch=GUID_2)
+    _, findings = compile_show(src, inp)
+    assert [f.message for f in findings] == [
+        "track 'Chiclete com Banana — Voa Voa' matches 2 musical maps (lightshows/maps/"
+        f"chiclete-com-banana-voa-voa-ao-vivo.yml, lightshows/maps/chiclete-com-banana-voa-voa-remix.yml): "
+        "write it as one of them does"]
 
 
 TRACK_TEXT = """\
