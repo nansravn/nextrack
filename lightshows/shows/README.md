@@ -300,8 +300,8 @@ hue states and rates. Three differences in a show:
 gesture's `aims`, also from `gesture_defaults`), a kebab-case **aim id** of
 [`lightshows/room.yml`](../README.md#the-room-roomyml) may stand instead: `position: cruzado`
 compiles to `Crossed Over`. A `pending` aim (its preset is not in SoundSwitch yet) compiles to
-the preset of the first `configured` aim along its `fallback` chain, and `build` and `report`
-list each such swap under "decided by the compiler". `vocab` lists the aims, and the presets
+the preset of the first `configured` aim along its `fallback` chain, and `report`
+lists each such swap under "decided by the compiler". `vocab` lists every pending aim, the presets
 the owner still has to create. An id that is not in the catalogue is a finding that names the
 close ones (`positions 'cruzdo' is not an aim of lightshows/room.yml; did you mean 'cruzado'?`),
 at the cue, or at `show.yml` when the aim came from `gesture_defaults`. An id with no valid
@@ -499,10 +499,18 @@ means fixing the data, not loosening the rule.
 ## The critic's views
 
 `report` is the night read for a critic, and `zoom` is one moment under a magnifying glass.
-Both are built from the compiled show and the musical maps (and `room.yml` to name aims); they
-read nothing else. Every number below comes from a function in
+Both are built from the compiled show and the musical maps (and `room.yml` to name aims). The
+clock also reads the set's block tracklists for tempos, and the zoom reads the rig; they read
+nothing else. Every number below comes from a function in
 [`scripts/show_views.py`](../../scripts/show_views.py) or
 [`scripts/show_zoom.py`](../../scripts/show_zoom.py) whose docstring states its formula.
+
+### Clock
+
+The set clock is `set_timeline`'s model. Each track plays bars: the first from bar 1, a middle
+track `[B, G)`, the last up to its last non-silent bar. The tempo is the block tracklist's range,
+ramped linearly over the played bars; without one, the map's `bpm`. A bar past `G` of the
+outgoing track runs at its end tempo, and the next track starts at the previous one's `G`.
 
 ### Two windows per track
 
@@ -542,7 +550,7 @@ Real excerpts of `report hi-ibiza-pulso`, cut to width.
 
 **The night summary** (`night 44:09`): the time per look, the time per colour of each zone
 (movers, matrix, hue), the aims, how much of the night each zone is lit, the centre dark, the
-total dark, and the events (`white-accent 5 (0:02)`: count and time). It is summed over legs.
+total dark, and the events (`white-accent 5 (0:02)`: count and time). States (looks, colours, aims, zones, dark) are summed over legs; events are counted over sounding windows.
 
 ```
 night 44:09
