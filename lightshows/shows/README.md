@@ -296,6 +296,18 @@ hue states and rates. Three differences in a show:
 - `faster_from` may be an anchor;
 - a key set to `null` in a `with` override removes it (`with: {movers: {positions: null, position: Up}}`).
 
+**Aim ids.** Where the movers take a SoundSwitch preset name (`position`, `positions`, a
+gesture's `aims`, also from `gesture_defaults`), a kebab-case **aim id** of
+[`lightshows/room.yml`](../README.md#the-room-roomyml) may stand instead: `position: cruzado`
+compiles to `Crossed Over`. A `pending` aim (its preset is not in SoundSwitch yet) compiles to
+the preset of the first `configured` aim along its `fallback` chain, and `build` and `report`
+list each such swap under "decided by the compiler". `vocab` lists the aims, and the presets
+the owner still has to create. An id that is not in the catalogue is a finding that names the
+close ones (`positions 'cruzdo' is not an aim of lightshows/room.yml; did you mean 'cruzado'?`),
+at the cue, or at `show.yml` when the aim came from `gesture_defaults`. An id with no valid
+`room.yml` is a finding too. A preset name is kept as written: only kebab-case values are
+read as aims.
+
 A layer the look does not name stays `auto` (the autoscript). `haze` is not a layer: every
 compile holds it. The compiler validates its output with the choreography's own checker; a
 problem there (an unknown draw, a bad rate) is a `show-source` finding at the cue that produced
@@ -378,6 +390,19 @@ rules:
 | `exclusive` | `{keys: [two or more budget keys], except_tracks?: [Artist — Title, or the title]}` | a track has occurrences of more than one of `keys` |
 | `bridges` | `{max: 1-32}` | a compiled handover section, or the bridge section that copies it, is longer than `max` bars. Both findings point at the handover's line in the outgoing track's file (the handover owns the window) and name both lengths and both tracks |
 
+**Advice** is a design goal the show states without making it a gate. Hï Ibiza's:
+
+```yaml
+advice:
+  bridges: {max: 16}      # a bridge is agile: 16 bars, never more than 32
+```
+
+`build` prints the findings as `show-advice` lines and `N advice`, `report` lists them under
+`advice`, and neither changes its exit status; `check_repo.py` never reports them. The `bridges`
+rule gives **two findings at one line** when a mix window is too long: the handover (with the
+bar to end it by) and the bridge that copies it (with the bar to start a cue at). Both point at
+the handover's line in the outgoing track's file, because the handover owns the window.
+
 A show with no `rules` runs none. Under `advice:` the same rules are design goals: their
 findings carry the rule id `show-advice` and never fail a check (an unknown id or a bad
 parameter there is still a `show-source` finding, prefixed `advice.<id>:`). Adding a rule is a code change with tests: see
@@ -442,7 +467,9 @@ decided by the compiler
   Voa Voa (Ao Vivo): cue 'final' runs to bar 32 (the map's end)
 ```
 
-Each section line is `bars name | source | layers | role and moment | music`, with colours by
+The sample is cut to the section lines; the real report also opens with the night summary and
+the strips and adds the peaks and the hit checks: see [The critic's views](#the-critics-views).
+Each section line is `clock bars name | source | layers | role and moment | music`, with colours by
 palette name; the source is `look <name>`, `look (inline)`, `gesture <name>`, `bridge <look>`
 or `handover <look>`. Then the budget tally, the arrivals, the `advice` section (when the show
 has advice that does not hold), what the compiler decided on its own (bridges, default ends, a
@@ -468,6 +495,171 @@ pedro-sampaio-dancarina.yml:39: show-rules: exclusive: Dançarina uses spiral (1
 `show-source` findings are mistakes in the source: fix them first. `show-rules` findings are
 the show breaking its own rules: change the show, never the rule. A finding in the real repo
 means fixing the data, not loosening the rule.
+
+## The critic's views
+
+`report` is the night read for a critic, and `zoom` is one moment under a magnifying glass.
+Both are built from the compiled show and the musical maps (and `room.yml` to name aims); they
+read nothing else. Every number below comes from a function in
+[`scripts/show_views.py`](../../scripts/show_views.py) or
+[`scripts/show_zoom.py`](../../scripts/show_zoom.py) whose docstring states its formula.
+
+### Two windows per track
+
+- The **leg** of a track is `[B, G)`: from its hot cue `B` to the bar before `G` (the first
+  track plays from bar 1, the last to its last non-silent bar). It is the track's share of
+  the night's time.
+- The **sounding window** runs from the leg's first bar to the track's last compiled bar, so
+  it includes the handover that still sounds after `G`.
+- **States** (looks, colours, aims, zones lit, dark) are **summed over legs**: during a mix
+  the time belongs to the incoming track, whose bridge copies the outgoing handover, so no
+  moment is counted twice.
+- **Events** (accents, strobe, UV, moments, map drops) are listed **over sounding windows**,
+  at their own clock.
+
+### Levels
+
+- **Music level**, one digit 0-9 per bar: the highest of the map's `kick`, `bass` and `other`
+  bar digits (`voices.<voice>.bars`). Vocals are shown apart.
+- **Light level**, an index 0-9 and not a measurement:
+  `round(9 x (0.4 x movers + 0.4 x matrix + 0.2 x hue))`, rounded half up, each layer's value
+  being 0-1:
+
+| layer | value |
+|---|---|
+| `movers` | `off` 0; `hold`, `sweep`: `level` (default 0.85); `pingpong`, `blink`: `level` x 0.5; `uv`: 0.3 |
+| `matrix` | `off` 0; per draw the lit share of the colour cells: `solid` 1, `fill-up` 0.6, `rows-up`/`rows-down` 1/6, `columns` 1/8, `centre-out` 0.25, `arrow-up` 0.15, `zigzag` 1/48; x 0.5 with `pingpong`; then x 0.6 (draws pulse and decay) |
+| `hue` | `dark`, `off` 0; `pulse` 0.5; `bright` 0.85 |
+
+`white`, `strobe` and `uv` layers do not enter the level; they show as accents. A section
+whose movers, matrix or hue is `auto` (or unset, or outside the table) has **no level**: it
+prints `~`, which means unknown: the autoscript decides. `~` has the same meaning in the
+strips, the peaks, the hit checks and the zoom lanes.
+
+### What `report` prints, in order
+
+Real excerpts of `report hi-ibiza-pulso`, cut to width.
+
+**The night summary** (`night 44:09`): the time per look, the time per colour of each zone
+(movers, matrix, hue), the aims, how much of the night each zone is lit, the centre dark, the
+total dark, and the events (`white-accent 5 (0:02)`: count and time). It is summed over legs.
+
+```
+night 44:09
+  looks: inline 29:02, respiracao-azul 7:42, pulso-vermelho 2:20, contraluz 1:44, ...
+  aims: centro-da-pista 19:40, cruzado 15:09, coluna 4:59, lado-leste 1:26, lado-oeste 1:26, poca 0:23, cabine 0:18
+  zones lit: movers 43:22 (98%), matrix 37:19 (85%), hue 35:27 (80%)
+  total dark: 0:26 in 6 section(s)
+  events: white-accent 5 (0:02), white-flash 1 (0:09), strobe 5 (0:05), uv 0 (0:00)
+```
+
+**The legend**, then per track a **header** (bars, `B`, `G`, when it enters, when its arrival
+lands) and the **strips**: one digit per bar, 64 bars to a row, the music level above the
+light level, each row labelled with its first bar:
+
+```
+1. &ME, Black Coffee — The Rapture Pt.III · 209 bars · G 169 · enters 0:00 · arrival 145 at 4:48
+  music    1 |9999999999999999999999999999999999999999999999999999999999999999|
+  light    1 |0000000011111111222222222222222244444444444444444444444444444444|
+```
+
+Then the section lines, each with its **clock** (`0:16`, the set time of its first bar) and,
+at the end, the music under it with the **voices** (`k9 b7 v0 p8 o7`: the highest level of
+kick, bass, vocals, perc and other over the section's bars):
+
+```
+  0:16 9-16 primeiro-feixe | look (inline) | movers pingpong every=8bar position=centro-da-pista ... | music: groove 9-16, k9 b7 v0 p8 o7
+```
+
+**The peaks**: one row per map drop inside a sounding window, by clock: the drop against the
+two bars before it (`+5.8 dB`; a drop after silence reads huge), the music level, the light
+level before and at the drop (`0>3`), the accents there and the moment. "Light before" at a
+track's `B` is the previous track's last section of its leg. A bridge's copied moment is never
+shown as the moment of its drop.
+
+```
+  4:48 · The Rapture Pt.III 145 · +5.8 dB · music 9 · light 0>3 · accents white · moment abertura
+```
+
+**The hit checks**: one row per arrival and per moment (the first section of a cue or handover
+with a `moment`): the strength of the kick onset on the first 1/16 step (`kick 8`; `.` none),
+the light before and at the hit, the accents on its first beat, and, when the section before
+is total dark, the voices over those dark bars:
+
+```
+  32:18 · Too Cool To Be Careless 49 · moment virada · kick 9 · light 0>5 · accents white,strobe · dark before: 48-48 k0 b0 v9 p1 o0
+```
+
+Then the budget tally, the arrivals, the **advice** (`show-advice` lines), "decided by the
+compiler" (bridges, default ends, aim fallbacks, a handover cut by `bridge.bars`) and the
+findings. `report` exits 1 on findings; advice never does.
+
+### `zoom`
+
+```bash
+uv run scripts/nextrack_show.py zoom <show> <moment>                          # the first cue or handover with that moment
+uv run scripts/nextrack_show.py zoom <show> "<Artist — Title>" <anchor>       # a bar of a track, by anchor
+uv run scripts/nextrack_show.py zoom <show> virada --before 3 --after 2       # bars around it (default 3 and 1)
+uv run scripts/nextrack_show.py zoom <show> virada --frames 48.4,49.1         # also the Vorlanes' 8x7 cells at those beats
+```
+
+It prints one column per 1/16 step, a `|` at each bar line, the music from the map and the
+light **as `compile` would write it** (it samples the compiler's own generators). It needs no
+SoundSwitch project. An unknown moment is a usage error that lists the moments. From
+`zoom hi-ibiza-pulso virada` (width cut, lanes omitted):
+
+```
+Too Cool To Be Careless · virada (bar 49) · bars 46-50 · 32:12-32:22
+           |46              |47              |48              |49              |50
+section    |espiral-1-8     |espiral-1-16    |breu            |virada          |virada
+music
+  kick     |7..77.8...8.7...|7..77.7...7.7...|................|98.79.8.9.7.9.5.|98579.7.9.8.9.5.
+  ...
+light
+  mover NE |VV..VV..VV..VV..|E.E.E.E.E.E.E.E.|................|EEEEEEeeEEeeEEee|EEeeEEeeEEeeEEee
+  aim      |centro-da-pista |centro-da-pista |-               |cruzado         |cruzado
+  uv       |~~~~~~~~~~~~~~~~|~~~~~~~~~~~~~~~~|~~~~~~~~~~~~~~~~|~~~~~~~~~~~~~~~~|~~~~~~~~~~~~~~~~
+  lustre   |................|................|................|9742974297429742|9742974297429742
+  white    |                |                |                |####            |
+  strobe   |~~~~~~~~~~~~~~~~|~~~~~~~~~~~~~~~~|~~~~~~~~~~~~~~~~|xxxx            |
+```
+
+- A mover, a Vorlane unit or the lustre gets one glyph per step: the colour's legend letter,
+  upper case at or above half level and lower case below it, `.` when dark; `~` is the
+  autoscript. The legend printed under the table names each letter.
+- The **uv lane shows intent only**: UV is not compiled yet (X11), so it is a manual cue.
+- The **strobe writes over the movers and the Vorlanes** for its span.
+- The **aim** lane is the aim (or preset) in force; `-` when the movers are dark.
+- Each step is **sampled 2 ms after its start** (`SAMPLE_OFFSET_MS`): it reads the value in
+  force, not the compiler's +-1 ms rounding edge or the dark key it writes before a rise.
+- On stderr the zoom prints a **count of the show's rule findings** and exits 0; the report
+  lists them.
+
+### Reading the report as a critic
+
+What is **fact**: the clock and durations, what each layer does in each section, the levels
+(computed from the table above), the voices and drops in the maps, which hits land on a kick,
+the budget counts, the advice that does not hold. What is **left to judgment**: whether a
+light level of 3 under a drop of 9 is the right restraint, whether a dark bar before a drop is
+tension or a hole, whether two arrivals look alike, whether an aim fits the figure the music
+draws. The light level is an index with a stated formula, never lux; a `~` is a gap in what
+the tool can know, not a defect. Read the strips for the shape of the night, the peaks and hit
+checks for the moments that must land, the `zoom` for the 1/16 steps of one, and `render` for
+what the room sees. A number that looks wrong is a question about the formula, which is in
+this section, before it is a question about the show.
+
+## UV (designed, not compiled)
+
+UV makes people and the room glow (white clothes, UV-reactive decorations); it barely shows in
+haze, so it is not a beam effect. Until [X11](../../docs/soundswitch/experiments.md) finds where
+SoundSwitch stores a mover's UV, `uv: on` and `move: uv` stay manual cues and the `uv` budget
+key counts them. The design, to implement after X11: dark first (Vorlanes off or deep blue,
+lustre `dark`, white strip off), UV moments of at least 4-8 bars, pure UV on the movers aimed at
+the floor and the people (`centro-da-pista`, `rasante`, a sweep between `lado-oeste` and
+`lado-leste`), a `uv` layer with `{pulse: steady | beat | offbeat | perc, level}`, a gesture
+`uv-glow`, and the rules `uv-needs-dark` and `uv-min-bars`. It is UV-A only, and a beam never
+rests at eye height. The full design is in
+[the critic's spec, section 9](../../docs/superpowers/specs/2026-11-06-show-critic-design.md#9-uv-designed-implemented-after-x11).
 
 ## Who owns a choreography
 

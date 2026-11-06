@@ -183,6 +183,7 @@ O set dura cerca de 44 minutos.
    mesmas camadas com os mesmos valores (os acentos de um compasso só, estrobo e fita, ficam na
    faixa que sai).
 10. **Sem UV:** a noite não é de Halloween.
+11. **A ponte é ágil:** 16 compassos, nunca mais de 32. Entrega e ponte usam a mesma janela.
 
 ## O que fica para a próxima versão
 - **Espiral de verdade**, **coração com decaimento** (um "tum-tum" duplo, o pulso que some antes

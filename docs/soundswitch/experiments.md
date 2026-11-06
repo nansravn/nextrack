@@ -30,6 +30,7 @@ what `dump` does not show.
 | X8 | E blocks are strobe: what unit are the rates? | On a Vorlane cell, add a strobe block 1:00-1:05, start rate 10, end rate 90. Save. | byte diff of the E block | Real strobe blocks for the `strobe` layer instead of 1/16-note pulses. |
 | X9 | Colour per zone: which tracks hold it? | Set Vorlane 1 cells 1-8 to red from 1:00 to 1:10. | `dump` colours; expect eight new C blocks on the cell nodes, or one on the group node | Confirms that the compiler's per-cell colour (`matrix.colour`) is where SoundSwitch looks. |
 | X10 | Does the haze machine react to a constant level on its fan and fog nodes (both at the rig's level, 0.5 today)? | Compile any track, apply it on a scratch copy, play it with the machine on and watch the mist and channels 504-505 in the DMX output monitor. | `dump`; the machine itself | A yes removes the experimental cue; a no means the level must be set on the machine. |
+| X11 | Where does a mover's colour store UV and Amber? | On a scratch track, on Mover 1's colour lane, paint one block of pure UV (HEX in the Color Picker) near 0:10 and one of pure Amber near 0:20. Save. | byte diff of the two colour blocks (ARGB and ext words) | Lets the `uv` layer, `move: uv` and the UV vocabulary compile instead of printing manual cues. |
 
 ### Results
 
