@@ -252,8 +252,8 @@ aims:
 
 **What the catalogue means.** A `configured` aim has its preset in SoundSwitch and compiles
 to it. A `pending` aim is a design: the compiler uses the preset of the first `configured`
-aim along its `fallback` chain, and `build` and `report` note each fallback among the
-decisions, so the show can name the figure it wants today. `uv run scripts/nextrack_show.py vocab`
+aim along its `fallback` chain, and `report` lists each such swap under "decided by the
+compiler" (and `vocab` lists every pending aim), so the show can name the figure it wants today. `uv run scripts/nextrack_show.py vocab`
 lists the pending aims as the presets to create, with their targets.
 
 The aims:
@@ -412,7 +412,7 @@ Free choices: XR_DMX_Visualiser, Capture (Student edition) and QLC+ 5. Details i
 ## Schemas checked by the validator
 
 Checked by `check_repo.py` (rules `lightshow-rig`, `lightshow-room`, `lightshow-track`, `lightshow-plan`,
-`musical-map`); the checks live in `scripts/lightshow.py` and `scripts/musical_map.py`. Shows
+`musical-map`); the checks live in `scripts/lightshow.py`, `scripts/show_room.py` (`lightshow-room`) and `scripts/musical_map.py`. Shows
 have their own rules (`show-source`, `show-rules`, `show-compiled`), described in
 [shows/README.md](shows/README.md).
 
