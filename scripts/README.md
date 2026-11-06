@@ -156,6 +156,11 @@ print the **manual cues** (things SoundSwitch must be told by hand) after the re
 `<project parent>/nextrack-backups/`, compared lower-cased (the Windows drive under
 `/mnt/c` ignores case).
 
+`render` also draws the track's musical map (sections, five voice lanes, drops, hot cues)
+under the timeline when `lightshows/maps/` of `--repo` (default: this repo) holds a valid
+map whose `soundswitch` is the track's GUID. A map whose tempo anchors differ from the
+script's is skipped, with a warning; without a map the page is unchanged.
+
 ### Reading `dump`
 
 An *effective* value is what the fixture really shows: its own when one of its blocks

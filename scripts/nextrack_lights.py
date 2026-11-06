@@ -47,6 +47,7 @@ import yaml
 
 import check_repo
 import lightshow as ls
+import musical_map as mm
 import soundswitch_format as ssf
 
 PROJECT_ENV = "NEXTRACK_SOUNDSWITCH_PROJECT"  # machine-specific, so it lives outside the repo
@@ -485,7 +486,8 @@ def _rig_data(fixtures: list[ls._Fixture], rig: ls.Rig, label_of) -> dict:
 
 def sim_data(script: ssf.TrackScript, venues: list[ssf.VenueInfo], presets: list[ssf.Preset],
              rig: ls.Rig, choreo: ls.Choreography | None = None, *,
-             duration_ms: int = 0, title: str = "") -> dict:
+             duration_ms: int = 0, title: str = "",
+             musical_map: dict | None = None) -> dict:
     """What the simulator page draws. `before` is `script`; with `choreo`, `after` is the
     script compiled from it (the very bytes `apply` would write), else None. Both map a node
     label (its venue name; `name [id]` where the name repeats) to `_node_data`, and `Main` to
@@ -493,7 +495,7 @@ def sim_data(script: ssf.TrackScript, venues: list[ssf.VenueInfo], presets: list
 
     Keys: title, end (ms), grid ([[ms, bpm]]), sections ({name, bars, intent, start, end}),
     rig (see `_rig_data`), before, after, cues ({bar, t, fixture, what} the compiler left to
-    the owner). Raises `lightshow.CompileError` when the choreography does not fit the script."""
+    the owner), map (`musical_map.map_sim_data` of `musical_map`, else None). Raises `lightshow.CompileError` when the choreography does not fit the script."""
     after, cues = None, []
     if choreo is not None:
         after, cues = ls.compile_choreography(choreo, script, rig, venues, presets, duration_ms=duration_ms)
@@ -534,6 +536,7 @@ def sim_data(script: ssf.TrackScript, venues: list[ssf.VenueInfo], presets: list
         "before": export(script),
         "after": export(after) if after else None,
         "cues": [{"bar": c.bar, "t": c.time_ms, "fixture": c.fixture, "what": c.what} for c in cues],
+        "map": mm.map_sim_data(musical_map) if musical_map else None,
     }
 
 
@@ -624,6 +627,26 @@ def _yaml_checked(path: Path, problems) -> dict | None:
     return None if found else data
 
 
+def _find_map(repo_root: Path, guid: str, tempo) -> dict | None:
+    """The musical map of the track `guid` in `<repo>/lightshows/maps/`, or None when there is
+    none, it does not parse, or its tempo anchors differ from the script's (a warning then)."""
+    for path in sorted((repo_root / "lightshows" / "maps").glob("*.yml")):
+        try:
+            data = mm.load_map(path)
+            if not (isinstance(data, dict) and str(data["soundswitch"]).lower() == guid.lower()):
+                continue
+            stored = [(int(a[0]), float(a[1])) for a in data["grid"]["anchors"]]
+        except (OSError, yaml.YAMLError, KeyError, TypeError, ValueError, IndexError):
+            continue
+        if stored != [(int(t), float(bpm)) for t, bpm in tempo]:
+            print("warning: the musical map is stale (grid changed); run nextrack_map.py analyze",
+                  file=sys.stderr)
+            return None
+        if not mm.problems_map(data):
+            return data
+    return None
+
+
 def cmd_render(project: ssf.Project, args) -> int:
     _check_out(project, Path(args.out))
     rig_path = Path(args.rig) if args.rig else DEFAULT_RIG
@@ -638,7 +661,8 @@ def cmd_render(project: ssf.Project, args) -> int:
     ref, script = _load(project, args.track, prefer_base=True)
     venues, presets = project.venues()
     data = sim_data(script, venues, presets, rig, choreo, duration_ms=ref.duration_ms or 0,
-                    title=f"{ref.artist} — {ref.title}")
+                    title=f"{ref.artist} — {ref.title}",
+                    musical_map=_find_map(Path(args.repo), ref.guid, script.tempo))
     page = page_html(data)
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -1406,6 +1430,8 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("track", help="GUID, GUID prefix or 'Artist — Title'")
     r.add_argument("--choreo", help="a lightshows/tracks/*.yml choreography")
     r.add_argument("--rig", help="the rig file (default: lightshows/rig.yml of this repo)")
+    r.add_argument("--repo", default=str(DEFAULT_REPO),
+                   help="the NEXTRACK repo whose lightshows/maps/ holds the track's musical map (default: this one)")
     r.add_argument("-o", "--out", required=True, help="the HTML file to write")
 
     c = sub.add_parser("compile", parents=[common], help=(

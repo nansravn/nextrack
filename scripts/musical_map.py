@@ -383,6 +383,35 @@ def step_edges_ms(grid, audio_ms: int):
     return np.minimum(np.array(edges, dtype=np.int64), audio_ms)
 
 
+def map_sim_data(m: dict) -> dict:
+    """What the simulator draws of a map, in ms from the map's own anchors: `voices`
+    ({voice: [[t, digit]]}, one point per 1/16 step), `sections` ({kind, start, end}, the end
+    being the start of the bar after), `drops` ({bar, t}) and `cues` ({name, t}, hot cues with
+    their stored offsets)."""
+    from soundswitch_format import Grid
+
+    grid = Grid([(int(ms), float(bpm)) for ms, bpm in m["grid"]["anchors"]])
+    edges = step_edges_ms(grid, m["audio"]["ms"])
+    voices = {}
+    for voice in VOICES:
+        text = "".join(m["steps"][voice])
+        voices[voice] = [[int(edges[i]), int(c) if c.isdigit() else 0]
+                         for i, c in enumerate(text[:len(edges) - 1])]
+    cues = []
+    for name, where in sorted((m.get("hot_cues") or {}).items()):
+        found = CUE_RE.fullmatch(where)
+        bar, beat = where.split("+")[0].split("-")[0].split(".")
+        off = int(found[1][:-2]) if found[1] else 0
+        cues.append({"name": name, "t": grid.ms(int(bar), int(beat)) + off})
+    return {
+        "voices": voices,
+        "sections": [{"kind": s["kind"], "start": grid.ms(s["bars"][0]), "end": grid.ms(s["bars"][1] + 1)}
+                     for s in m["sections"]],
+        "drops": [{"bar": d["bar"], "t": grid.ms(d["bar"])} for d in m["drops"]],
+        "cues": cues,
+    }
+
+
 def _stereo(x):
     import numpy as np
 

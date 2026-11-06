@@ -246,6 +246,40 @@ for (const [tag, side] of [['antes', SIDE_A], ['depois', SIDE_B]]) {
   for (const [a, b] of unionSpans(side, MAT_LABELS)) el('rect', { x: X(a), y: row + 13, width: Math.max(1, X(b) - X(a)), height: 9, fill: '#5a3b70' }, tl);
   row += 26;
 }
+// The musical map (S.map, when the track has one): section bands, five voice lanes (shade = level/9),
+// a tick per drop and per hot cue, on the same time axis as the rows above.
+const MAP = S.map || null;
+if (MAP) {
+  const KIND = { intro: 'intro', groove: 'groove', break: 'break', build: 'subida', drop: 'drop', outro: 'outro' };
+  const KCOL = { intro: '#26303f', groove: '#24402f', break: '#3a2f4d', build: '#4d4023', drop: '#5a2530', outro: '#26303f' };
+  const VLAB = { vocals: 'voz', kick: 'bumbo', perc: 'percussão', bass: 'baixo', other: 'outros' };
+  row += 4;
+  lab('mapa', row + 9);
+  for (const s of MAP.sections) {
+    const w = X(s.end) - X(s.start), name = KIND[s.kind] || s.kind;
+    el('rect', { x: X(s.start), y: row, width: Math.max(1, w - 1), height: 12, rx: 2, fill: KCOL[s.kind] || '#26303f' }, tl);
+    el('text', { x: X(s.start) + 3, y: row + 9, fill: '#b9c2d0', 'font-size': 8 }, tl).textContent = name.length * 4.6 < w ? name : '';
+  }
+  row += 15;
+  const lanes0 = row;
+  for (const [v, pts] of Object.entries(MAP.voices)) {
+    lab(VLAB[v] || v, row + 5);
+    for (let i = 0; i < pts.length;) {       // runs of one level become one rect
+      let j = i + 1; while (j < pts.length && pts[j][1] === pts[i][1]) j++;
+      const d = pts[i][1], end = j < pts.length ? pts[j][0] : END;
+      if (d > 0) el('rect', { x: X(pts[i][0]), y: row, width: Math.max(0.5, X(end) - X(pts[i][0])), height: 6, fill: '#6fb1ff', opacity: 0.1 + 0.9 * d / 9 }, tl);
+      i = j;
+    }
+    row += 8;
+  }
+  for (const d of MAP.drops) el('line', { x1: X(d.t), x2: X(d.t), y1: lanes0 - 15, y2: row, stroke: '#ff5a6e', 'stroke-width': 1.5 }, tl);
+  for (const c of MAP.cues) {
+    el('line', { x1: X(c.t), x2: X(c.t), y1: lanes0 - 15, y2: row, stroke: '#ffd27a', 'stroke-width': 1 }, tl);
+    el('text', { x: X(c.t) + 2, y: row + 8, fill: '#ffd27a', 'font-size': 8 }, tl).textContent = c.name;
+  }
+  row += 8;
+  tl.setAttribute('viewBox', `0 0 1000 ${row + 16}`);
+}
 { const nb = barAt(END), step = nb > 160 ? 16 : 8;     // the phrase grid: a line every 8 bars
   for (let b = 1; b <= nb; b += step) { const x = X(barStart(b)); if (x < X0) continue;
     el('line', { x1: x, x2: x, y1: 2, y2: row + 2, stroke: '#2a2a35' }, tl);
