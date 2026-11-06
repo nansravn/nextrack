@@ -420,8 +420,10 @@ def resolve_colours(layers: dict, palette: dict[str, str]) -> tuple[dict, list[s
 # ---------------------------------------------------------------- compiler --
 
 SOURCE = "show-source"
+MAPS_DIR = "lightshows/maps"
 _SECTION_RE = re.compile(r"section (?P<i>[0-9]+)(?: \([^)]*\))?: (?P<rest>.*)", re.S)
 _ACCENT_LAYER = {"white": "white", "strobe": "strobe", "strobe-roll": "strobe"}
+_BAR_VALUES = (("movers", "faster_from"), ("white", "accent"), ("strobe", "hit"), ("strobe", "roll"))
 
 
 @dataclass
@@ -559,8 +561,9 @@ class _TrackCompiler:
     compiled track, or None with the reasons in `findings`. Each step runs only when the ones
     before it found nothing, so one mistake is reported once."""
 
-    def __init__(self, show: _Show, name: str, data: dict, map_data: dict, prev: _Prev | None):
+    def __init__(self, show: _Show, name: str, data: dict, map_key: str, map_data: dict, prev: _Prev | None):
         self.show, self.data, self.map, self.prev = show, data, map_data, prev
+        self.name, self.map_key = name, map_key
         self.path = f"{show.folder}/{name}"
         self.track = map_data["track"]
         self.title = _title(self.track)
@@ -574,14 +577,15 @@ class _TrackCompiler:
         self.handover_part: _Part | None = None
         self.resolved = False
 
-    def find(self, line: int, message: str) -> None:
-        finding = ShowFinding(self.path, line, SOURCE, message)
+    def find(self, line: int, message: str, path: str | None = None) -> None:
+        finding = ShowFinding(path or self.path, line, SOURCE, message)
         if finding not in self.findings:
             self.findings.append(finding)
 
     def run(self) -> CompiledTrack | None:
         if self.data["track"] != self.track:
-            self.find(_line(self.data), f"track {self.data['track']!r} is not written as in its map: {self.track!r}")
+            self.find(_line(self.data), f"track {self.data['track']!r} is not written as in its map: "
+                                        f"write {self.track!r} ({MAPS_DIR}/{self.map_key}.yml)")
         for step in (self._anchors, self._spans, self._expand, self._accents, self._resolve):
             before = len(self.findings)
             step()
@@ -594,7 +598,7 @@ class _TrackCompiler:
             return None
         self._decide()
         sections = [CompiledSection(p.bars, p.name, p.intent, p.layers, p.origin) for p in self.parts]
-        return CompiledTrack(self.track, slug(self.track), self.path, self.map, choreography, sections)
+        return CompiledTrack(self.track, self.map_key, self.path, self.map, choreography, sections)
 
     def next_prev(self) -> _Prev:
         """What the next track's bridge reads of this one."""
@@ -674,13 +678,27 @@ class _TrackCompiler:
         elif self.handover is not None:
             node, first, label = self.handover, self.h_start, "handover"
         else:
-            self.bridge_span = (b, self.map["bars"])
-            return
+            node, first, label = None, self.map["bars"] + 1, None
         if first <= b:
             self.find(_line(node), f"{label} at {first} is not after hot cue B ({b}): no room for the bridge "
                       f"from {prev.title}; start it after bar {b}, or write bridge: false")
             return
         self.bridge_span = (b, first - 1)
+        self._bar_values_copied()
+
+    def _bar_values_copied(self) -> None:
+        """A bar number of the outgoing track means nothing in this one: a handover whose layers
+        hold one (not from its `accents:`, which the bridge leaves out) is a finding there."""
+        prev = self.prev
+        if prev.layers is None:
+            return
+        values = [f"{layer}.{key} {prev.layers[layer][key]!r}" for layer, key in _BAR_VALUES
+                  if isinstance(prev.layers.get(layer), dict) and key in prev.layers[layer]]
+        if values:
+            them = "it" if len(values) == 1 else "them"
+            self.find(prev.origin.line, f"handover: {', '.join(values)} would be copied by the bridge into "
+                      f"{self.title}, where the bars of this track mean nothing: move {them} to a cue before "
+                      f"the handover, or write bridge: false in {self.name}", path=prev.origin.path)
 
     # step 3
     def _expand(self) -> None:
@@ -844,11 +862,29 @@ def _show_context(source: ShowSource, folder: str) -> tuple[_Show | None, list[S
                  clean(data.get("handover", {})), clean(data.get("gesture_defaults", {}))), []
 
 
-def _file_hint(artist: str, title: str, maps: dict[str, dict], same: Callable) -> str:
+def _matching_maps(artist: str, title: str, maps: dict[str, dict], same: Callable) -> list[str]:
+    """The keys of the maps whose track `same` matches, sorted."""
+    out = []
     for name in sorted(maps):
         track = maps[name].get("track")
         if isinstance(track, str) and " — " in track and same(artist, title, *track.split(" — ", 1)):
-            return f": add {name}.yml with track: {track}"
+            out.append(name)
+    return out
+
+
+def _map_key(track: str, maps: dict[str, dict], same: Callable) -> tuple[str | None, list[str]]:
+    """The key of a track's map: its slug, or else the one map `same` matches (a set may
+    abbreviate a title that the map writes in full). Also every key `same` matches."""
+    if slug(track) in maps:
+        return slug(track), [slug(track)]
+    hits = _matching_maps(*track.split(" — ", 1), maps, same)
+    return (hits[0] if len(hits) == 1 else None), hits
+
+
+def _file_hint(artist: str, title: str, maps: dict[str, dict], same: Callable) -> str:
+    hits = _matching_maps(artist, title, maps, same)
+    if hits:
+        return f": add {hits[0]}.yml with track: {maps[hits[0]]['track']}"
     return ": add one, named <slug>.yml like the track's musical map"
 
 
@@ -879,10 +915,13 @@ def _match(source: ShowSource, folder: str, files: dict[str, tuple[object, bool]
             unreadable = True
             continue
         path, line = f"{folder}/{name}", _line(data)
-        if name != slug(track) + ".yml":
+        key, map_hits = _map_key(track, inputs.maps, same)
+        expected = f"{key or slug(track)}.yml"
+        # never onto a file that exists (two files for one track: that finding says it), and not
+        # when several maps match (that finding says it)
+        if name != expected and expected not in files and not (key is None and map_hits):
             out.append(ShowFinding(path, line, SOURCE,
-                                   f"file name {name!r} does not match its track {track!r}: rename it to "
-                                   f"{slug(track)}.yml"))
+                                   f"file name {name!r} does not match its track {track!r}: rename it to {expected}"))
         hits = [i for i, (a, t) in enumerate(set_tracks) if i not in again and same(a, t, *track.split(" — ", 1))]
         if not hits:
             close = difflib.get_close_matches(track, [f"{a} — {t}" for a, t in set_tracks], n=1, cutoff=0.6)
@@ -909,7 +948,14 @@ def _match(source: ShowSource, folder: str, files: dict[str, tuple[object, bool]
     return order, out
 
 
-def _compile_tracks(show: _Show, order: list[tuple[str, dict] | None], maps: dict[str, dict],
+def _no_map(track: str, hits: list[str]) -> str:
+    if hits:
+        listed = ", ".join(f"{MAPS_DIR}/{k}.yml" for k in hits)
+        return f"track {track!r} matches {len(hits)} musical maps ({listed}): write it as one of them does"
+    return f"no musical map for {track}: run uv run scripts/nextrack_map.py analyze \"{track}\""
+
+
+def _compile_tracks(show: _Show, order: list[tuple[str, dict] | None], inputs: ShowInputs,
                     linked: bool) -> tuple[list[CompiledTrack], list[str], list[ShowFinding], list]:
     """Compile the tracks in order. With `linked`, each track sees the one before it (bridges)."""
     tracks, decisions, findings, entries = [], [], [], []
@@ -920,15 +966,14 @@ def _compile_tracks(show: _Show, order: list[tuple[str, dict] | None], maps: dic
             prev = None
             continue
         name, data = entry
-        map_data = maps.get(slug(data["track"]))
+        key, hits = _map_key(data["track"], inputs.maps, inputs.same_track)
+        map_data = inputs.maps[key] if key is not None else None
         entries.append((name, data, map_data))
         if map_data is None:
-            findings.append(ShowFinding(f"{show.folder}/{name}", _line(data), SOURCE,
-                                        f"no musical map for {data['track']}: run uv run "
-                                        f"scripts/nextrack_map.py analyze \"{data['track']}\""))
+            findings.append(ShowFinding(f"{show.folder}/{name}", _line(data), SOURCE, _no_map(data["track"], hits)))
             prev = _Prev(_title(data["track"]), "handover" in data) if linked else None
             continue
-        compiler = _TrackCompiler(show, name, data, map_data, prev)
+        compiler = _TrackCompiler(show, name, data, key, map_data, prev)
         track = compiler.run()
         findings += compiler.findings
         decisions += compiler.decisions
@@ -985,7 +1030,7 @@ def compile_show(source: ShowSource, inputs: ShowInputs) -> tuple[CompiledShow |
         order, found = _match(source, folder, files, inputs)
         findings += found
         linked = True
-    tracks, decisions, found, entries = _compile_tracks(show, order, inputs.maps, linked)
+    tracks, decisions, found, entries = _compile_tracks(show, order, inputs, linked)
     findings += found
     if linked:
         findings += _missing_handovers(show, entries)
