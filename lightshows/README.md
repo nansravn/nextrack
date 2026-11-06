@@ -293,10 +293,10 @@ filters the bass in a break instead of removing it, so a break need not be silen
 bars before), so a filtered bass coming back can be told from the real drop. `silences` lists
 the runs of bars where the whole mix is near silent.
 
-**Hot cues.** `hot_cues` holds the owner's rekordbox hot cues A-H as `bar.beat` on the same grid
-(`B` is where a track enters, `G` where the next one starts to be beatmatched over it); a cue
-more than 30 ms from a beat keeps its offset (`9.1+500ms`). Without rekordbox, or when the
-track is not in its collection, `hot_cues` is `null` and `hot_cues_note` says why.
+**Hot cues.** `hot_cues` holds the owner's rekordbox hot cues A-H, in letter order, as `bar.beat`
+on the same grid (`B` is where a track enters, `G` where the next one starts to be beatmatched
+over it); a cue more than 30 ms from a beat keeps its offset (`9.1+500ms`). Without rekordbox,
+or when the track is not in its collection, `hot_cues` is `null` and `hot_cues_note` says why.
 `nextrack_map.py cues` refreshes them without redoing the analysis.
 
 **Stale maps.** A map is stale when the audio file's hash, the script's GUID or its tempo

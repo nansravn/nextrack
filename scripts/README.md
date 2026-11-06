@@ -353,14 +353,20 @@ uv run scripts/nextrack_map.py timeline --playlist 1-hi-ibiza-lightshow --block 
   (the GPU when there is one, else the CPU, or `--device cuda|cpu`) and writes the map. An
   existing map is kept unless it is stale (the audio file's hash, the script's GUID or its tempo
   anchors changed) or `--force` is given, so a playlist run only does what is missing or out of
-  date. One line per track says whether it was written, redone because stale, kept or refused
-  and why; a `grid warning` line follows when the kick onsets sit more than a quarter of a step
-  from the beat (either the grid is off, or the kick's attack is soft and `onsets.kick` reads
-  late: see [Known limits](#known-limits)). `--keep-stems DIR` also writes the four stems
-  (FLAC) under `DIR/<slug>/`; without it they live in memory only. A refused track makes the
-  exit status 1, and the playlist run goes on.
+  date. One line per track says what happened: `written`, `redone (stale)`, `redone (invalid)`
+  (the existing map broke the schema), `kept`, or `refused <track>: <why>` (a playlist track
+  SoundSwitch does not know or cannot tell apart from another says which). A map that does not
+  parse is refused with `unreadable map … run analyze --force to rebuild it`. A `grid warning`
+  line follows when the kick onsets sit more than a quarter of a step from the beat (either
+  the grid is off, or the kick's attack is soft and `onsets.kick` reads late: see
+  [Known limits](#known-limits)). `--keep-stems DIR` also writes the four stems (FLAC) under
+  `DIR/<slug>/`; without it they live in memory only. A refused track makes the exit status 1,
+  and the playlist run goes on.
 - **`cues <track>` or `cues --playlist NAME`**: rewrites only the `hot_cues` lines of existing
-  maps from rekordbox, leaving the rest of the file untouched.
+  maps from rekordbox, leaving the rest of the file untouched. A map that does not parse or
+  breaks the schema is refused (`unreadable map …`: rebuild it with `analyze --force`), and so
+  is a hot cue past the map's last bar (the audio changed: run `analyze`); the map is then left
+  as it was.
 - **`show <track>`**: the map for directing, per 64 bars: a ruler, a `cues` line (the hot
   cues at their bars, `*` where two share a bar), one line of per-bar levels per voice and a
   `sections` line (`i` intro, `g` groove, `b` break, `u` build, `d` drop, `o` outro), then the
@@ -385,8 +391,12 @@ uv run scripts/nextrack_map.py timeline --playlist 1-hi-ibiza-lightshow --block 
   tracklist line (`122`, or a ramp `122-125`, linear in bars). After a track with no map the
   clock cannot be known, so the following clocks are relative and print as `+m:ss`. Warnings
   name a track missing `B` or `G` where the order needs it (the first needs no `B`, the last no
-  `G`), a cue not on a beat, a missing or unreadable map, and a map whose stored hot cues differ
-  from rekordbox's (a cue moved since: refresh with `cues`).
+  `G`), a cue not on a beat, a missing or unreadable map (one that does not parse or breaks the
+  schema counts as missing), and a map whose stored hot cues differ from rekordbox's (a cue
+  moved since: refresh with `cues`).
+
+With `--playlist`, a playlist with no tracks is an error for `analyze`, `cues` and `timeline`:
+`playlist NAME has no tracks`, exit status 1.
 
 ### Safety model
 

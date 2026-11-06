@@ -138,7 +138,29 @@ def read_audio(raw: bytes):
 
 
 def hot_cues_for(rb_track: RbTrack, grid) -> dict:
-    return {letter: mm.cue_text(ms, grid) for letter, ms in rb_track.cues.items()}
+    """The track's hot cues as `bar.beat` on `grid`, in letter order (stable diffs)."""
+    return {letter: mm.cue_text(ms, grid) for letter, ms in sorted(rb_track.cues.items())}
+
+
+def _unreadable(path: Path, why: str) -> Refused:
+    return Refused(f"unreadable map {path.name} ({' '.join(why.split())}): run analyze --force to rebuild it")
+
+
+def read_map(path: Path):
+    """The map file at `path` parsed, not checked; Refused when it does not parse."""
+    try:
+        return mm.load_map(path)
+    except (OSError, ValueError, yaml.YAMLError) as e:
+        raise _unreadable(path, str(e)) from e
+
+
+def checked_map(path: Path) -> dict:
+    """The map file at `path`; Refused when it does not parse or breaks the schema."""
+    data = read_map(path)
+    problems = mm.problems_map(data)
+    if problems:
+        raise _unreadable(path, "; ".join(problems))
+    return data
 
 
 class Session:
@@ -183,18 +205,21 @@ class Session:
                           + "; ".join(f"{r.guid} {_label(r.artist, r.title)}" for r in hits))
         return hits[0]
 
-    def targets(self, args) -> list[tuple[str, ssf.TrackRef | None, RbTrack | None]]:
-        """`(label, ref, rekordbox track)` per requested track; ref is None when the
-        playlist track is unknown to SoundSwitch (the caller reports it)."""
+    def targets(self, args) -> list[tuple[str, ssf.TrackRef | Refused, RbTrack | None]]:
+        """`(label, ref, rekordbox track)` per requested track; ref is the `Refused` that says
+        why when a playlist track cannot be matched to SoundSwitch (the caller reports it)."""
         if args.playlist:
             if self.reader is None:
                 raise SystemExit(f"--playlist needs rekordbox: set --rekordbox or {REKORDBOX_ENV}")
-            out = []
-            for t in self.reader.playlist(args.playlist):
+            tracks = self.reader.playlist(args.playlist)
+            if not tracks:
+                raise LookupError(f"playlist {args.playlist} has no tracks")
+            out: list[tuple[str, ssf.TrackRef | Refused, RbTrack | None]] = []
+            for t in tracks:
                 try:
                     out.append((_label(t.artist, t.title), self.ref_for(t), t))
-                except Refused:
-                    out.append((_label(t.artist, t.title), None, t))
+                except Refused as why:
+                    out.append((_label(t.artist, t.title), why, t))
             return out
         ref = self.project.resolve(args.track)
         return [(_label(ref.artist, ref.title), ref, None)]
@@ -214,19 +239,19 @@ def analyze_one(sess: Session, ref: ssf.TrackRef, known: RbTrack | None, out: li
     track = pool_track(sess.repo, ref)
     path = map_path(sess.repo_root, track)
     anchors = sess.script_anchors(ref)
-    if sess.root is None:
-        raise SystemExit(f"set --root or {ROOT_ENV}")
-    audio = mm.find_audio(sess.root, ref.path)
+    audio = mm.find_audio(sess.root, ref.path)  # main() requires --root for analyze
     verdict = "written"
     raw = audio.read_bytes()
     sha = hashlib.sha256(raw).hexdigest()[:12]
     if path.is_file() and not sess.args.force:
-        existing = mm.load_map(path)
-        if not mm.problems_map(existing) and not mm.is_stale(existing, audio_sha=sha, guid=ref.guid.upper(),
-                                                              anchors=anchors):
+        existing = read_map(path)  # a map that does not parse is refused: --force rebuilds it
+        if mm.problems_map(existing):
+            verdict = "redone (invalid)"
+        elif mm.is_stale(existing, audio_sha=sha, guid=ref.guid.upper(), anchors=anchors):
+            verdict = "redone (stale)"
+        else:
             out.append(f"kept {path}")
             return
-        verdict = "redone (stale)"
     x, sr = read_audio(raw)
     stems, stem_sr = sess.separate(x, sr)
     if sess.args.keep_stems:
@@ -258,8 +283,8 @@ def run_targets(sess: Session, args, handler) -> int:
     for label, ref, known in sess.targets(args):
         lines: list[str] = []
         try:
-            if ref is None:
-                raise Refused("not in the SoundSwitch project")
+            if isinstance(ref, Refused):
+                raise ref
             handler(sess, ref, known, lines)
         except (Refused, LookupError, OSError, ValueError, RuntimeError, yaml.YAMLError) as e:
             lines.append(f"refused {label}: {e}")
@@ -281,12 +306,16 @@ def cues_one(sess: Session, ref: ssf.TrackRef, known: RbTrack | None, out: list[
     path = map_path(sess.repo_root, pool_track(sess.repo, ref))
     if not path.is_file():
         raise Refused(f"no map at {path}: run analyze first")
-    data = mm.load_map(path)
+    data = checked_map(path)
     grid = ssf.Grid([(int(ms), float(bpm)) for ms, bpm in data["grid"]["anchors"]])
     rb_track, note = sess.cues_of(ref, known)
     new = {"hot_cues": None if rb_track is None else hot_cues_for(rb_track, grid)}
     if rb_track is None:
         new["hot_cues_note"] = note
+    for letter, where in (new["hot_cues"] or {}).items():
+        if _cue_bar(where) > data["bars"]:
+            raise Refused(f"hot cue {letter} at {where} is past the map's last bar ({data['bars']}): "
+                          "run analyze if the audio changed")
     block = mm.dump_map(new).splitlines()[1:]  # without the generated-by comment
     lines = path.read_text(encoding="utf-8").splitlines()
     at = next((i for i, line in enumerate(lines) if line.startswith("hot_cues:")), None)
@@ -392,6 +421,8 @@ def cmd_timeline(args) -> int:
     tempos = stl.block_tempos(Path(args.block).read_text(encoding="utf-8")) if args.block else []
     with open_rekordbox(Path(args.rekordbox)) as reader:
         tracks = reader.playlist(args.playlist)
+    if not tracks:
+        raise LookupError(f"playlist {args.playlist} has no tracks")
     transitions, total, warnings = [], 0.0, []
     chain: list[stl.Leg] = []
     missing = 0  # tracks whose map is absent or unreadable so far
@@ -416,10 +447,7 @@ def cmd_timeline(args) -> int:
             path = map_path(Path(args.repo), name)
             if not path.is_file():
                 raise Refused(f"no map at {path}: run analyze first")
-            try:
-                data = mm.load_map(path)
-            except (OSError, yaml.YAMLError, ValueError, TypeError) as e:
-                raise Refused(f"unreadable map {path.name}: {e}") from e
+            data = checked_map(path)
         except Refused as e:
             flush()
             warnings.append(f"no map for {label}: {e}")
