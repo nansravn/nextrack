@@ -15,21 +15,21 @@ sections:
   - bars: [27, 68]
     name: ponte
     intent: "Ponte: a mesma luz da música anterior, copiada camada por camada, até a chegada."
-    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF", position: Crossed Over}
     matrix: {draw: rows-up, rate: "1/4", colour: "#FF0A2A", mirror: true}
     hue: {state: pulse, colour: "#FF0A2A"}
 
   - bars: [69, 72]
     name: subida
     intent: "Quatro compassos enchendo em vermelho, as movings acelerando."
-    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF", faster_from: 71, faster_every: "1/4"}
+    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF", faster_from: 71, faster_every: "1/4", position: Up}
     matrix: {draw: fill-up, rate: "1/2", colour: "#FF0A2A", mirror: true}
     hue: dark
 
   - bars: [73, 103]
     name: chegada
     intent: "A chegada: filas vermelhas subindo, NW e SW alternando; movings revezando."
-    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF", position: Dance Floor Centre}
     matrix: {draw: rows-up, rate: "1/8", colour: "#FF0A2A", pingpong: true}
     hue: {state: pulse, colour: "#FF0A2A"}
 
@@ -43,35 +43,35 @@ sections:
   - bars: [128, 129]
     name: espiral-1-2
     intent: "Espiral: os lados revezam cada vez mais rápido, do azul ao vermelho."
-    movers: {move: pingpong, every: "1/2", colour: "#0A2CFF"}
+    movers: {move: pingpong, every: "1/2", colour: "#0A2CFF", positions: [Crossed Over, Up, Dance Floor Centre]}
     matrix: {draw: columns, rate: "1/2", colour: "#0A2CFF", pingpong: true}
     hue: dark
 
   - bars: [130, 131]
     name: espiral-1-4
     intent: "Espiral: os lados revezam cada vez mais rápido, do azul ao vermelho."
-    movers: {move: pingpong, every: "1/4", colour: "#6A1CFF"}
+    movers: {move: pingpong, every: "1/4", colour: "#6A1CFF", positions: [Crossed Over, Up, Dance Floor Centre]}
     matrix: {draw: columns, rate: "1/4", colour: "#6A1CFF", pingpong: true}
     hue: dark
 
   - bars: [132, 133]
     name: espiral-1-8
     intent: "Espiral: os lados revezam cada vez mais rápido, do azul ao vermelho."
-    movers: {move: pingpong, every: "1/8", colour: "#6A1CFF"}
+    movers: {move: pingpong, every: "1/8", colour: "#6A1CFF", position: Dance Floor Centre}
     matrix: {draw: columns, rate: "1/8", colour: "#6A1CFF", pingpong: true}
     hue: dark
 
   - bars: [134, 136]
     name: espiral-1-16
     intent: "Espiral: os lados revezam cada vez mais rápido, do azul ao vermelho."
-    movers: {move: pingpong, every: "1/16", colour: "#FF0A2A"}
+    movers: {move: pingpong, every: "1/16", colour: "#FF0A2A", position: Dance Floor Centre}
     matrix: {draw: columns, rate: "1/16", colour: "#FF0A2A", pingpong: true}
     hue: dark
 
   - bars: [137, 184]
     name: entrega
     intent: "Entrega: do G até o fim, o look que a próxima música copia na ponte."
-    movers: {move: blink, every: "1/4", colour: "#FF0A2A"}
+    movers: {move: blink, every: "1/4", colour: "#FF0A2A", position: Dance Floor Centre}
     matrix: {draw: rows-down, rate: "1/16", colour: "#FF0A2A", mirror: true}
     white: {accent: ["137.1"]}
     strobe: {hit: ["137.1"]}

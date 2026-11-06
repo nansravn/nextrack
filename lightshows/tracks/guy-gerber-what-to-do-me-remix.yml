@@ -28,14 +28,14 @@ sections:
   - bars: [173, 176]
     name: subida
     intent: "As Vorlanes enchem rápido, as movings aceleram até o drop."
-    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF", faster_from: 175, faster_every: "1/4"}
+    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF", faster_from: 175, faster_every: "1/4", position: Up}
     matrix: {draw: fill-up, rate: "1/2", colour: "#0A2CFF", mirror: true}
     hue: dark
 
   - bars: [177, 192]
     name: chegada
     intent: "A chegada: filas descendo em cascata, a melodia escorrendo pelas paredes."
-    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF", position: Dance Floor Centre}
     matrix: {draw: rows-down, rate: "1/8", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 

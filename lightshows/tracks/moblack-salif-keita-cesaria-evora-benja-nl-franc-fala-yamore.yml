@@ -28,14 +28,14 @@ sections:
   - bars: [57, 64]
     name: subida
     intent: "Oito compassos enchendo as Vorlanes, as movings acelerando, o centro escuro."
-    movers: {move: pingpong, every: "1bar", colour: "#3A6BFF", faster_from: 63, faster_every: "1/2"}
+    movers: {move: pingpong, every: "1bar", colour: "#3A6BFF", faster_from: 63, faster_every: "1/2", position: Up}
     matrix: {draw: fill-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
     hue: dark
 
   - bars: [65, 73]
     name: chegada
     intent: "O grave volta depois de oito compassos de silêncio, com as vozes: a seta sobe em ciano, a fita branca uma batida."
-    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF", position: Dance Floor Centre}
     matrix: {draw: arrow-up, rate: "1/4", colour: "#00B8FF", mirror: true}
     white: {accent: ["65.1"]}
     hue: {state: pulse, colour: "#B0001E"}
@@ -50,20 +50,20 @@ sections:
   - bars: [81, 87]
     name: subida
     intent: "O grave volta e o kick provoca: as Vorlanes enchem, as movings revezando, o centro escuro."
-    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF", faster_from: 86, faster_every: "1/4"}
+    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF", faster_from: 86, faster_every: "1/4", position: Up}
     matrix: {draw: fill-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
     hue: dark
 
   - bars: [88, 97]
     name: o-kick-volta
     intent: "O kick volta: o último drop afro, filas subindo rápido."
-    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF", position: Crossed Over}
     matrix: {draw: rows-up, rate: "1/8", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 
   - bars: [98, 119]
     name: entrega
     intent: "Entrega: do G até o fim, o look que a próxima música copia na ponte."
-    movers: {move: pingpong, every: "1/2", colour: "#6A1CFF"}
+    movers: {move: pingpong, every: "1/2", colour: "#6A1CFF", positions: [Dance Floor Centre, Crossed Over, Up]}
     matrix: {draw: rows-up, rate: "1/2", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}

@@ -20,7 +20,7 @@ sections:
   - bars: [33, 63]
     name: chegada
     intent: "A chegada: filas descendo, NW e SW alternando; movings revezando."
-    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF"}
+    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF", position: Dance Floor Centre}
     matrix: {draw: rows-down, rate: "1/4", colour: "#0A2CFF", pingpong: true}
     hue: {state: pulse, colour: "#B0001E"}
 
@@ -34,7 +34,7 @@ sections:
   - bars: [76, 83]
     name: o-grave-volta
     intent: "O grave volta antes do kick: filas caindo rápido em ciano, o coração volta."
-    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF", position: Crossed Over}
     matrix: {draw: rows-down, rate: "1/8", colour: "#00B8FF", pingpong: true}
     hue: {state: pulse, colour: "#B0001E"}
 

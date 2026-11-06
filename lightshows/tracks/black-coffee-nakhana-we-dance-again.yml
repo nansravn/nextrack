@@ -35,7 +35,7 @@ sections:
   - bars: [104, 120]
     name: brilho
     intent: "Ciano nas colunas, as movings revezando: a água brilha antes da entrega."
-    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF"}
+    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF", position: Dance Floor Centre}
     matrix: {draw: columns, rate: "1/4", colour: "#00B8FF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 

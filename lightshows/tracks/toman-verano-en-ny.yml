@@ -13,7 +13,7 @@ sections:
   - bars: [9, 41]
     name: ponte
     intent: "Ponte: a mesma luz da música anterior, copiada camada por camada, até a chegada."
-    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF", position: Crossed Over}
     matrix: {draw: rows-up, rate: "1/4", colour: "#FF0A2A", mirror: true}
     hue: {state: pulse, colour: "#FF0A2A"}
 
@@ -27,14 +27,14 @@ sections:
   - bars: [54, 57]
     name: subida
     intent: "Quatro compassos enchendo em vermelho, as movings acelerando."
-    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF", faster_from: 56, faster_every: "1/4"}
+    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF", faster_from: 56, faster_every: "1/4", position: Up}
     matrix: {draw: fill-up, rate: "1bar", colour: "#FF0A2A", mirror: true}
     hue: dark
 
   - bars: [58, 73]
     name: chegada
     intent: "A chegada com a voz: zigue-zague vermelho espelhado, movings revezando."
-    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF", position: Dance Floor Centre}
     matrix: {draw: zigzag, rate: "1/8", colour: "#FF0A2A", mirror: true}
     hue: {state: pulse, colour: "#FF0A2A"}
 
@@ -48,6 +48,6 @@ sections:
   - bars: [90, 129]
     name: entrega
     intent: "Entrega: do G até o fim, o look que a próxima música copia na ponte."
-    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF", position: Crossed Over}
     matrix: {draw: rows-up, rate: "1/4", colour: "#FF0A2A", mirror: true}
     hue: {state: pulse, colour: "#FF0A2A"}

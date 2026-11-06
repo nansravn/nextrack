@@ -28,7 +28,7 @@ sections:
   - bars: [41, 64]
     name: chegada
     intent: "A chegada: colunas alternando NW e SW, pergunta e resposta; movings revezando."
-    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF", position: Dance Floor Centre}
     matrix: {draw: columns, rate: "1/8", colour: "#0A2CFF", pingpong: true}
     hue: {state: pulse, colour: "#B0001E"}
 
@@ -42,14 +42,14 @@ sections:
   - bars: [71, 72]
     name: subida
     intent: "Dois compassos enchendo."
-    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF", position: Up}
     matrix: {draw: fill-up, rate: "1/4", colour: "#0A2CFF", mirror: true}
     hue: dark
 
   - bars: [73, 78]
     name: drop-2
     intent: "A resposta final: colunas em ciano alternando."
-    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF", position: Crossed Over}
     matrix: {draw: columns, rate: "1/8", colour: "#00B8FF", pingpong: true}
     hue: {state: pulse, colour: "#B0001E"}
 

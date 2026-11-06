@@ -67,7 +67,7 @@ sections:
   - bars: [133, 143]
     name: subida
     intent: "O grave volta e o kick sobe filtrado: as Vorlanes enchem de baixo pra cima, as movings aceleram."
-    movers: {move: pingpong, every: "1bar", colour: "#3A6BFF", faster_from: 141, faster_every: "1/4"}
+    movers: {move: pingpong, every: "1bar", colour: "#3A6BFF", faster_from: 141, faster_every: "1/4", position: Up}
     matrix: {draw: fill-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
     hue: dark
 
@@ -81,7 +81,7 @@ sections:
   - bars: [145, 158]
     name: abertura
     intent: "O drop da abertura: o vermelho acende no centro pela primeira vez, a fita branca uma batida, o desenho sai do meio pras bordas."
-    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF", position: Dance Floor Centre}
     matrix: {draw: centre-out, rate: "1/4", colour: "#0A2CFF", mirror: true}
     white: {accent: ["145.1"]}
     hue: {state: pulse, colour: "#FF0A2A"}
@@ -96,7 +96,7 @@ sections:
   - bars: [161, 168]
     name: groove-final
     intent: "O groove volta: filas subindo rápido e as movings revezando."
-    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF"}
+    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF", position: Crossed Over}
     matrix: {draw: rows-up, rate: "1/8", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 

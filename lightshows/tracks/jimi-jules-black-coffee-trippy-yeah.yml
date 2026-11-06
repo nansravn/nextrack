@@ -35,7 +35,7 @@ sections:
   - bars: [33, 47]
     name: chegada
     intent: "A chegada com o kick: zigue-zague espelhado, um ponto correndo pelas Vorlanes; movings revezando."
-    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF", position: Dance Floor Centre}
     matrix: {draw: zigzag, rate: "1/8", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 
@@ -49,7 +49,7 @@ sections:
   - bars: [64, 81]
     name: groove
     intent: "Groove: filas subindo e as movings revezando."
-    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF"}
+    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF", position: Crossed Over}
     matrix: {draw: rows-up, rate: "1/4", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 
@@ -63,14 +63,14 @@ sections:
   - bars: [90, 92]
     name: subida
     intent: "Três compassos enchendo, as movings acelerando."
-    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF", faster_from: 92, faster_every: "1/8"}
+    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF", faster_from: 92, faster_every: "1/8", position: Up}
     matrix: {draw: fill-up, rate: "1/4", colour: "#0A2CFF", mirror: true}
     hue: dark
 
   - bars: [93, 100]
     name: drop-2
     intent: "O segundo drop: o zigue-zague volta mais rápido."
-    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF"}
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF", position: Dance Floor Centre}
     matrix: {draw: zigzag, rate: "1/16", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 
