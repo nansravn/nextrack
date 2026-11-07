@@ -14,6 +14,7 @@ Audio, rekordbox and the SoundSwitch project are only read.
 Subcommands:
   analyze  make the map of a track, or of every track of a rekordbox playlist; an existing
            map is kept unless it is stale (audio, script GUID or tempo changed) or --force
+  upgrade  add the version 2 `mix` block to existing maps from their audio (no separation)
   cues     reread the hot cues from rekordbox into existing maps (no audio)
   show     print a map as text: per 64 bars, the cues, one line per voice, the sections
   timeline print the set timeline of a rekordbox playlist: transitions, arrivals, set clock
@@ -221,8 +222,24 @@ class Session:
                 except Refused as why:
                     out.append((_label(t.artist, t.title), why, t))
             return out
+        if getattr(args, "all", False):
+            return self.map_targets()
         ref = self.project.resolve(args.track)
         return [(_label(ref.artist, ref.title), ref, None)]
+
+    def map_targets(self) -> list[tuple[str, ssf.TrackRef | Refused, RbTrack | None]]:
+        """`(label, ref, None)` per map under `lightshows/maps/`, found by its `soundswitch` GUID."""
+        out: list[tuple[str, ssf.TrackRef | Refused, RbTrack | None]] = []
+        for path in sorted((self.repo_root / "lightshows" / "maps").glob("*.yml")):
+            try:
+                guid = read_map(path).get("soundswitch")
+                if not isinstance(guid, str):
+                    raise Refused("the map has no soundswitch GUID")
+                ref = self.project.resolve(guid)
+                out.append((_label(ref.artist, ref.title), ref, None))
+            except (Refused, LookupError) as why:
+                out.append((path.stem, why if isinstance(why, Refused) else Refused(str(why)), None))
+        return out
 
     def cues_of(self, ref: ssf.TrackRef, known: RbTrack | None) -> tuple[RbTrack | None, str | None]:
         """`(rekordbox track, note)`: the note says why there is no track."""
@@ -297,6 +314,43 @@ def cmd_analyze(args) -> int:
     with contextlib.ExitStack() as stack:
         sess = Session(args, stack)
         return run_targets(sess, args, analyze_one)
+
+
+# ------------------------------------------------------------------ upgrade ----
+
+
+def upgrade_one(sess: Session, ref: ssf.TrackRef, known: RbTrack | None, out: list[str]) -> None:
+    """Bring a map to version 2: read the audio again, add the `mix` block and change nothing
+    else. Refused when there is no map or the audio's hash is not the map's; never separates."""
+    path = map_path(sess.repo_root, pool_track(sess.repo, ref))
+    if not path.is_file():
+        raise Refused("no map: run analyze")
+    data = checked_map(path)
+    if data.get("map_version", 1) >= mm.MAP_VERSION:
+        out.append(f"kept {path}")
+        return
+    audio = mm.find_audio(sess.root, ref.path)
+    raw = audio.read_bytes()
+    if hashlib.sha256(raw).hexdigest()[:12] != data["audio"]["sha256"]:
+        raise Refused("the audio changed since the map was made: re-analyse with analyze --force")
+    x, sr = read_audio(raw)
+    grid = ssf.Grid([(int(ms), float(bpm)) for ms, bpm in data["grid"]["anchors"]])
+    edges = mm.step_edges_ms(grid, data["audio"]["ms"])[::mm.STEPS_PER_BAR][: data["bars"] + 1]
+    data["mix"] = mm.mix_block(x, sr, edges)
+    data["map_version"] = mm.MAP_VERSION
+    problems = mm.problems_map(data)
+    if problems:
+        raise Refused("the upgraded map would break the schema: " + "; ".join(problems))
+    path.write_text(mm.dump_map(data), encoding="utf-8")
+    out.append(f"upgraded {path}")
+
+
+def cmd_upgrade(args) -> int:
+    if not args.playlist:
+        args.rekordbox = None  # only a playlist needs rekordbox
+    with contextlib.ExitStack() as stack:
+        sess = Session(args, stack)
+        return run_targets(sess, args, upgrade_one)
 
 
 # --------------------------------------------------------------------- cues ----
@@ -487,6 +541,9 @@ def main(argv: list[str] | None = None) -> int:
     a.add_argument("--force", action="store_true", help="redo maps that are up to date")
     a.add_argument("--keep-stems", metavar="DIR", help="also write the four stems under DIR/<slug>/")
     a.add_argument("--device", choices=("cuda", "cpu"), help="default: cuda when there is one")
+    u = sub.add_parser("upgrade", help="add the version 2 mix block to existing maps (no separation)")
+    common(u, True)
+    u.add_argument("--all", action="store_true", help="every map under lightshows/maps/")
     c = sub.add_parser("cues", help="reread the hot cues from rekordbox into existing maps")
     common(c, False)
     s = sub.add_parser("show", help="print a map as text")
@@ -507,7 +564,11 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_show(args)
         if args.cmd == "timeline":
             return cmd_timeline(args)
-        if bool(args.track) == bool(args.playlist):
+        if args.cmd == "upgrade":
+            if [bool(args.track), bool(args.playlist), args.all].count(True) != 1:
+                print("give a track, --playlist or --all, exactly one", file=sys.stderr)
+                return 2
+        elif bool(args.track) == bool(args.playlist):
             print("give a track or --playlist, not both", file=sys.stderr)
             return 2
         if not args.project:
@@ -516,10 +577,10 @@ def main(argv: list[str] | None = None) -> int:
         if not Path(args.project).is_dir():
             print(f"project folder not found: {args.project}", file=sys.stderr)
             return 2
-        if args.cmd == "analyze" and not args.root:
+        if args.cmd in ("analyze", "upgrade") and not args.root:
             print(f"set --root or {ROOT_ENV}", file=sys.stderr)
             return 2
-        return {"analyze": cmd_analyze, "cues": cmd_cues}[args.cmd](args)
+        return {"analyze": cmd_analyze, "upgrade": cmd_upgrade, "cues": cmd_cues}[args.cmd](args)
     except (LookupError, OSError, ValueError) as e:
         print(e, file=sys.stderr)
         return 1

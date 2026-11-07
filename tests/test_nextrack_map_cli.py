@@ -92,7 +92,7 @@ def env(tmp_path, make_project, mini_repo, monkeypatch):
         argv = [args[0], "--repo", str(mini_repo.root)]
         if args[0] != "timeline":
             argv += ["--project", str(e.project)]
-        if args[0] == "analyze":
+        if args[0] in ("analyze", "upgrade"):
             argv += ["--root", str(e.root)]
         if rekordbox:
             argv += ["--rekordbox", str(tmp_path / "rb")]
@@ -113,6 +113,8 @@ def test_analyze_writes_a_valid_map(env, capsys):
     assert data["hot_cues"] == {"A": "1.1", "B": "3.1"}
     assert env.repo.findings("musical-map") == []
     assert env.calls[0][0][1] == 2
+    assert data["map_version"] == 2
+    assert len(data["mix"]["loudness"]) == len(data["mix"]["brightness"]) == data["bars"]
 
 
 def test_analyze_keeps_an_up_to_date_map_and_redoes_a_stale_one(env, capsys):
@@ -367,6 +369,87 @@ def test_cues_rewrites_only_hot_cues(env, capsys):
 def test_cues_without_a_map_is_refused(env, capsys):
     assert env.run("cues", "Dançarina") == 1
     assert "no map" in capsys.readouterr().out
+
+
+MIX_LINES = ("map_version:", "mix:", "  loudness:", "  brightness:")
+
+
+def _strip_v2(text):
+    return [x for x in text.splitlines() if not x.startswith(MIX_LINES)]
+
+
+def _as_v1(path):
+    lines = [x for x in path.read_text(encoding="utf-8").splitlines() if not x.startswith(MIX_LINES[1:])]
+    path.write_text("\n".join(x if not x.startswith("map_version:") else "map_version: 1" for x in lines) + "\n",
+                    encoding="utf-8")
+
+
+def _v1_map(env, track="Dançarina", rel=MAP_REL):
+    env.run("analyze", track)
+    path = env.repo.path(rel)
+    v2 = path.read_text(encoding="utf-8")
+    _as_v1(path)
+    assert "mix" not in mm.load_map(path) and mm.load_map(path)["map_version"] == 1
+    return path, v2
+
+
+def test_upgrade_adds_the_mix_block_and_keeps_every_other_line(env, capsys):
+    path, v2 = _v1_map(env)
+    before = path.read_text(encoding="utf-8")
+    capsys.readouterr()
+    assert env.run("upgrade", "Dançarina", rekordbox=False) == 0
+    assert f"upgraded {path}" in capsys.readouterr().out
+    after = path.read_text(encoding="utf-8")
+    assert _strip_v2(after) == _strip_v2(before)
+    data = yaml.safe_load(after)
+    assert data["map_version"] == 2 and set(data["mix"]) == {"loudness", "brightness"}
+    assert after == v2  # the same bytes analyze writes
+    assert mm.problems_map(data) == []
+    assert len(env.calls) == 1  # never separates again
+
+
+def test_upgrade_refuses_when_the_audio_changed(env, capsys):
+    path, _ = _v1_map(env)
+    before = path.read_bytes()
+    write_audio(env.root / "Music" / "a.mp3", freq=523.0)
+    capsys.readouterr()
+    assert env.run("upgrade", "Dançarina", rekordbox=False) == 1
+    assert "re-analyse" in capsys.readouterr().out
+    assert path.read_bytes() == before
+
+
+def test_upgrade_refuses_a_track_without_a_map(env, capsys):
+    assert env.run("upgrade", "Dançarina", rekordbox=False) == 1
+    assert "no map: run analyze" in capsys.readouterr().out
+
+
+def test_upgrade_keeps_a_v2_map(env, capsys):
+    env.run("analyze", "Dançarina")
+    path = env.repo.path(MAP_REL)
+    before = path.read_bytes()
+    capsys.readouterr()
+    assert env.run("upgrade", "Dançarina", rekordbox=False) == 0
+    assert f"kept {path}" in capsys.readouterr().out
+    assert path.read_bytes() == before
+
+
+def test_upgrade_all_upgrades_every_map(env, capsys):
+    for track in ("Dançarina", "Voa Voa"):
+        env.run("analyze", track)
+    maps = sorted(env.repo.path("lightshows/maps").glob("*.yml"))
+    assert len(maps) == 2
+    for p in maps:
+        _as_v1(p)
+    capsys.readouterr()
+    assert env.run("upgrade", "--all", rekordbox=False) == 0
+    out = capsys.readouterr().out
+    assert out.count("upgraded") == 2
+    assert [mm.load_map(p)["map_version"] for p in maps] == [2, 2]
+
+
+def test_upgrade_wants_exactly_one_of_track_playlist_all(env):
+    assert env.run("upgrade", rekordbox=False) == 2
+    assert env.run("upgrade", "Dançarina", "--all", rekordbox=False) == 2
 
 
 def test_show_prints_the_map(tmp_path, capsys):

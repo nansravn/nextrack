@@ -355,7 +355,9 @@ the runs of bars where the whole mix is near silent.
 **Mix (map version 2).** `analyze` writes `map_version: 2`, which adds `mix`: two strings of one
 digit `0`-`9` per bar, read from the whole original mix (not the stems), `mix.loudness` and
 `mix.brightness`. *Loudness*: the bar's mean power with the ITU-R BS.1770 K-weighting applied to
-each spectrum bin, in dB (`L`); the reference is the 95th percentile of `L` over the non-silent
+each spectrum bin, in dB (`L`); each bar is Hann-windowed before the FFT, and the K-weighting
+uses the 48 kHz coefficients evaluated at each bin's true frequency whatever the file's sample
+rate; the reference is the 95th percentile of `L` over the non-silent
 bars and the digit is `9 - floor((reference - L) / 1.5)` limited to `0`-`9`, so 1.5 dB per digit
 and `9` is the track's loud level. *Brightness*: the share of the bar's power above 4000 Hz,
 stretched between the 5th and 95th percentiles of the track's bars into `0`-`9` (`0` all the
@@ -410,7 +412,9 @@ phrases: [{from: "1.1", to: "8.4", register: mid, level: 8}]
 sections: [{bars: [1, 38], kind: groove}, {bars: [39, 40], kind: break}, {bars: [41, 64], kind: drop}]
 drops: [{bar: 41, db: 18.5}]
 silences: [[95, 97]]
-mix: {loudness: "6789...", brightness: "2223..."}           # one digit per bar; map version 2
+mix:                                                          # one digit per bar; map version 2
+  loudness: "6789..."
+  brightness: "2223..."
 ```
 
 ## Seeing the show
