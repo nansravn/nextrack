@@ -1,4 +1,6 @@
 """The set brief (show_brief.py) on the mini repo's set: two tracks, two maps, no show needed."""
+from pathlib import Path
+
 import musical_map
 import show_analysis
 import show_brief
@@ -86,3 +88,34 @@ def test_brief_target_is_one_character_per_minute():
     assert show_brief._target_strip([(0.0, 4), (120.0, 8)], 180.0) == "578"
     assert show_brief._target_strip([(0.0, 10)], 60.0) == "X"
     assert show_brief._target_strip([], 60.0) == ""
+
+
+def strip_energy(repo):
+    """The `target` strip of the brief."""
+    return part(brief(repo), "target")[-1].strip()
+
+
+def test_brief_target_runs_from_the_first_to_the_last_owner_energy(mini_repo):
+    put_show(mini_repo)
+    strip = strip_energy(mini_repo)
+    assert strip and set(strip) <= set("78")
+
+
+def test_brief_track_without_energy_takes_the_block_range(mini_repo):
+    put_show(mini_repo)
+    mini_repo.edit("blocks/alpha-festa.md", "Dançarina        · e8  abre", "Dançarina · 8A · 120")
+    mini_repo.edit("blocks/alpha-festa.md", "Voa Voa    · e7", "Voa Voa · 8A · 120")
+    mini_repo.edit("tracks/alpha.yml", "  energy: 8\n", "")
+    mini_repo.edit("tracks/alpha.yml", "  energy: 7\n", "")
+    text = brief(mini_repo)
+    owners = [line.split("owner ")[1].split(" ·")[0] for line in text.splitlines() if "owner " in line]
+    assert owners == ["e7", "e8"]
+    assert set(strip_energy(mini_repo)) <= set("78")
+
+
+def test_brief_labels_section_lists_the_questions(mini_repo):
+    put_show(mini_repo)
+    assert part(brief(mini_repo), "labels") == ["  none"]      # two tracks cannot differ by three places
+    real = show_brief.render_brief(load_repo(Path(__file__).resolve().parents[1]), "sets/hi-ibiza-pulso.md")
+    questions = part(real, "labels")
+    assert questions and all("check the label" in q and "owner energy e" in q for q in questions)

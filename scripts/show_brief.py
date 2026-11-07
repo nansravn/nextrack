@@ -7,15 +7,22 @@ The text has six parts, in this order, each under its header line:
               `energy`, the tempo ramp (first leg's start to last leg's end, and the extremes)
     tracks    per track, in set order: the clock (`enters` at the start of its leg, the leg's
               minutes), `B`, `G`, the mix window (the bars from `G` to the map's last bar),
-              the owner's energy (`eN` of the tracklist line, else the pool's `energy`), the
+              the owner's energy (`eN` of the tracklist line, else the pool's `energy`, else the block's
+              `energy: [a, b]` by position, see `target`), the
               night-normalised `E_music` mean and 90th percentile over the leg's bars, the
               section strip (one letter per leg bar, the letters of `nextrack_map.py show`) and
               the vocal presence (the share of leg bars whose vocals digit is 6 or more)
     drops     the night's drops ranked by the salience of `show_analysis.map_drops` (the maps
               alone), the biggest first (a tie goes to the earlier on the clock), with bar and
               clock
-    target    the owner's energy as one character per minute of the night: the tracks' owner
-              energies at their legs' starts, joined by straight lines, flat before the first
+    target    the owner's energy as one character per minute of the night. A track's target is
+              its tracklist `eN`, else its pool `energy`, else the block's `energy: [a, b]`
+              interpolated linearly by the track's position among the block's tracks (first
+              track a, last track b, rounded half up; `check_repo.block_range_energy`, the same
+              as the report's). The block's `function` and the set's `arc` are context printed
+              under `night`, with no formula: they describe the shape the owner's labels encode.
+              The tempo ramp places the legs on the clock. The targets sit at their legs' starts,
+              joined by straight lines, flat before the first
               and after the last, read at the middle of each minute and rounded half up; 1-9
               are digits, 10 is `X`
     labels    the label check's questions (`show_analysis._label_questions`: owner energy rank
@@ -64,16 +71,6 @@ def _find_map(repo: check_repo.Repo, artist: str, title: str) -> tuple[str | Non
     return found[0], (None if problems else found[1]), (problems[0] if problems else None)
 
 
-def _pool_energy(repo: check_repo.Repo, artist: str, title: str) -> int | None:
-    for pool in repo.pools:
-        for e in pool.entries:
-            if (isinstance(e.get("energy"), int) and not isinstance(e.get("energy"), bool)
-                    and isinstance(e.get("artist"), str) and isinstance(e.get("title"), str)
-                    and check_repo.same_track(artist, title, e["artist"], e["title"])):
-                return e["energy"]
-    return None
-
-
 def _energy_char(value: float) -> str:
     n = int(value + 0.5 + 1e-9)
     return "X" if n >= 10 else str(max(n, 0))
@@ -111,10 +108,14 @@ def _set_rows(repo: check_repo.Repo, text: str) -> tuple[list[dict], list[str], 
         energy = front.get("energy")
         blocks.append(f"{block_id} ({front.get('function', '?')}"
                       + (f", e{energy[0]}-{energy[1]}" if isinstance(energy, list) and len(energy) == 2 else "") + ")")
-        for (artist, title, tempo), (_, _, owner) in zip(set_timeline.block_tempos(block.text),
-                                                          set_timeline.block_energies(block.text)):
-            rows.append({"artist": artist, "title": title, "tempo": tempo, "owner": owner, "block": block_id,
-                         "name": f"{artist} — {title}"})
+        energies = set_timeline.block_energies(block.text)
+        for k, (artist, title, tempo) in enumerate(set_timeline.block_tempos(block.text)):
+            # both parse the same tracklist lines; match by name so a drift cannot swap energies
+            own = energies[k][2] if k < len(energies) and energies[k][:2] == (artist, title) else \
+                next((e for a, t, e in energies if (a, t) == (artist, title)), None)
+            rows.append({"artist": artist, "title": title, "tempo": tempo, "owner": own, "block": block_id,
+                         "name": f"{artist} — {title}",
+                         "ranged": check_repo.block_range_energy(front, k, len(energies))})
     return rows, blocks, missing
 
 
@@ -128,7 +129,9 @@ def render_brief(repo: check_repo.Repo, set_rel: str) -> str:
     for r in rows:
         r["path"], r["map"], problem = _find_map(repo, r["artist"], r["title"])
         if r["owner"] is None:
-            r["owner"] = _pool_energy(repo, r["artist"], r["title"])
+            r["owner"] = check_repo.pool_energy(repo, r["artist"], r["title"])
+        if r["owner"] is None:
+            r["owner"] = r["ranged"]
         if r["map"] is None:
             why = "no map" if r["path"] is None else f"invalid map {r['path']}: {problem}"
             missing.append(f"{r['name']}: {why}; the clock leaves it out")
