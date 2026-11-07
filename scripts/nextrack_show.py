@@ -443,7 +443,7 @@ def _report(args) -> int:
     if found or compiled is None:
         _print_findings(found)
         return 1
-    clock = show_views.build_clock(compiled, check_repo.show_tempos(repo, source))
+    clock = show_views.build_clock(compiled)
     print(render_report(compiled, rule_found, advice, clock, check_repo.valid_room(repo)), end="")
     return 1 if rule_found else 0
 
@@ -454,13 +454,6 @@ def _report(args) -> int:
 def _usage(message: str) -> int:
     print(f"usage error: {message}", file=sys.stderr)
     return 2
-
-
-def _valid_rig(repo: check_repo.Repo) -> lightshow.Rig | None:
-    """The rig of `lightshows/rig.yml`, or None when it is missing or fails its check."""
-    if repo.rig is None or lightshow.problems_rig(repo.rig[1]):
-        return None
-    return lightshow.load_rig(repo.root / check_repo.RIG_PATH)
 
 
 def zoom_target(show: CompiledShow, target: str, anchor: str | None) -> tuple[int, int, str | None] | str:
@@ -508,9 +501,9 @@ def _zoom(args) -> int:
     if isinstance(target, str):
         return _usage(target)
     index, bar, label = target
-    clock = show_views.build_clock(compiled, check_repo.show_tempos(repo, source))
+    clock = show_views.build_clock(compiled)
     print(show_zoom.render_zoom(compiled, index, bar, args.before, args.after, frames, clock,
-                                rig=_valid_rig(repo), room=check_repo.valid_room(repo), label=label), end="")
+                                rig=check_repo.valid_rig(repo), room=check_repo.valid_room(repo), label=label), end="")
     if rule_found:                     # the report lists them; the zoom only says they exist
         print(f"{len(rule_found)} rule finding(s): see nextrack_show.py report", file=sys.stderr)
     return 0
@@ -573,6 +566,10 @@ def render_vocab(source: ShowSource | None, room: show_room.Room | None = None) 
     for name, r in show_rules.RULES.items():
         out.append(f"rule {name}: {_first_paragraph(r.doc)}")
         out.append(f"    params: {r.params}")
+    out += ["", "identity (show.yml `identity:`)",
+            f"  arc: {', '.join(show_language.ARC_SHAPES)}",
+            f"  signature dimensions (`is`): {', '.join(show_language.IDENTITY_DIMENSIONS)}",
+            "  signature: {name, intent, is: {dimension: value or [values]}, share: {min?, max?}}"]
     if room is not None:
         out += _aims_text(room)
     if source is not None and isinstance(source.show, dict):

@@ -128,6 +128,44 @@ handover:
 | `handover` | optional: `{name, intent}`, both required when `handover` is present. The default `name`/`intent` of the handover sections of the track files; needed when a track's handover does not write its own |
 | `rules` | optional: rule id -> parameters (or `true`). Chooses which [rules](#show-rules) run; none written, none run |
 | `advice` | optional: rule id -> parameters, as in `rules` (a rule may be in both, with other parameters). Design goals: their findings (`show-advice`) are printed by `build` and `report`, and never fail `check_repo.py` or change an exit status |
+| `identity` | optional: `{arc?, signatures?}`, what the night promises: see [identity](#identity) |
+
+### identity
+
+```yaml
+identity:
+  arc: single-peak                 # optional: single-peak | waves | slow-burn
+  signatures:
+    - name: azul-espaco
+      intent: 'O azul é o espaço da noite: os feixes moram nele.'
+      is: {movers.colour: [azul, violeta]}
+      share: {min: 0.6}
+    - name: coracao
+      intent: 'O vermelho é o coração, no centro da sala.'
+      is: {hue.colour: vermelho}
+      share: {min: 0.5}
+```
+
+- `arc` is the shape of the night's energy: `single-peak`, `waves` or `slow-burn`.
+- A signature is `{name, intent, is, share?}`. `name` is a kebab-case id (unique in the
+  block) and `intent` is pt-BR prose.
+- `is` maps dimensions to a value or a list of values (a list means any of them). The
+  dimensions are `look`, `gesture`, `movers.move`, `movers.rate`, `movers.colour`, `aim`,
+  `matrix.draw`, `matrix.rate`, `matrix.colour`, `hue.state` and `hue.colour`. A section carries
+  the signature when every listed dimension matches. Colours are palette names, `look` takes
+  looks of the show, `gesture` registered gestures, `aim` aim ids of `lightshows/room.yml`
+  (a finding when there is no valid room), rates a rate word and `movers.move`, `matrix.draw`
+  and `hue.state` the layer's words (`vocab` lists them).
+- `share` is `{min?, max?}`, fractions of the night from 0 to 1 with `min <= max`.
+- Every problem is a `show-source` finding at the signature's line, such as
+  `identity.signatures[0].is: 'movers.color' is not a dimension`.
+- The dimensions a signature declares are exempt from the dominance checks of the variety
+  analyses: a conscious repetition is not monotony.
+
+A compiled show also carries what the repo knows of the night: the played tempos of its tracks
+(`check_repo.show_tempos`), the owner's energy labels (`check_repo.show_energies`: the `eN` of the
+block's tracklist line, else the `energy` of the pool entry), the rig and the room, and the line
+of each rule, advice and signature in `show.yml`.
 
 ## A track file
 

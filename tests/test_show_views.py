@@ -410,3 +410,19 @@ def test_views_take_bad_maps_without_raising():
     clock, night, strips = views(show)
     assert clock.tracks[1].sounding == (5, 32) and strips[1][1] == "~" * 28
     assert night["autoscript_s"] == pytest.approx(16.0 + 56.0)
+
+
+def test_set_clock_matches_build_clock_on_the_two_track_show():
+    import dataclasses
+
+    show = base()
+    tempos = {TRACK_1: (120.0, 126.0)}
+    by_show = sv.build_clock(show, tempos)
+    by_maps = sv.set_clock([t.map for t in show.tracks], [tempos.get(t.track) for t in show.tracks],
+                           [max(s.bars[1] for s in t.sections) for t in show.tracks])
+    assert by_maps == by_show
+    # without a show or compiled bars: the sounding window is the leg
+    bare = sv.set_clock([t.map for t in show.tracks], [None, None])
+    assert [c.leg for c in bare.tracks] == [c.leg for c in by_show.tracks]
+    # build_clock without tempos reads the show's own
+    assert sv.build_clock(dataclasses.replace(show, tempos=tempos)) == by_show

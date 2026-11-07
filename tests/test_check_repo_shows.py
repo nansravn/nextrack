@@ -140,3 +140,27 @@ def test_rules_table_lists_the_show_rules():
     text = (Path(__file__).resolve().parents[1] / "scripts/README.md").read_text(encoding="utf-8")
     for rule_id in RULES:
         assert f"`{rule_id}`" in text
+
+
+def test_show_inputs_read_the_energy_of_each_block_line(mini_repo):
+    import check_repo
+    from showdata import TRACK_1 as NAME_1, TRACK_2 as NAME_2
+
+    put_show(mini_repo)
+    # the mini repo's block lines carry no energy field: the pool entry's `energy` answers
+    repo = check_repo.load_repo(mini_repo.root)
+    source = next(s for s in repo.shows if s.folder == SHOW)
+    assert check_repo.show_energies(repo, source) == {NAME_1: 8, NAME_2: 7}
+    # a block line's `eN` wins over the pool
+    mini_repo.edit("blocks/alpha-festa.md", "Dançarina        · e8", "Dançarina · 8A · 120 · e5")
+    repo = check_repo.load_repo(mini_repo.root)
+    source = next(s for s in repo.shows if s.folder == SHOW)
+    inputs = check_repo.show_inputs(repo, source)
+    assert inputs.energies == {NAME_1: 5, NAME_2: 7}
+    assert inputs.tempos == {NAME_1: (120.0, 120.0)} and inputs.rig is None
+
+
+def test_valid_rig_is_none_without_a_rig(mini_repo):
+    import check_repo
+
+    assert check_repo.valid_rig(check_repo.load_repo(mini_repo.root)) is None

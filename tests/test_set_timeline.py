@@ -168,3 +168,10 @@ def test_a_cue_before_the_first_anchor_parses_and_a_misplaced_one_warns():
     ts, _, warnings = st.timeline([a, b])
     assert ts[0].b_bar == 1
     assert any("B: hot cue B is not on a beat" in w for w in warnings)
+
+
+def test_block_energies_reads_the_e_field():
+    text = "## Tracklist (primary)\n1. A — B · 8A · 120 · e6  abre\n2. C — D · 9A · 121 · sem\n"
+    assert st.block_energies(text) == [("A", "B", 6), ("C", "D", None)]
+    ten = "## Tracklist (primary)\n1. A — B · 8A · 120 · e10\n2. C — D · 9A · 121 · e11\n3. E — F · e7\n"
+    assert st.block_energies(ten) == [("A", "B", 10), ("C", "D", None), ("E", "F", None)]

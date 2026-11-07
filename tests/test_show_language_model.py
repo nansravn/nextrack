@@ -4,8 +4,9 @@ import copy
 import pytest
 
 from musical_map import problems_map
-from show_language import (expand_look, flatten_looks, merge_layers, problems_show,
+from show_language import (expand_look, flatten_looks, merge_layers, problems_identity, problems_show,
                            problems_track_file, resolve_anchor, resolve_colours)
+import show_room
 from showdata import PALETTE, show_map
 
 
@@ -196,3 +197,60 @@ def test_odd_inputs_never_raise(odd):
         m["hot_cues"] = hot
         resolve_anchor("B", m)
         resolve_anchor(odd, m)
+
+
+# ---------------------------------------------------------------- identity --
+
+
+def _identity(**sig):
+    return {"arc": "waves", "signatures": [{"name": "azul-espaco", "intent": "O azul é o espaço.", **sig}]}
+
+
+def test_identity_accepts_signatures_on_dimensions():
+    identity = _identity(**{"is": {"movers.colour": ["azul"]}, "share": {"min": 0.6}})
+    assert problems_identity(identity, PALETTE, {}, None) == []
+    other = {"signatures": [{"name": "a", "intent": "b", "is": {"look": "pulso", "movers.rate": "1/4"}}]}
+    assert problems_identity(other, PALETTE, {"pulso": {}}, None) == []
+
+
+@pytest.mark.parametrize("sig, words", [
+    ({"name": "x", "intent": "y", "is": {"movers.color": "azul"}}, "'movers.color' is not a dimension"),
+    ({"name": "x", "intent": "y", "is": {"movers.colour": "azull"}}, "did you mean 'azul'"),
+    ({"name": "x", "intent": "y", "is": {"look": "nada"}}, "look 'nada' is not defined"),
+    ({"name": "x", "intent": "y", "is": {"aim": "cruzado"}}, "no valid lightshows/room.yml"),
+    ({"name": "x", "intent": "y", "is": {"hue.colour": "azul"}, "share": {"min": 0.7, "max": 0.5}},
+     "min 0.7 is above max 0.5"),
+    ({"name": "x", "intent": "y", "is": {"hue.colour": "azul"}, "share": {"min": 1.5}}, "not a fraction from 0 to 1"),
+    ({"name": "x", "intent": "y", "is": {}}, "is: name at least one dimension"),
+    ({"name": "X", "intent": "y", "is": {"look": "a"}}, "kebab-case"),
+    ({"name": "x", "intent": "y", "is": {"movers.rate": "fast"}}, "'fast' is not a rate"),
+    ({"name": "x", "intent": "y", "is": {"matrix.draw": "spiral"}}, "'spiral' is not one of"),
+    ({"name": "x", "intent": "y", "is": {"gesture": "nada"}}, "gesture 'nada' is not registered"),
+])
+def test_identity_problems(sig, words):
+    problems = problems_identity({"signatures": [sig]}, PALETTE, {}, None)
+    assert any(words in message and message.startswith("identity.signatures[0]") for _, message in problems), problems
+
+
+def test_identity_arc_is_a_known_shape():
+    problems = problems_identity({"arc": "zigzag"}, PALETTE, {}, None)
+    assert [m for _, m in problems] == ["identity.arc 'zigzag' is not one of single-peak, waves, slow-burn"]
+
+
+def test_identity_aims_come_from_the_room():
+    room = show_room.load_room({
+        "size": {"x": 5.0, "y": 4.0, "z": 2.6}, "assumed": True, "fixtures": {"mover-ne": [5, 4, 2.3]},
+        "booth": [2.5, 4, 1.2],
+        "aims": {"cruzado": {"figure": "uma figura", "preset": "Crossed Over", "status": "configured",
+                             "targets": {"mover-ne": [1, 1, 1]}}}})
+    ok = {"signatures": [{"name": "x", "intent": "y", "is": {"aim": "cruzado"}}]}
+    assert problems_identity(ok, PALETTE, {}, room) == []
+    bad = {"signatures": [{"name": "x", "intent": "y", "is": {"aim": "cruzad"}}]}
+    assert "did you mean 'cruzado'" in problems_identity(bad, PALETTE, {}, room)[0][1]
+
+
+def test_problems_show_accepts_identity():
+    from showdata import two_track_show
+    show = two_track_show()[0].show
+    assert problems_show({**show, "identity": {"arc": "waves"}}) == []
+    assert problems_show({**show, "identity": []}) == [(0, "identity [] is not a mapping")]

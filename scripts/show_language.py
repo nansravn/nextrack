@@ -38,6 +38,11 @@ ACCENTS = ("white", "strobe", "strobe-roll")
 ROLES = ("arrival",)
 ID_RE = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
 COLOUR_LAYERS = ("movers", "matrix", "hue")
+# What a signature of `identity` can name: a look, a gesture, or one key of a layer. A section
+# carries a signature when every dimension it lists matches (any value of a list).
+IDENTITY_DIMENSIONS = ("look", "gesture", "movers.move", "movers.rate", "movers.colour", "aim",
+                       "matrix.draw", "matrix.rate", "matrix.colour", "hue.state", "hue.colour")
+ARC_SHAPES = ("single-peak", "waves", "slow-burn")
 
 _ANCHOR_RE = re.compile(
     r"\s*(?:(?P<n>[0-9]+)|(?P<hot>[A-H])|(?P<kind>" + "|".join(SECTION_KINDS) + r")"
@@ -155,7 +160,7 @@ def problems_show(data: object) -> list[tuple[int, str]]:
     if not isinstance(data, dict):
         return [(0, "show.yml is not a mapping")]
     out = _check_keys(data, ("show_version", "set", "story", "palette"),
-                      ("plan", "looks", "gesture_defaults", "bridge", "handover", "rules", "advice"), "show.yml")
+                      ("plan", "looks", "gesture_defaults", "bridge", "handover", "rules", "advice", "identity"), "show.yml")
     version = data.get("show_version")
     if "show_version" in data and (version != SHOW_VERSION or isinstance(version, bool)):
         out.append((_line(data), f"show_version {version!r} is not {SHOW_VERSION}"))
@@ -182,9 +187,119 @@ def problems_show(data: object) -> list[tuple[int, str]]:
             out.append((_line(bridge), f"bridge.bars {bars!r} is not a whole number of bars from {low} to {high}"))
     if "handover" in data:
         out += _naming_block(data["handover"], "handover")
+    if "identity" in data and not isinstance(data["identity"], dict):
+        out.append((_line(data), f"identity {data['identity']!r} is not a mapping"))
     for key in ("rules", "advice"):
         if key in data and not isinstance(data[key], dict):
             out.append((_line(data), f"{key} {data[key]!r} is not a mapping"))
+    return out
+
+
+def _close(value: str, known: list, what: str) -> str:
+    """`did you mean 'x'?` for a close match, else the list of `known` words."""
+    close = difflib.get_close_matches(value, [str(k) for k in known], n=1, cutoff=0.6)
+    return f"did you mean {close[0]!r}?" if close else f"{what}: {', '.join(map(str, known)) or 'none'}"
+
+
+def _identity_value(dim: str, value: object, palette: dict, looks: dict, room) -> str | None:
+    """The problem of one value of an `is` dimension, or None."""
+    if not isinstance(value, str):
+        return f"{dim}: {value!r} is not a word"
+    if dim.endswith("colour"):
+        return None if value in palette else f"{dim}: colour {value!r} is not in the palette; " \
+            + _close(value, list(palette), "palette")
+    if dim == "look":
+        return None if value in looks else f"{dim}: look {value!r} is not defined; " \
+            + _close(value, list(looks), "looks")
+    if dim == "gesture":
+        return None if value in GESTURES else f"{dim}: gesture {value!r} is not registered; " \
+            + _close(value, sorted(GESTURES), "gestures")
+    if dim == "aim":
+        if room is None:
+            return (f"{dim}: {value!r} looks like an aim id, but there is no valid lightshows/room.yml "
+                    "to check it against")
+        return None if value in room.aims else f"{dim}: {value!r} is not an aim of lightshows/room.yml; " \
+            + _close(value, list(room.aims), "aims")
+    if dim.endswith("rate"):
+        return None if lightshow.RATE_RE.fullmatch(value) else \
+            f"{dim}: {value!r} is not a rate (1/16, 1/8, 1/4, 1/2 or <n>bar)"
+    words = {"movers.move": lightshow.MOVER_MOVES, "matrix.draw": lightshow.MATRIX_DRAWS,
+             "hue.state": lightshow.HUE_STATES}[dim]
+    return None if value in words else f"{dim}: {value!r} is not one of {', '.join(words)}"
+
+
+def _identity_share(share: object) -> list[str]:
+    if not isinstance(share, dict):
+        return [f"share {share!r} is not a mapping {{min?, max?}}"]
+    out = [f"share: unexpected key {k!r} (allowed: min, max)" for k in _keys(share) if k not in ("min", "max")]
+    for key in ("min", "max"):
+        value = share.get(key)
+        if key in share and not (isinstance(value, (int, float)) and not isinstance(value, bool)
+                                 and 0 <= value <= 1):
+            out.append(f"share.{key} {value!r} is not a fraction from 0 to 1")
+    low, high = share.get("min"), share.get("max")
+    if all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in (low, high)) and low > high:
+        out.append(f"share: min {low} is above max {high}")
+    return out
+
+
+def _identity_signature(sig: object, where: str, palette: dict, looks: dict, room,
+                        fallback: int) -> list[tuple[int, str]]:
+    if not isinstance(sig, dict):
+        return [(fallback, f"{where} {sig!r} is not a mapping")]
+    line = _line(sig) or fallback
+    out = [(line, m) for _, m in _check_keys(sig, ("name", "intent", "is"), ("share",), where)]
+    out += [(line, m) for _, m in _check_naming(sig, where)]
+    if isinstance(sig.get("intent"), str) and not sig["intent"].strip():
+        out.append((line, f"{where}.intent is empty"))
+    dims = sig.get("is")
+    if "is" in sig and not isinstance(dims, dict):
+        out.append((line, f"{where}.is {dims!r} is not a mapping of dimensions to values"))
+    elif isinstance(dims, dict):
+        if not _keys(dims):
+            out.append((line, f"{where}.is: name at least one dimension; "
+                              f"dimensions: {', '.join(IDENTITY_DIMENSIONS)}"))
+        for dim in _keys(dims):
+            if dim not in IDENTITY_DIMENSIONS:
+                out.append((line, f"{where}.is: {dim!r} is not a dimension; "
+                                  + _close(str(dim), list(IDENTITY_DIMENSIONS), "dimensions")))
+                continue
+            values = dims[dim] if isinstance(dims[dim], list) else [dims[dim]]
+            if not values:
+                out.append((line, f"{where}.is.{dim}: the list is empty"))
+            for value in values:
+                problem = _identity_value(dim, value, palette, looks, room)
+                if problem:
+                    out.append((line, f"{where}.is.{problem}"))
+    if "share" in sig:
+        out += [(line, f"{where}.{m}") for m in _identity_share(sig["share"])]
+    return out
+
+
+def problems_identity(identity: object, palette: dict, looks: dict, room) -> list[tuple[int, str]]:
+    """Schema and values of the `identity:` block, as `(line, message)` items. `arc` is one of
+    `ARC_SHAPES`. `signatures` is a list of `{name, intent, is, share?}`: `name` a kebab-case
+    id, `is` a mapping of `IDENTITY_DIMENSIONS` to a value or a list of values (colours are
+    `palette` names, `look` a name of `looks`, `gesture` a registered gesture, `aim` an aim id
+    of the `room`, rates a rate word, `move`, `draw` and `state` the layer's words), `share` a
+    `{min?, max?}` of fractions from 0 to 1 with min <= max. Messages start with
+    `identity.signatures[i].`."""
+    if not isinstance(identity, dict):
+        return [(0, f"identity {identity!r} is not a mapping")]
+    line = _line(identity)
+    out = [(line, m) for _, m in _check_keys(identity, (), ("arc", "signatures"), "identity")]
+    if "arc" in identity and identity["arc"] not in ARC_SHAPES:
+        out.append((line, f"identity.arc {identity['arc']!r} is not one of {', '.join(ARC_SHAPES)}"))
+    signatures = identity.get("signatures", [])
+    if not isinstance(signatures, list):
+        return out + [(line, f"identity.signatures {signatures!r} is not a list")]
+    names: list = []
+    for i, sig in enumerate(signatures):
+        out += _identity_signature(sig, f"identity.signatures[{i}]", palette, looks, room, line)
+        name = sig.get("name") if isinstance(sig, dict) else None
+        if name is not None and name in names:
+            out.append((_line(sig) or line, f"identity.signatures[{i}].name {name!r} repeats"))
+        names.append(name)
     return out
 
 
@@ -505,6 +620,13 @@ class CompiledShow:
     data: dict                 # clean(show.yml)
     tracks: list[CompiledTrack]  # set order
     decisions: list[str]       # what the compiler inferred, one line each (bridges, default ends)
+    tempos: dict[str, tuple[float, float]] = field(default_factory=dict)  # track -> played tempo (t0, t1)
+    energies: dict[str, int] = field(default_factory=dict)   # track -> the owner's energy label, 1-10
+    rig: object | None = None  # the valid lightshows/rig.yml, if any
+    room: object | None = None  # the valid lightshows/room.yml, if any
+    # ("rules", id), ("advice", id) or ("identity", signature name) -> its line in show.yml
+    rule_lines: dict[tuple[str, str], int] = field(default_factory=dict)
+    cache: dict = field(default_factory=dict, compare=False, repr=False)   # memo for the views
 
 
 @dataclass
@@ -532,6 +654,9 @@ class ShowInputs:
     same_track: Callable[[str, str, str, str], bool]
     invalid_maps: set[str] = field(default_factory=set)   # slugs of maps that exist but fail their check
     room: "show_room.Room | None" = None   # the valid lightshows/room.yml, if any
+    tempos: dict[str, tuple[float, float]] = field(default_factory=dict)   # "Artist — Title" -> played tempo
+    energies: dict[str, int] = field(default_factory=dict)   # "Artist — Title" -> the owner's energy, 1-10
+    rig: object | None = None          # the valid lightshows/rig.yml (lightshow.Rig), if any
 
 
 @dataclass
@@ -1188,7 +1313,10 @@ def compile_show(source: ShowSource, inputs: ShowInputs) -> tuple[CompiledShow |
         files[name] = (data, not problems)
     if show is None:
         return None, findings
-    if inputs.set_tracks is None:            # no order: each track alone, no bridges
+    if isinstance(source.show, dict) and "identity" in source.show:
+        findings += [ShowFinding(show_path, line, SOURCE, m) for line, m in
+                     problems_identity(source.show["identity"], show.palette, show.looks, inputs.room)]
+    if inputs.set_tracks is None:           # no order: each track alone, no bridges
         findings.append(ShowFinding(show_path, _line(source.show), SOURCE,
                                     inputs.set_problem or "the set's track order could not be read"))
         order, linked = [(name, data) for name, (data, ok) in files.items() if ok], False
@@ -1202,7 +1330,28 @@ def compile_show(source: ShowSource, inputs: ShowInputs) -> tuple[CompiledShow |
         findings += _missing_handovers(show, entries)
     if findings:
         return None, findings
-    return CompiledShow(source.show_id, folder, clean(source.show), tracks, decisions), []
+    compiled = CompiledShow(source.show_id, folder, clean(source.show), tracks, decisions,
+                            dict(inputs.tempos), dict(inputs.energies), inputs.rig, inputs.room,
+                            _rule_lines(source.show))
+    return compiled, []
+
+
+def _rule_lines(show: dict) -> dict[tuple[str, str], int]:
+    """The line in `show.yml` of each rule under `rules`, each under `advice` and each signature
+    of `identity`, read before `clean` drops the `__line__` marks. A rule written as `true` has
+    no mapping of its own: it gets its section's line."""
+    lines: dict[tuple[str, str], int] = {}
+    for key in ("rules", "advice"):
+        section = show.get(key)
+        if isinstance(section, dict):
+            for rule_id in _keys(section):
+                lines[(key, str(rule_id))] = _line(section[rule_id]) or _line(section)
+    identity = show.get("identity")
+    signatures = identity.get("signatures") if isinstance(identity, dict) else None
+    for sig in signatures if isinstance(signatures, list) else []:
+        if isinstance(sig, dict) and isinstance(sig.get("name"), str):
+            lines[("identity", sig["name"])] = _line(sig) or _line(identity)
+    return lines
 
 
 # --- The emitter -----------------------------------------------------------------------------

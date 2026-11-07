@@ -232,30 +232,40 @@ def _tempo(given: object, map_data: dict) -> tuple[float, float]:
     return bpm, bpm
 
 
-def build_clock(show: CompiledShow, tempos: dict[str, tuple[float, float]]) -> ShowClock:
-    """The set clock, set_timeline's model (spec section 3). Track i (of n) plays bars
-    `[first, stop)`: `first` is 1 for the first track and its hot cue B otherwise (1 without
-    one); `stop` is its hot cue G, or `last_bar + 1` for the last track (and for a track
-    without G). It starts when the track before reaches its G: `start_s` is the sum of the legs
-    before it, a leg taking `set_timeline.seconds(tempo, played, played)`. `tempos` maps a show
-    track ("Artist — Title") to its played tempo range (`check_repo.show_tempos`); without one,
-    the map's `bpm` at both ends. The sounding window ends at the last compiled bar, or at the
-    leg's last bar when that is later."""
+def set_clock(maps: list[dict], tempos: list[tuple[float, float] | None],
+              last_bars: list[int] | None = None) -> ShowClock:
+    """The set clock, set_timeline's model (spec section 3), from the maps of the tracks in set
+    order and no show. Track i (of n) plays bars `[first, stop)`: `first` is 1 for the first track
+    and its hot cue B otherwise (1 without one); `stop` is its hot cue G, or `last_bar + 1` for
+    the last track (and for a track without G). It starts when the track before reaches its G:
+    `start_s` is the sum of the legs before it, a leg taking `set_timeline.seconds(tempo, played,
+    played)`. `tempos[i]` is the played tempo range of track i (None: the map's `bpm` at both
+    ends). The sounding window ends at `last_bars[i]` (the last compiled bar; without it the
+    leg's last bar) or at the leg's last bar when that is later."""
     out: list[TrackClock] = []
     clock = 0.0
-    n = len(show.tracks)
-    for i, track in enumerate(show.tracks):
-        data = track.map
+    n = len(maps)
+    for i, data in enumerate(maps):
         b, g = _cue_bar(data, "B"), _cue_bar(data, "G")
         first = 1 if i == 0 or b is None else b
         stop = g if i < n - 1 and g is not None else set_timeline.last_bar(data) + 1
         played = max(stop - first, 0)
         leg = (first, first + played - 1)
-        compiled_last = max((s.bars[1] for s in track.sections), default=leg[1])
-        tempo = _tempo(tempos.get(track.track), data)
+        compiled_last = last_bars[i] if last_bars is not None and last_bars[i] is not None else leg[1]
+        tempo = _tempo(tempos[i], data)
         out.append(TrackClock(i, leg, (first, max(leg[1], compiled_last)), clock, tempo))
         clock += set_timeline.seconds(tempo, played, played)
     return ShowClock(out)
+
+
+def build_clock(show: CompiledShow, tempos: dict[str, tuple[float, float]] | None = None) -> ShowClock:
+    """The set clock of a compiled show (`set_clock`). `tempos` maps a show track ("Artist —
+    Title") to its played tempo range; without it the show's own (`show.tempos`, what the set's
+    blocks play), and a track with none uses its map's `bpm`. The sounding window ends at the
+    last compiled bar of each track."""
+    tempos = show.tempos if tempos is None else tempos
+    return set_clock([t.map for t in show.tracks], [tempos.get(t.track) for t in show.tracks],
+                     [max((s.bars[1] for s in t.sections), default=None) for t in show.tracks])
 
 
 def clock_text(seconds: float) -> str:

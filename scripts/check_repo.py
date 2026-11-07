@@ -1401,6 +1401,13 @@ def valid_room(repo: Repo) -> show_room.Room | None:
     return show_room.load_room(repo.room[1])
 
 
+def valid_rig(repo: Repo) -> lightshow.Rig | None:
+    """The rig of `lightshows/rig.yml`, or None when it is missing or fails its check."""
+    if repo.rig is None or lightshow.problems_rig(repo.rig[1]):
+        return None
+    return lightshow.load_rig(repo.root / RIG_PATH)
+
+
 def show_inputs(repo: Repo, source: show_language.ShowSource) -> show_language.ShowInputs:
     """What the repo gives a show: the set's track order (set -> blocks -> tracklists), the
     valid maps by file stem, the stems of the invalid ones, and `same_track`."""
@@ -1430,7 +1437,8 @@ def show_inputs(repo: Repo, source: show_language.ShowSource) -> show_language.S
                 set_tracks, problem = None, f"set {rel!r} links block {block_id!r}, which has no blocks/{block_id}.md"
                 break
             set_tracks.extend((artist, title) for _, artist, title in tracklist_entries(block))
-    return show_language.ShowInputs(maps, set_tracks, problem, same_track, invalid, valid_room(repo))
+    return show_language.ShowInputs(maps, set_tracks, problem, same_track, invalid, valid_room(repo),
+                                    show_tempos(repo, source), show_energies(repo, source), valid_rig(repo))
 
 
 def show_tempos(repo: Repo, source: show_language.ShowSource) -> dict[str, tuple[float, float]]:
@@ -1463,6 +1471,42 @@ def show_tempos(repo: Repo, source: show_language.ShowSource) -> dict[str, tuple
         tempo = next((tp for a, t, tp in played if same_track(artist, title, a, t)), None)
         if tempo is not None:
             out[track] = tempo
+    return out
+
+
+def show_energies(repo: Repo, source: show_language.ShowSource) -> dict[str, int]:
+    """The energy (1-10) of each show track, `{"Artist — Title" of its track file: energy}`: the
+    `eN` of the first tracklist line of the set's blocks that is `same_track` as the track file's
+    `track` (`set_timeline.block_energies`), else the `energy` of its pool entry. A track with
+    neither is left out. Nothing raises: an unreadable or missing set only skips the block lines."""
+    import set_timeline  # deferred: set_timeline imports this module
+
+    rel = source.show.get("set") if isinstance(source.show, dict) else None
+    played = []
+    if isinstance(rel, str) and (repo.root / rel).is_file():
+        try:
+            text = read_text(repo.root / rel)
+        except (UnicodeDecodeError, OSError):
+            text = ""
+        by_path = {b.path: b for b in repo.blocks}
+        for block_id in set_block_ids(text):
+            block = by_path.get(f"blocks/{block_id}.md")
+            if block is not None:
+                played += set_timeline.block_energies(block.text)
+    out = {}
+    for data in source.track_files.values():
+        track = data.get("track") if isinstance(data, dict) else None
+        if not isinstance(track, str) or " — " not in track:
+            continue
+        artist, title = track.split(" — ", 1)
+        energy = next((e for a, t, e in played if e is not None and same_track(artist, title, a, t)), None)
+        if energy is None:
+            energy = next((e["energy"] for pool in repo.pools for e in pool.entries
+                           if isinstance(e.get("energy"), int) and not isinstance(e.get("energy"), bool)
+                           and isinstance(e.get("artist"), str) and isinstance(e.get("title"), str)
+                           and same_track(artist, title, e["artist"], e["title"])), None)
+        if energy is not None:
+            out[track] = energy
     return out
 
 

@@ -22,6 +22,7 @@ import soundswitch_format as ssf
 
 CUE_BAR_RE = re.compile(r"([0-9]+)\.([1-4])([+-][0-9]+ms)?")
 TEMPO_RE = re.compile(r"([0-9]+(?:\.[0-9]+)?)(?:-([0-9]+(?:\.[0-9]+)?))?")
+ENERGY_RE = re.compile(r"e(10|[1-9])(?![0-9])")
 
 
 @dataclass
@@ -164,6 +165,22 @@ def block_tempos(block_text: str) -> list[tuple[str, str, tuple[float, float] | 
         if len(fields) > 2 and (m := TEMPO_RE.fullmatch(fields[2])):
             tempo = (float(m[1]), float(m[2] or m[1]))
         out.append((parsed["artist"], parsed["title"], tempo))
+    return out
+
+
+def block_energies(block_text: str) -> list[tuple[str, str, int | None]]:
+    """`(artist, title, energy)` per tracklist line of a block: the `eN` (1-10) at the start of
+    the line's fourth `·` field (`N. Artist — Title · key · bpm · eN  note`); anything else is
+    None."""
+    body = [(i, line) for i, line in enumerate(block_text.splitlines(), 1)]
+    out = []
+    for _, text in check_repo.section(body, check_repo.TRACKLIST_HEADING) or []:
+        parsed = check_repo.TRACK_LINE_RE.match(text)
+        if not parsed:
+            continue
+        fields = [f.strip() for f in text.split("·")]
+        found = ENERGY_RE.match(fields[3]) if len(fields) > 3 else None
+        out.append((parsed["artist"], parsed["title"], int(found[1]) if found else None))
     return out
 
 
