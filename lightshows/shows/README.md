@@ -653,7 +653,8 @@ each group has a level 0-1 at every step (an unknown white, strobe or coverage c
 - **Brightness** `B` is the weighted sum of each group's mean level over the bar's 16 steps.
 - **Activity** `A` is the weighted sum of each group's rises, over 16. A rise is a step whose
   level is 0.05 or more after a step below it (the first step compares with the bar before's
-  last sample), so a strobe pulse is a rise. For the Vorlanes a step counts the share of their
+  last sample, or at a leg's first bar with the previous track's last leg sample; an unknown
+  sample, as the autoscript's, counts no rise), so a strobe pulse is a rise. For the Vorlanes a step counts the share of their
   colour cells newly lit there (a column of eight lighting up is 1/8), averaged over the
   Vorlanes: the highest cell would hide a sweep of single columns.
 - **`E_light(b) = round(9 x (0.5 B^ + 0.5 A^))`**, with `B` and `A` normalised over the night's

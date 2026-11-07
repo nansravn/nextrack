@@ -118,6 +118,13 @@ def test_the_first_step_compares_with_the_previous_bar():
     assert se.light_bars(lit, before=step(hue=1.0))[0].activity == 0.0
 
 
+def test_an_unknown_before_counts_no_rise():
+    lit = bar_of(*[step(movers=(1.0, 1.0), units=(1.0, 1.0), hue=1.0)] * 4)
+    auto = sz.StepLight(0, (None, None), (None, None), (None, None), None, False, None)
+    assert se.light_bars(lit, before=step())[0].activity > 0
+    assert se.light_bars(lit, before=auto)[0].activity == se.light_bars(lit)[0].activity == 0.0
+
+
 def test_an_auto_layer_makes_the_bar_unknown():
     auto = bar_of(step(), step(hue=None))
     assert se.light_bars(auto)[0] == se.BarLight(None, None)
@@ -176,6 +183,17 @@ def test_night_energy_is_cached_on_the_show():
     assert first.first == 1 and len(first.music) == len(first.light) == len(first.changes) == 32
     assert first.at("light", 1) is None and first.at("light", 9) is not None   # the autoscript is unknown
     assert energy[1].first == clock.tracks[1].sounding[0]
+
+
+def test_a_leg_first_bar_is_not_a_rise_from_the_autoscript():
+    src, inp = two_track_show()
+    show = compiled(src, inp)
+    clock = sv.build_clock(show)
+    second = se.night_energy(show, clock)[1]
+    b = clock.tracks[1].leg[0]
+    assert b == 5 and second.at("activity", b) is not None
+    # the bridge carries the previous track's look on, so B lights less than it did from the autoscript
+    assert second.at("activity", b) < second.at("activity", b + 1)
 
 
 def test_a_v2_map_is_not_interim():
