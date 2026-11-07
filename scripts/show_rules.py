@@ -595,6 +595,13 @@ def _at_rule(show: CompiledShow, name: str, message: str) -> ShowFinding:
     return ShowFinding(path, line, RULE_ID, f"{name}: {message}")
 
 
+def _found(show: CompiledShow, name: str, section: CompiledSection | None, body: str) -> ShowFinding:
+    """A finding `name: body` at `section`'s cue or handover, else at the rule's own line."""
+    if section is None:
+        return _at_rule(show, name, body)
+    return _finding(section.origin, f"{name}: {body}")
+
+
 def _unknown_light(analysis) -> bool:
     """True when no leg bar of the night has a known light (the autoscript plays everywhere)."""
     return not any(te.at("light", b) is not None
@@ -656,11 +663,10 @@ def static_run(show: CompiledShow, params: dict) -> list[ShowFinding]:
             continue
         track = show.tracks[run.index]
         section = _section_at(track, run.bars[0])
-        origin = section.origin if section is not None else None
         music = f" (music: {run.music.replace('+', ', ')})" if run.music else ""
-        message = (f"static-run: {_title(run.track)} {run.bars[0]}-{run.bars[1]} holds one light for "
-                   f"{_clock(run.seconds)}, max {_clock(params['max_seconds'])}{music}")
-        out.append(_finding(origin, message) if origin is not None else _at_rule(show, "static-run", message[11:]))
+        body = (f"{_title(run.track)} {run.bars[0]}-{run.bars[1]} holds one light for "
+                f"{_clock(run.seconds)}, max {_clock(params['max_seconds'])}{music}")
+        out.append(_found(show, "static-run", section, body))
     return out
 
 
@@ -671,24 +677,29 @@ def neighbours_differ(show: CompiledShow, params: dict) -> list[ShowFinding]:
     The cosine similarity of two consecutive tracks' vectors of time shares over every
     `(dimension, value)` pair (`show_analysis.variety`'s `similarity`) is above `max_similarity`.
     The finding points at the second track's arrival section, else its first section. With no
-    pair of tracks that both have a known light it says it cannot check."""
+    pair of tracks that both have a known light it says it cannot check, and it names each pair it
+    skipped for that reason. The bars of bridge sections are not in the vectors."""
     from show_analysis import analyse
 
     pairs = analyse(show).variety.similarity
-    if not pairs:
-        return [_at_rule(show, "neighbours-differ",
-                         "cannot check: fewer than two consecutive tracks have a known light")]
+    scored = {i for i, _ in pairs}
     out = []
+    skipped = [f"{_title(show.tracks[i].track)} / {_title(show.tracks[i + 1].track)}"
+               for i in range(len(show.tracks) - 1) if i not in scored]
+    if skipped:
+        out.append(_at_rule(show, "neighbours-differ", "cannot check: no known light in a track of "
+                                                       f"{'; '.join(skipped)}"))
     for i, cosine in pairs:
         if cosine <= params["max_similarity"]:
             continue
         first, second = show.tracks[i], show.tracks[i + 1]
         sections = [s for s in second.sections if s.origin.kind != "echo"]
         section = next((s for s in sections if s.origin.role == "arrival"), sections[0] if sections else None)
-        message = (f"neighbours-differ: {_title(second.track)} looks like {_title(first.track)} "
-                   f"(similarity {cosine:.2f}, max {params['max_similarity']:g})")
-        out.append(_finding(section.origin, message) if section is not None
-                   else _at_rule(show, "neighbours-differ", message[19:]))
+        out.append(_found(show, "neighbours-differ", section,
+                          f"{_title(second.track)} looks like {_title(first.track)} "
+                          f"(similarity {cosine:.2f}, max {params['max_similarity']:g})"))
+    if not pairs and not skipped:
+        out.append(_at_rule(show, "neighbours-differ", "cannot check: the show has fewer than two tracks"))
     return out
 
 
@@ -699,8 +710,8 @@ def distinct_drops(show: CompiledShow, params: dict) -> list[ShowFinding]:
     Take the `top` drops by salience (`show_analysis.top`: a count, or a fraction of the night's
     drops), order them by the set clock, and compare each with the next: two with the same
     template (the signatures just before and at the drop) are a finding at the later drop's
-    holder section. A drop whose light is unknown (no template) is skipped. With no drops it
-    says it cannot check."""
+    holder section. A drop whose light is unknown (no template) is skipped; with no drops, or no
+    pair left to compare, it says it cannot check."""
     from show_analysis import analyse, top
 
     rows = analyse(show).drops
@@ -708,13 +719,18 @@ def distinct_drops(show: CompiledShow, params: dict) -> list[ShowFinding]:
         return [_at_rule(show, "distinct-drops", "cannot check: the night has no drops")]
     chosen = sorted(top(rows, params["top"]), key=lambda d: d.clock_s)
     out = []
+    compared = 0
     for before, after in zip(chosen, chosen[1:]):
-        if None in before.template or None in after.template or before.template != after.template:
+        if None in before.template or None in after.template:
             continue
-        message = (f"distinct-drops: {_title(after.track)} {after.bar} (top drop {after.rank}) repeats the light "
-                   f"of {_title(before.track)} {before.bar} (top drop {before.rank})")
-        out.append(_finding(after.holder.origin, message) if after.holder is not None
-                   else _at_rule(show, "distinct-drops", message[16:]))
+        compared += 1
+        if before.template != after.template:
+            continue
+        out.append(_found(show, "distinct-drops", after.holder,
+                          f"{_title(after.track)} {after.bar} (top drop {after.rank}) repeats the light "
+                          f"of {_title(before.track)} {before.bar} (top drop {before.rank})"))
+    if not compared:
+        out.append(_at_rule(show, "distinct-drops", "cannot check: no two of the top drops have a known light"))
     return out
 
 

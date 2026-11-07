@@ -463,7 +463,7 @@ rules:
 | `bridges` | `{max: 1-32}` | a compiled handover section, or the bridge section that copies it, is longer than `max` bars. Both findings point at the handover's line in the outgoing track's file (the handover owns the window) and name both lengths and both tracks |
 | `signatures` | `true` | a signature declared under `identity:` has a measured time share below its `share.min` or above its `share.max` (the message gives the share and the bound). Points at the signature's line in `show.yml`. "cannot check" without a declared signature or a known light |
 | `static-run` | `{max_seconds: 30-600}` | one of the five longest runs of consecutive leg bars with the same light signature (it may cross a bridge or a leg) lasts more than `max_seconds`; the message gives the bars, the time and the map's section kinds under the run. Points at the run's first section. "cannot check" without a known light |
-| `neighbours-differ` | `{max_similarity: 0-1}` | the cosine similarity of two consecutive tracks' vectors of time shares over every (identity dimension, value) pair is above `max_similarity`. Points at the second track's arrival section, else its first. "cannot check" when no pair has a known light |
+| `neighbours-differ` | `{max_similarity: 0-1}` | the cosine similarity of two consecutive tracks' vectors of time shares over every (identity dimension, value) pair is above `max_similarity`; bridge sections are left out of the vectors. Points at the second track's arrival section, else its first. "cannot check" when no pair has a known light, and one finding names each pair skipped because a track has no signed bar |
 | `distinct-drops` | `{top: int >= 1, or 0 < float <= 1}` | among the `top` drops by salience (a count, or a fraction of the night's drops), ordered by the set clock, two consecutive ones have the same template (the signatures just before and at the drop). Points at the later drop's section. "cannot check" without drops |
 | `phrase-aligned` | `{min_share: 0-1}` | among the leg bars where the light changes (`X(b) > 0`), the share on a phrase line (a map section's start, or a multiple of 4 bars after it) is below `min_share`; the message lists the first five bars off the lines. Points at the rule's line in `show.yml`. "cannot check" when the light never changes |
 
@@ -804,7 +804,8 @@ when the autoscript plays a bar the test needs.
 - **dominant**: per dimension, the value (not `auto`) with the largest share (a value of several
   words, such as a section's aims, shares its time among them), `(declared)` when a signature
   of the identity names it.
-- **similarity**: the cosine of two neighbouring tracks' shares of every dimension value.
+- **similarity**: the cosine of two neighbouring tracks' shares of every dimension value; the bars
+  of a bridge section (the copy of a handover) are left out of both vectors.
 - **drop templates**: the distinct pairs (signature before the drop, signature at it) against
   the number of drops.
 - **phrase lines**: the share of the bars with a change event that start a map section or fall

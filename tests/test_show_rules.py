@@ -607,8 +607,8 @@ def test_neighbours_differ_falls_back_to_the_first_section_and_cannot_check_with
     def none(a, compiled):
         a.variety.similarity = []
     found = analysed({"neighbours-differ": {"max_similarity": 0.5}}, patch=none)[1]
-    assert found == [(SHOW_PATH, RULES_LINE + 1, "neighbours-differ: cannot check: fewer than two consecutive "
-                                                 "tracks have a known light")]
+    assert found == [(SHOW_PATH, RULES_LINE + 1, "neighbours-differ: cannot check: no known light in a track of "
+                                                 "Dançarina / Voa Voa (Ao Vivo)")]
 
 
 def test_distinct_drops_compares_the_top_drops_in_clock_order():
@@ -621,6 +621,22 @@ def test_distinct_drops_compares_the_top_drops_in_clock_order():
     assert analysed({"distinct-drops": {"top": 2}}, patch=patch)[1] == []          # ranks 1 and 2 differ
     assert analysed({"distinct-drops": {"top": 0.5}}, patch=patch)[1] == []        # ceil(0.5 x 4) = 2
     assert len(analysed({"distinct-drops": {"top": 1.0}}, patch=patch)[1]) == 1
+
+
+def test_static_run_without_a_section_at_its_first_bar_points_at_the_rule():
+    def patch(a, compiled):
+        a.variety.static_runs = [sa.Run(0, TRACK_1, (1, 5), 130.0, "")]     # no section holds bar 1
+    found = analysed({"static-run": {"max_seconds": 120}}, patch=patch)[1]
+    assert found == [(SHOW_PATH, RULES_LINE + 1, "static-run: Dançarina 1-5 holds one light for 2:10, max 2:00")]
+
+
+def test_distinct_drops_cannot_check_when_every_pair_is_skipped():
+    def patch(a, compiled):
+        for d in a.drops:
+            d.template = (None, d.template[1])
+    found = analysed({"distinct-drops": {"top": 4}}, patch=patch)[1]
+    assert found == [(SHOW_PATH, RULES_LINE + 1,
+                      "distinct-drops: cannot check: no two of the top drops have a known light")]
 
 
 def test_distinct_drops_cannot_check_without_drops():

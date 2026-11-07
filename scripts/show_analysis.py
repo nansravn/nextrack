@@ -81,8 +81,8 @@ variety (`variety`):
                   equal part of the seconds); `declared` when a signature's `is` names that
                   dimension and that value
     similarity    `(i, cosine)` of track i's and track i + 1's vectors of time shares over every
-                  `(dimension, value)` pair (each track's shares of its own signed time);
-                  skipped when a track has no signed bar
+                  `(dimension, value)` pair (each track's shares of its own signed time, the bars of a bridge section left
+                  out); skipped when a track has no such bar
     templates     `(distinct drop templates, number of drops)` of `drops`
     phrase_share  among the leg bars with `X(b) > 0`, the share that start a map section or have
                   `(b - section start) % 4 == 0`; None without such bars
@@ -509,6 +509,7 @@ class _LegBar:
     seconds: float
     values: dict | None          # dimension_values of the holding section, None without one
     sig: tuple | None
+    bridge: bool = False         # the holding section is a bridge (the copy of a handover)
 
 
 def _leg_bars(show: CompiledShow, clock: ShowClock) -> list[_LegBar]:
@@ -524,7 +525,7 @@ def _leg_bars(show: CompiledShow, clock: ShowClock) -> list[_LegBar]:
                     v = dimension_values(sec, show.room, names)
                     memo[id(sec)] = (v, tuple(v[d] for d in IDENTITY_DIMENSIONS))
                 values, sig = memo[id(sec)]
-            out.append(_LegBar(i, b, tc.at(b), tc.span_s(b, b), values, sig))
+            out.append(_LegBar(i, b, tc.at(b), tc.span_s(b, b), values, sig, sec is not None and sec.origin.kind == "bridge"))
     return out
 
 
@@ -687,7 +688,7 @@ def variety(show: CompiledShow, clock: ShowClock) -> Variety:
             dominance[dim] = Dominant(top_value[0], top_value[1], any(top_value[0] in s["is"].get(dim, []) for s in declared))
     vectors = []
     for i in range(len(show.tracks)):
-        mine = [lb for lb in bars if lb.index == i and lb.values is not None]
+        mine = [lb for lb in bars if lb.index == i and lb.values is not None and not lb.bridge]
         secs = sum(lb.seconds for lb in mine)
         vectors.append(_shares(mine, secs) if secs > 0 else {})
     similarity = [(i, c) for i in range(len(vectors) - 1) if (c := _cosine(vectors[i], vectors[i + 1])) is not None]
