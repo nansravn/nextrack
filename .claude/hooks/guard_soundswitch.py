@@ -5,16 +5,19 @@ Claude Code sends the hook call as JSON on stdin. For a Bash call whose command 
 `nextrack_lights.py` with a `--apply` token, the hook answers `permissionDecision: "ask"`
 with a reason in pt-BR, so the session waits for the owner's click. Everything else (other
 tools, dry runs, `render`, `status`, `nextrack_tags.py --apply`, malformed input) exits 0
-with no output and leaves the normal permission flow alone. The hook never exits 2, so it
-never blocks.
+with no output and leaves the normal permission flow alone. The script never exits 2, and
+the command in `.claude/settings.json` ends in `|| true`, so it fails open: a missing
+script, a missing `python3` or a crash leaves the call to the normal permission flow
+instead of blocking every Bash call.
 
 The match is on the raw command text, so wrapped or glued forms (`bash -c "..."`,
 `--apply;`, `--apply&& ...`) are caught too. A command that merely mentions both
 `nextrack_lights.py` and `--apply` also asks: that false positive is accepted.
 
-`--ap`, `--app` and `--appl` count as `--apply` because argparse accepts unique prefixes
-of an option. Shell-level obfuscation (quotes inside the word, `$'...'`) is a known limit
-of a text match.
+`--a`, `--ap`, `--app` and `--appl` count as `--apply` because argparse accepts unique
+prefixes of an option: `restore` and `accept` have no other `--a...` option, so even `--a`
+writes there (`--accept-resize` and `--adopt-current` of `apply` do not ask). Shell-level
+obfuscation (quotes inside the word, `$'...'`) is a known limit of a text match.
 
 In auto mode the "ask" goes to the permission prompt. What it does under
 bypass-permissions is not documented by Claude Code. Either way the rule stays: writing
@@ -29,7 +32,7 @@ from typing import TextIO
 REASON = "Gravar no SoundSwitch é decisão do dono: confirme este comando."
 
 
-_APPLY = re.compile(r"(?<![\w-])--ap(?:p(?:l(?:y)?)?)?(?![\w-])")
+_APPLY = re.compile(r"(?<![\w-])--a(?:p(?:p(?:l(?:y)?)?)?)?(?![\w-])")
 
 
 def decision(payload: object) -> dict | None:
