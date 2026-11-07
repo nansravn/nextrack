@@ -442,3 +442,58 @@ def test_zoom_samples_what_compile_writes(room):
     assert set(_case(g) for g in lane("mover NE") + lane("vorl. NW")) == {"U", "l", "."}
     assert len(set(letters.values())) >= 4 and "x" in strobe and "#" in lane("white")
     assert {"Crossed Over", "Up", "Stage Left", "Dance Floor Centre"} <= set(aims)
+
+
+# ----------------------------------------------------------------- sampler --
+
+
+def _virada(show):
+    track = show.tracks[0]
+    section = next(s for s in track.sections if s.origin.moment == "virada" and s.origin.kind != "echo")
+    return track, section
+
+
+def test_sample_light_has_16_samples_per_bar():
+    track = base().tracks[0]
+    samples = sz.sample_light(track, 3, 6, None, None)
+    assert len(samples) == 4 * BAR
+    assert [s.t for s in samples] == sz.sample_times(track.map, 3, 6)
+    assert all(len(s.movers) == 2 and len(s.units) == 2 and len(s.coverage) == 2 for s in samples)
+
+
+def test_sample_light_agrees_with_the_zoom_lanes():
+    track, section = _virada(base())
+    first, last = section.bars
+    samples = sz.sample_light(track, first, last, None, None)
+    ctx = sz._context(sz._grid(track.map), None, None, {})
+    light = sz._light(section, ctx)
+    assert len(samples) == (last - first + 1) * BAR
+    for s in samples:
+        for i, level in enumerate(s.movers):
+            assert level == light.mover(i, s.t)[0]
+        for u, level in enumerate(s.units):
+            assert level == light.unit(u, s.t)[0]
+            lit = [light.cell(u, cell, s.t) for cell in sz.COLOUR_CELLS]
+            assert s.coverage[u] == sum(lit) / len(sz.COLOUR_CELLS)
+        assert s.hue == (light.hue.at(s.t) if light.hue is not None else None)
+    assert {c for s in samples for c in s.coverage} <= {0.0, 1.0}   # blink and solid light all cells or none
+    assert any(c == 1.0 for s in samples for c in s.coverage)
+
+
+def test_a_bar_with_no_section_samples_as_autoscript():
+    track = base().tracks[0]
+    samples = sz.sample_light(track, 1, 1, None, None)      # bars 1-8 play the autoscript
+    assert len(samples) == BAR
+    for s in samples:
+        assert s.movers == (None, None) and s.units == (None, None) and s.coverage == (None, None)
+        assert s.white is None and s.strobe is None and s.hue is None
+
+
+def test_a_strobe_window_marks_strobe_true():
+    track, section = _virada(base())
+    samples = sz.sample_light(track, *section.bars, None, None)
+    hit = samples[0]                                         # the strobe hit is on 21.1
+    assert hit.strobe is True
+    assert hit.movers == tuple(hit.units) and all(level > 0 for level in hit.movers)
+    assert hit.coverage == (1.0, 1.0)
+    assert any(s.strobe is False for s in samples)           # the strobe is a hit, not the whole section
