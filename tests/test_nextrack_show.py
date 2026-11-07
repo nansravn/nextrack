@@ -631,3 +631,54 @@ def test_brief_unknown_set_is_a_usage_error(mini_repo, capsys):
     code = nextrack_show.main(["brief", "nao-existe", "--repo", str(mini_repo.root)])
     assert code == 2
     assert "not a set" in capsys.readouterr().err
+
+
+def _variant(mini_repo, tmp_path, change):
+    put_show(mini_repo)
+    folder = tmp_path / "variant"
+    shutil.copytree(mini_repo.path(SHOW), folder)
+    path = folder / FILE_1
+    data = yaml.safe_load(path.read_text())
+    change(data)
+    path.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False))
+    return folder
+
+
+def _move_arrival(data):
+    data["cues"][0]["at"] = "10"
+
+
+def test_compare_a_show_with_itself_is_the_same_everywhere(mini_repo, capsys):
+    put_show(mini_repo)
+    code, out = run(mini_repo, capsys, "compare", "teste", "teste", "--keep", "arrivals,moments")
+    assert code == 0
+    assert out.splitlines() == [f"{f}: same" for f in
+                                ("arrivals", "moments", "drops", "signatures", "looks", "colours", "windows",
+                                 "findings")]
+
+
+def test_compare_moving_an_arrival_is_a_difference_in_arrivals(mini_repo, tmp_path, capsys):
+    folder = _variant(mini_repo, tmp_path, _move_arrival)
+    code, out = run(mini_repo, capsys, "compare", "teste", str(folder))
+    assert code == 0                                   # without --keep, differences are not a failure
+    assert "arrivals:\n  ~ Pedro Sampaio — Dançarina: bar 9" in out
+    assert "moments: same" in out
+
+
+def test_keep_exits_1_when_a_kept_fact_differs(mini_repo, tmp_path, capsys):
+    folder = _variant(mini_repo, tmp_path, _move_arrival)
+    assert run(mini_repo, capsys, "compare", "teste", str(folder), "--keep", "arrivals")[0] == 1
+    assert run(mini_repo, capsys, "compare", "teste", str(folder), "--keep", "moments,signatures")[0] == 0
+
+
+def test_keep_unknown_name_is_a_usage_error(mini_repo, capsys):
+    put_show(mini_repo)
+    code = nextrack_show.main(["compare", "teste", "teste", "--keep", "arrivals,mood", "--repo", str(mini_repo.root)])
+    err = capsys.readouterr().err
+    assert code == 2
+    assert "mood" in err and "arrivals, moments, drops" in err
+
+
+def test_compare_with_an_unknown_show_is_a_usage_error(mini_repo, capsys):
+    put_show(mini_repo)
+    assert run(mini_repo, capsys, "compare", "teste", "nao-existe")[0] == 2
