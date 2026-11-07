@@ -364,6 +364,17 @@ def test_report_lists_advice(mini_repo, capsys):
     assert "finding" not in out
 
 
+def test_report_names_the_echo(mini_repo, capsys):
+    put_show(mini_repo)
+    _edit_yaml(mini_repo, f"{SHOW}/show.yml", lambda d: d["bridge"].update(bars=4))
+    code, out = run(mini_repo, capsys, "report", "teste")
+    assert code == 0, out
+    lines = out.splitlines()
+    echo = next(line for line in lines if " 29-32 chegada | " in line)
+    assert echo.split(" | ")[1] == "echo pulso"
+    assert "  Dançarina: echo 29-32 copies Voa Voa (Ao Vivo) 9-12" in lines
+
+
 def test_report_exits_one_on_rule_findings(mini_repo, capsys):
     put_show(mini_repo)
     _edit_yaml(mini_repo, f"{SHOW}/show.yml", _budget_zero)

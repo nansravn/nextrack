@@ -8,9 +8,9 @@ import show_room
 from check_repo import load_yaml
 from musical_map import slug
 from show_gestures import GESTURES, Gesture, GestureSection
-from show_language import compile_show, problems_show
-from showdata import (FILE_1, FILE_2, GUID_2, SET_TRACKS, TRACK_1, TRACK_2, inputs, show_map, source,
-                      two_track_show)
+from show_language import compile_show, emit_choreography, problems_show
+from showdata import (DEFAULT_SECTIONS, FILE_1, FILE_2, GUID_2, SET_TRACKS, TRACK_1, TRACK_2, inputs, show_map,
+                      source, two_track_show)
 
 FOLDER = "lightshows/shows/teste"
 PATH_1, PATH_2 = f"{FOLDER}/{FILE_1}", f"{FOLDER}/{FILE_2}"
@@ -196,7 +196,8 @@ def bars_show(bars):
 
 def test_bridge_bars_cuts_bridge_and_handover():
     show = compiled(*bars_show(4))
-    assert spans(show.tracks[0])[-1] == ((25, 28), "entrega")       # G 25 for 4 bars
+    assert spans(show.tracks[0])[-2:] == [((25, 28), "entrega"),   # G 25 for 4 bars
+                                          ((29, 32), "chegada")]   # then the echo of Voa Voa
     assert spans(show.tracks[1])[0] == ((5, 8), "ponte")            # B 5 for 4 bars: the first cue is at 9
     assert "Dançarina: handover runs to bar 28 (bridge.bars 4)" in show.decisions
     # a wider window: the bridge stops at the first cue and the handover at the map's end, as without bars
@@ -206,10 +207,13 @@ def test_bridge_bars_cuts_bridge_and_handover():
     # an until inside the window holds; a handover with an at opens its window there
     src, inp = bars_show(4)
     src.track_files[FILE_1]["handover"]["until"] = 27
-    assert spans(compiled(src, inp).tracks[0])[-1] == ((25, 26), "entrega")
+    # the echo copies Voa Voa from its bar 7 (27 - 20): the rest of the bridge, then chegada
+    assert spans(compiled(src, inp).tracks[0])[-3:] == [((25, 26), "entrega"), ((27, 28), "ponte"),
+                                                        ((29, 32), "chegada")]
     src, inp = bars_show(4)
     src.track_files[FILE_1]["handover"]["at"] = 27
-    assert spans(compiled(src, inp).tracks[0])[-2:] == [((21, 26), "virada"), ((27, 30), "entrega")]
+    assert spans(compiled(src, inp).tracks[0])[-3:] == [((21, 26), "virada"), ((27, 30), "entrega"),
+                                                        ((31, 32), "chegada")]
     # a missing handover's finding names the window
     src, inp = bars_show(4)
     del src.track_files[FILE_1]["handover"]
@@ -248,7 +252,7 @@ def test_bridge_bars_handover_until_too_late():
                                 "handover: until 30 (end - 2): the handover ends at bar 28 (bridge.bars 4); write an "
                                 "until at or before bar 29, or leave it out")]
     src.track_files[FILE_1]["handover"]["until"] = 29
-    assert spans(compiled(src, inp).tracks[0])[-1] == ((25, 28), "entrega")
+    assert spans(compiled(src, inp).tracks[0])[-2:] == [((25, 28), "entrega"), ((29, 32), "chegada")]
 
 
 def test_bridge_bars_bounds():
@@ -261,6 +265,141 @@ def test_bridge_bars_bounds():
     src.show["handover"]["bars"] = 4                                # only the bridge takes bars
     assert found(compile_show(src, inp)[1]) == [
         (SHOW_PATH, 0, "show-source", "handover: unexpected key 'bars' (allowed: name, intent)")]
+
+
+# ------------------------------------------------------------------- echo --
+
+
+def compiled_with_window(bars, out_bars=32, edit=None):
+    """`bars_show(bars)` compiled (`two_track_show` when `bars` is None), Dançarina on a map of
+    `out_bars` bars (B 5 and G 25 still; the bars past 32 an outro), the track files changed
+    first by `edit(first, second)`. The offset of the echo is G - B = 20."""
+    src, inp = two_track_show() if bars is None else bars_show(bars)
+    if out_bars != 32:
+        sections = [(a, min(b, out_bars), kind) for a, b, kind in DEFAULT_SECTIONS if a <= out_bars]
+        sections += [(33, out_bars, "outro")] if out_bars > 32 else []
+        inp.maps[slug(TRACK_1)] = show_map(out_bars, sections=sections)
+    if edit is not None:
+        edit(src.track_files[FILE_1], src.track_files[FILE_2])
+    return compiled(src, inp)
+
+
+def echoes(track):
+    return [s for s in track.sections if s.origin.kind == "echo"]
+
+
+def no_echo(show):
+    return (not any(s.origin.kind == "echo" for t in show.tracks for s in t.sections)
+            and not any("echo" in d for d in show.decisions))
+
+
+def test_the_echo_copies_the_incoming_light_onto_the_outgoing_tail():
+    show = compiled_with_window(4)
+    out, inc = show.tracks
+    echo = echoes(out)
+    assert [(s.bars, s.name) for s in echo] == [((29, 32), "chegada")]
+    assert spans(out)[-2:] == [((25, 28), "entrega"), ((29, 32), "chegada")]
+    src = next(s for s in inc.sections if s.bars[0] == 9)
+    assert echo[0].origin.path == src.origin.path and echo[0].origin.line == src.origin.line
+    assert echo[0].origin.role is None and src.origin.role == "arrival"
+    assert (echo[0].origin.track, echo[0].origin.look, echo[0].intent) == (TRACK_1, "pulso", src.intent)
+    assert echo[0].layers == src.layers and echo[0].layers is not src.layers
+    assert "Dançarina: echo 29-32 copies Voa Voa (Ao Vivo) 9-12" in show.decisions
+    assert show.decisions[-1] == "Dançarina: echo 29-32 copies Voa Voa (Ao Vivo) 9-12"
+    assert out.choreography["sections"][-1] == {"bars": [29, 32], "name": "chegada", **src.layers}
+    assert spans(inc) == [((5, 8), "ponte"), ((9, 16), "chegada"), ((17, 20), "subida"), ((21, 32), "final")]
+
+
+def test_the_echo_shifts_faster_from_and_leaves_out_the_events():
+    def edit(first, second):
+        second["cues"][0]["with"]["white"] = {"accent": ["9.3"]}       # raw events; final has a strobe-roll
+        second["cues"][1]["with"]["strobe"] = {"hit": ["18.1"]}
+        second["cues"][2]["intent"] = "O final: o rolo de estrobo."
+
+    show = compiled_with_window(4, out_bars=48, edit=edit)
+    out, inc = show.tracks
+    echo = echoes(out)
+    assert [(s.bars, s.name) for s in echo] == [((29, 36), "chegada"), ((37, 40), "subida"), ((41, 48), "final")]
+    assert section(inc, "subida").layers["movers"]["faster_from"] == 19          # drop.2 - 2 of Voa Voa
+    assert echo[1].layers["movers"]["faster_from"] == 39
+    assert section(inc, "chegada").layers["white"] == {"accent": ["9.3"]}         # the originals keep them
+    assert section(inc, "subida").layers["strobe"] == {"hit": ["18.1"]}
+    assert section(inc, "final").layers["strobe"] == {"roll": [21, 32]}
+    for copied in echo:
+        assert "white" not in copied.layers and "strobe" not in copied.layers
+    assert echo[2].layers == {k: v for k, v in section(inc, "final").layers.items() if k != "strobe"}
+    assert (echo[2].intent, echo[2].origin.moment) == ("O final: o rolo de estrobo.", "final")
+    assert "Dançarina: echo 29-48 copies Voa Voa (Ao Vivo) 9-28" in show.decisions
+
+
+def test_no_echo_without_bridge_bars():
+    show = compiled_with_window(None)
+    assert spans(show.tracks[0])[-1] == ((25, 32), "entrega") and no_echo(show)
+    # a handover cut by its own until, without bridge.bars, leaves its tail to the autoscript
+    show = compiled_with_window(None, edit=lambda first, second: first["handover"].update(until=29))
+    assert spans(show.tracks[0])[-1] == ((25, 28), "entrega") and no_echo(show)
+    # and a show without bridge makes neither bridges nor echoes
+    src, inp = bars_show(4)
+    del src.show["bridge"]
+    assert no_echo(compiled(src, inp))
+
+
+def test_no_echo_when_the_incoming_track_writes_bridge_false():
+    show = compiled_with_window(4, edit=lambda first, second: second.update(bridge=False))
+    assert spans(show.tracks[0])[-1] == ((25, 28), "entrega")
+    assert [s.origin.kind for s in show.tracks[1].sections] == ["cue"] * 3
+    assert no_echo(show)
+
+
+def test_the_echo_stops_at_the_outgoing_maps_end():
+    show = compiled_with_window(4, out_bars=30)
+    assert spans(show.tracks[0])[-2:] == [((25, 28), "entrega"), ((29, 30), "chegada")]
+    assert "Dançarina: echo 29-30 copies Voa Voa (Ao Vivo) 9-10" in show.decisions
+    # a handover that reaches the map's end leaves nothing to echo
+    show = compiled_with_window(4, out_bars=28)
+    assert spans(show.tracks[0])[-1] == ((25, 28), "entrega") and no_echo(show)
+    # the copy also stops at the incoming track's last section: Voa Voa's bar 32 is Dançarina's 52
+    show = compiled_with_window(4, out_bars=60)
+    assert [(s.bars, s.name) for s in echoes(show.tracks[0])] == [
+        ((29, 36), "chegada"), ((37, 40), "subida"), ((41, 52), "final")]
+    assert "Dançarina: echo 29-52 copies Voa Voa (Ao Vivo) 9-32" in show.decisions
+
+
+def test_a_gap_in_the_incoming_track_stays_a_gap():
+    show = compiled_with_window(4, out_bars=48, edit=lambda first, second: second["cues"][0].update(until=11))
+    out = show.tracks[0]
+    assert section(show.tracks[1], "chegada").bars == (9, 10)
+    assert [(s.bars, s.name) for s in echoes(out)] == [((29, 30), "chegada"), ((37, 40), "subida"),
+                                                       ((41, 48), "final")]
+    covered = {bar for s in out.sections for bar in range(s.bars[0], s.bars[1] + 1)}
+    assert not covered & set(range(31, 37))
+    assert "Dançarina: echo 29-48 copies Voa Voa (Ao Vivo) 9-28" in show.decisions
+
+
+def test_the_emitted_choreography_with_an_echo_is_valid():
+    show = compiled_with_window(4, out_bars=48)
+    out = show.tracks[0]
+    assert [(tuple(s["bars"]), s["name"]) for s in out.choreography["sections"]] == spans(out)
+    parsed = yaml.safe_load(emit_choreography(out.choreography, FOLDER))
+    assert parsed == out.choreography
+    assert lightshow.problems_choreography(parsed) == []
+    assert [s["bars"] for s in parsed["sections"][-3:]] == [[29, 36], [37, 40], [41, 48]]
+    assert parsed["sections"][-2]["movers"]["faster_from"] == 39
+
+
+def test_an_invalid_echo_points_at_the_cue_it_copies(monkeypatch):
+    import show_language
+
+    def problems(choreo, rig):
+        return [f"section {i} (chegada): matrix: boom" for i, s in enumerate(choreo["sections"], 1)
+                if s["bars"][0] == 29]
+
+    monkeypatch.setattr(show_language, "problems_choreography", problems)
+    src, inp = bars_show(4)
+    src.track_files[FILE_2]["cues"][0]["__line__"] = 6
+    show, findings = compile_show(src, inp)
+    assert show is None
+    assert found(findings) == [(PATH_2, 6, "show-source", "echo 29-32 in Dançarina (section 'chegada'): matrix: boom")]
 
 
 def test_gesture_sections_get_the_cue_provenance():

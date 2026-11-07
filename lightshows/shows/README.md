@@ -221,7 +221,8 @@ cues:
 ```
 
 Keys: `track`, `story` and `cues` (a list, possibly empty) are required; `budget` (pt-BR prose),
-`handover` and `bridge` (only `false`: no bridge into this track) are optional.
+`handover` and `bridge` (only `false`: no bridge into this track, and no echo of it in the
+track before) are optional.
 
 **`track` is written exactly as the map's `track`** (`Artist — Title`, with the em dash). The
 compiler finds the map by the same matcher the blocks use and says so when the text differs.
@@ -283,6 +284,39 @@ explicit `until` past that is a finding at the handover. The bridge still runs f
 bar before the first cue, and a first cue (or handover) after `B + bars` is a finding there:
 `the bridge ends at bar <B + bars - 1> (bridge.bars <n>); start a cue at or before bar <B + bars>`.
 Without `bars`, nothing changes. The [`bridges`](#show-rules) rule measures the windows.
+
+The **echo** is made by the compiler too, never written. With `bridge.bars` the handover can
+end before its track does, while many mixes last longer than the window: the room hears both
+tracks, and which script SoundSwitch plays then is still unknown (experiment
+[P1](../../docs/soundswitch/experiments.md#playback-in-the-room-p)). So the compiler fills the
+outgoing track's bars after its handover with the incoming track's light over the same
+stretch of the mix, and the room sees one light whichever script plays. It exists when the
+show has `bridge.bars`, the handover ends before the outgoing map's last bar (cut by the window
+or by its own `until`), the next track opens with the bridge that copies that handover (so
+`bridge: false` in the next track disables both), and both hot cues resolve (the outgoing
+`G`, the incoming `B`).
+
+- **What it copies.** The clock puts the incoming `B` on the outgoing `G`, so outgoing bar `k`
+  is incoming bar `k - offset`, with `offset = G - B`. The outgoing bars from the one after the
+  handover (`h_end + 1`) to the map's last copy the incoming compiled sections over
+  `[h_end + 1 - offset, bars - offset]`, clipped to that stretch and shifted by `+offset`. The
+  echo stops at the outgoing map's end or at the incoming track's last section, whichever
+  comes first; a bar no incoming section holds there (a gap after an `until`) stays a gap: the
+  autoscript.
+- **What it leaves out.** It copies the states, not the events: the layers exactly, with
+  `movers.faster_from` shifted by the offset (at least bar 1, which still means fast from the
+  start), and without `white.accent`, `strobe.hit` and `strobe.roll`, raw or from `accents:`;
+  a layer they leave empty is dropped, so it reads `auto`. An event belongs to the track that
+  plays it. A copied `auto` stays `auto`.
+- **Its sections** take the incoming sections' names and intents, and their record (see
+  [Provenance and occurrences](#provenance-and-occurrences)).
+- **The report** lists it under "decided by the compiler":
+  `<outgoing title>: echo <a>-<b> copies <incoming title> <a - offset>-<b - offset>`. With the
+  example show and `bars: 4`, Dançarina's handover is 25-28 and
+  `Dançarina: echo 29-32 copies Voa Voa (Ao Vivo) 9-12` (G 25 - B 5 = 20).
+
+If P1 shows that the switch follows the fader inside the window, the echo is harmless: the
+outgoing script is just not seen.
 
 Consequences, each a finding that says what to do:
 
@@ -421,10 +455,10 @@ rules:
 | rule | parameters | finding when |
 |---|---|---|
 | `budget` | key -> `{max?, moments?, from?}`. A key is a look name, a gesture name, `white-accent`, `white-flash`, `strobe` or `uv` | a key has more than `max` occurrences (one finding at the first one past the max; the message lists them all, track and bar); an occurrence whose cue has no `moment` in `moments`; an occurrence in a track before `from` (the `Artist — Title` of a show track) in set order. An unknown key is a parameter problem |
-| `total-dark` | `{only: [look or gesture names]}` | a compiled section (a bridge too) with movers `off`, matrix `off`, hue `dark` or `off` (or `{state: dark}`), and white, strobe and uv each unwritten, `auto` or `off`, has neither its look nor its gesture in `only` |
+| `total-dark` | `{only: [look or gesture names]}` | a compiled section (a bridge too, not an echo) with movers `off`, matrix `off`, hue `dark` or `off` (or `{state: dark}`), and white, strobe and uv each unwritten, `auto` or `off`, has neither its look nor its gesture in `only` |
 | `arrivals` | `true` or `{draw_differs?: bool}` | a track has no cue with `role: arrival`, or more than one; with `draw_differs`, two consecutive tracks' arrival sections have the same matrix draw |
-| `movers-aim` | `true` | a compiled section's movers is a mapping without `position` or `positions` (the autoscript would pick a random preset every two bars) |
-| `matrix-not-cloned` | `true` or `{except_moments?: [names]}` | a compiled section's matrix is a mapping with neither `mirror` nor `pingpong` (both Vorlanes would draw the same), and its cue's moment is not excepted |
+| `movers-aim` | `true` | a compiled section's movers (not an echo's) is a mapping without `position` or `positions` (the autoscript would pick a random preset every two bars) |
+| `matrix-not-cloned` | `true` or `{except_moments?: [names]}` | a compiled section's matrix (not an echo's) is a mapping with neither `mirror` nor `pingpong` (both Vorlanes would draw the same), and its cue's moment is not excepted |
 | `exclusive` | `{keys: [two or more budget keys], except_tracks?: [Artist — Title, or the title]}` | a track has occurrences of more than one of `keys` |
 | `bridges` | `{max: 1-32}` | a compiled handover section, or the bridge section that copies it, is longer than `max` bars. Both findings point at the handover's line in the outgoing track's file (the handover owns the window) and name both lengths and both tracks |
 
@@ -450,7 +484,7 @@ parameter there is still a `show-source` finding, prefixed `advice.<id>:`). Addi
 
 The rules count **occurrences**, from the compiled sections, each with its provenance:
 
-- `kind`: `cue`, `bridge` or `handover`; `track`: the track whose choreography holds it;
+- `kind`: `cue`, `bridge`, `handover` or `echo`; `track`: the track whose choreography holds it;
 - `look`: the name of the look that produced the section (the `look: <name>` of a cue or a
   handover, or the one a gesture step reports); empty for inline layers. `gesture`: for the
   sections a gesture made;
@@ -461,19 +495,23 @@ The rules count **occurrences**, from the compiled sections, each with its prove
 Provenance is per section, so a `sequence` step with `look: breu` counts as `breu`. A **bridge**
 section takes the record of the handover it copies, in the outgoing track's file, so a finding
 about a bridge lands in the file of the agent who owns the handover, which is where the fix
-goes; a moment exception applies to the copy as it does to the original.
+goes; a moment exception applies to the copy as it does to the original. An **echo** section
+takes the record of the incoming cue (or bridge) it copies, with `kind: echo`, the outgoing
+track as its `track` and no `role`, so a finding about it lands in the file that owns that
+chapter. The rules that read sections (`total-dark`, `movers-aim`, `matrix-not-cloned`) skip
+echoes: the original is checked where it is written.
 
 | key | an occurrence is |
 |---|---|
-| a look name | a compiled section (not a bridge) whose look is that name: a cue or handover with `look: <name>`, or a gesture step that reports it (only the name used, not the looks it extends) |
+| a look name | a compiled section (not a bridge or an echo) whose look is that name: a cue or handover with `look: <name>`, or a gesture step that reports it (only the name used, not the looks it extends) |
 | a gesture name | a cue that invokes it |
 | `white-accent` | one beat of a `white.accent` list in a compiled section |
 | `white-flash` | a compiled section with `white: {flash: ...}` |
 | `strobe` | one beat of `strobe.hit`, or one `strobe.roll` |
 | `uv` | a compiled section with `uv: on` or `movers.move: uv` |
 
-Bridges never count: they copy a look already counted where it was written. An `accents` entry
-produces a `white-accent` or `strobe` occurrence like the raw form does.
+Bridges and echoes never count: they copy a look already counted where it was written. An
+`accents` entry produces a `white-accent` or `strobe` occurrence like the raw form does.
 
 ## Reading `build` and `report`
 
@@ -508,10 +546,10 @@ decided by the compiler
 The sample is cut to the section lines; the real report also opens with the night summary and
 the strips and adds the peaks and the hit checks: see [The critic's views](#the-critics-views).
 Each section line is `clock bars name | source | layers | role and moment | music`, with colours by
-palette name; the source is `look <name>`, `look (inline)`, `gesture <name>`, `bridge <look>`
-or `handover <look>`. Then the budget tally, the arrivals, the `advice` section (when the show
-has advice that does not hold), what the compiler decided on its own (bridges, default ends, a
-handover cut by `bridge.bars`) and the findings.
+palette name; the source is `look <name>`, `look (inline)`, `gesture <name>`, `bridge <look>`,
+`handover <look>` or `echo <look>`. Then the budget tally, the arrivals, the `advice` section
+(when the show has advice that does not hold), what the compiler decided on its own (bridges,
+default ends, a handover cut by `bridge.bars`, echoes) and the findings.
 
 Real findings, and what each asks for:
 
@@ -559,9 +597,11 @@ outgoing track runs at its end tempo, and the next track starts at the previous 
   it includes the handover that still sounds after `G`.
 - **States** (looks, colours, aims, zones lit, dark) are **summed over legs**: during a mix
   the time belongs to the incoming track, whose bridge copies the outgoing handover, so no
-  moment is counted twice.
+  moment is counted twice. An echo lies past its track's `G`, outside its leg: it adds no
+  state.
 - **Events** (accents, strobe, UV, moments, map drops) are listed **over sounding windows**,
-  at their own clock.
+  at their own clock. An echo makes none (its events stay with the incoming track), but it
+  extends the outgoing sounding window to its last bar, so a map drop under it is a peak.
 
 ### Levels
 
@@ -620,25 +660,25 @@ kick, bass, vocals, perc and other over the section's bars):
 **The peaks**: one row per map drop inside a sounding window, by clock: the drop against the
 two bars before it (`+5.8 dB`; a drop after silence reads huge), the music level, the light
 level before and at the drop (`0>3`), the accents there and the moment. "Light before" at a
-track's `B` is the previous track's last section of its leg. A bridge's copied moment is never
-shown as the moment of its drop.
+track's `B` is the previous track's last section of its leg. A bridge's or an echo's copied
+moment is never shown as the moment of its drop.
 
 ```
   4:48 · The Rapture Pt.III 145 · +5.8 dB · music 9 · light 0>3 · accents white · moment abertura
 ```
 
 **The hit checks**: one row per arrival and per moment (the first section of a cue or handover
-with a `moment`): the strength of the kick onset on the first 1/16 step (`kick 8`; `.` none),
-the light before and at the hit, the accents on its first beat, and, when the section before
-is total dark, the voices over those dark bars:
+with a `moment`; never a bridge or an echo): the strength of the kick onset on the first 1/16
+step (`kick 8`; `.` none), the light before and at the hit, the accents on its first beat,
+and, when the section before is total dark, the voices over those dark bars:
 
 ```
   32:18 · Too Cool To Be Careless 49 · moment virada · kick 9 · light 0>5 · accents white,strobe · dark before: 48-48 k0 b0 v9 p1 o0
 ```
 
 Then the budget tally, the arrivals, the **advice** (`show-advice` lines), "decided by the
-compiler" (bridges, default ends, aim fallbacks, a handover cut by `bridge.bars`) and the
-findings. `report` exits 1 on findings; advice never does.
+compiler" (bridges, default ends, aim fallbacks, a handover cut by `bridge.bars`, echoes) and
+the findings. `report` exits 1 on findings; advice never does.
 
 ### `zoom`
 
