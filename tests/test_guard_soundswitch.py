@@ -3,6 +3,7 @@
 import importlib.util
 import io
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -91,6 +92,9 @@ def test_abbreviated_apply_asks():
     base = "uv run scripts/nextrack_lights.py apply x.yml "
     for flag in ("--ap", "--app", "--appl"):
         assert asks(base + flag)
+    # `restore` and `accept` have no other `--a...` option, so argparse reads `--a` as `--apply`
+    assert asks('uv run scripts/nextrack_lights.py restore "X" --a')
+    assert asks('uv run scripts/nextrack_lights.py accept "X" --a')
     assert not asks(base + "--accept-resize")
     assert not asks(base + "--adopt-current")
 
@@ -100,9 +104,57 @@ def test_unbalanced_quote_still_asks():
     assert not asks("echo 'unbalanced")
 
 
-def test_settings_json_runs_the_guard():
+def pre_tool_use_commands():
+    """(matcher, command) of every command hook of every `PreToolUse` entry."""
     settings = json.loads((ROOT / ".claude" / "settings.json").read_text())
-    entry = settings["hooks"]["PreToolUse"][0]
-    assert entry["matcher"] == "Bash"
-    assert ".claude/hooks/guard_soundswitch.py" in entry["hooks"][0]["command"]
+    return [
+        (entry.get("matcher"), hook.get("command"))
+        for entry in settings["hooks"]["PreToolUse"]
+        for hook in entry["hooks"]
+        if hook.get("type") == "command"
+    ]
+
+
+def guard_command():
+    """The settings command that runs the guard, exactly as Claude Code runs it."""
+    guards = [c for _, c in pre_tool_use_commands() if ".claude/hooks/guard_soundswitch.py" in c]
+    assert len(guards) == 1, "the guard must be registered exactly once"
+    return guards[0]
+
+
+def test_settings_json_runs_the_guard():
+    command = guard_command()
+    assert [m for m, c in pre_tool_use_commands() if c == command] == ["Bash"]
     assert HOOK.is_file()
+
+
+def test_every_pre_tool_use_command_fails_open():
+    # a PreToolUse command that exits 2 blocks the tool: a missing script would block every call
+    for matcher, command in pre_tool_use_commands():
+        assert command.rstrip().endswith("|| true"), f"{matcher}: {command!r} does not fail open"
+
+
+def run_guard_command(project_dir, payload):
+    env = {**os.environ, "CLAUDE_PROJECT_DIR": str(project_dir)}
+    return subprocess.run(
+        ["sh", "-c", guard_command()], input=json.dumps(payload), capture_output=True,
+        text=True, env=env,
+    )
+
+
+def test_the_settings_command_fails_open_without_the_script(tmp_path):
+    proc = run_guard_command(tmp_path, bash("uv run scripts/nextrack_lights.py apply x --apply"))
+    assert proc.returncode == 0
+    assert proc.stdout == ""
+
+
+def test_the_settings_command_asks_before_an_apply():
+    proc = run_guard_command(ROOT, bash("uv run scripts/nextrack_lights.py apply x --apply"))
+    assert proc.returncode == 0
+    assert json.loads(proc.stdout) == {
+        "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "ask",
+            "permissionDecisionReason": guard.REASON,
+        }
+    }
