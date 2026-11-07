@@ -1,7 +1,7 @@
 import copy
 from dataclasses import dataclass
 
-from showdata import FILE_1, two_track_show
+from showdata import FILE_1, FILE_2, two_track_show
 
 import show_compare
 import show_rules
@@ -34,6 +34,30 @@ def test_moving_an_arrival_is_a_difference_in_arrivals():
     assert diff["arrivals"][0].startswith("~ Pedro Sampaio — Dançarina: bar 9")
     assert "-> bar 10" in diff["arrivals"][0]
     assert diff["moments"] == []
+
+
+def _virada_twice(src, moved=False):
+    """Voa Voa's final cue names the moment `virada` too; `moved` starts Dançarina's virada a bar
+    later, at 22 (its espiral then spans 17-21)."""
+    if moved:
+        src.track_files[FILE_1]["cues"][1]["with"]["bars"] = [2, 3]
+        src.track_files[FILE_1]["cues"][2]["at"] = "22"
+    src.track_files[FILE_2]["cues"][2]["moment"] = "virada"
+    return src
+
+
+def test_every_occurrence_of_a_moment_is_a_fact_in_clock_order():
+    src, inp = two_track_show()
+    assert _facts(src, inp)["moments"] == {"virada": "Dançarina bar 21", "passagem": "Dançarina bar 25",
+                                           "final": "Voa Voa (Ao Vivo) bar 21"}
+    src, inp = two_track_show()
+    twice = _facts(_virada_twice(src), inp)["moments"]
+    assert twice == {"virada": "Dançarina bar 21", "passagem": "Dançarina bar 25",
+                     "virada #2": "Voa Voa (Ao Vivo) bar 21"}
+    src, inp = two_track_show()
+    moved = _facts(_virada_twice(src, moved=True), inp)["moments"]
+    assert show_compare.diff_facts({"moments": twice}, {"moments": moved})["moments"] == [
+        "~ virada: Dançarina bar 21 -> Dançarina bar 22"]
 
 
 def test_a_track_in_only_one_show_is_listed_as_added_or_removed():

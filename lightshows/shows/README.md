@@ -988,8 +988,10 @@ in order:
 removed in the facts that name it. The same inputs give the same bytes. The facts, in order:
 
 - `arrivals`: per track, the arrival's bar, look, matrix draw and matrix colours by palette name.
-- `moments`: per moment name, its track and bar (the first section of a cue or handover that
-  names it; never a bridge or an echo).
+- `moments`: every occurrence of a moment, its track and bar (the first section of a cue or
+  handover that names it; never a bridge or an echo), keyed by the moment's name in clock order:
+  `virada` for the first, then `virada #2`, `virada #3`, ... when the show names it again. Moving
+  any of them is a difference.
 - `drops`: per map drop (`<track> bar N`), its rank and its light response, rounded to 2
   (`~` when unknown), as in `drops` of the report.
 - `signatures`: per declared signature, the delivered share rounded to 2.
