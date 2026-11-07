@@ -471,6 +471,7 @@ uv run scripts/nextrack_show.py report <show> --track "<Artist — Title>"   # o
 uv run scripts/nextrack_show.py report <show> --section follows,drops     # only those sections
 uv run scripts/nextrack_show.py zoom <show> <moment>                   # a moment at 1/16 of a beat: the map's music over the light `build` writes
 uv run scripts/nextrack_show.py zoom <show> "<Artist — Title>" <anchor> [--before N] [--after N] [--frames B.b,...]
+uv run scripts/nextrack_show.py compare <show-a> <show-b> [--keep arrivals,moments]   # the facts of two shows side by side; --keep: exit 1 when a kept fact differs
 uv run scripts/nextrack_show.py brief <set>                    # a set's music for the director: clock, energy, drops, target arc (needs no show)
 uv run scripts/nextrack_show.py vocab [<show>]                # anchors, layer words, gestures, rules (and the show's palette and looks)
 ```
@@ -500,6 +501,10 @@ uv run scripts/nextrack_show.py vocab [<show>]                # anchors, layer w
   other section only the lines that name it (a slice of Hï Ibiza is 5-10k characters). Both
   combine. An unknown section or track is a usage error (exit 2) that lists the valid ones.
   `report` exits 1 only when a finding is among the printed lines.
+- `compare` takes two shows (ids or folders) and prints `<fact>: same` or the differing lines
+  for `arrivals`, `moments`, `drops`, `signatures`, `looks`, `colours`, `windows` and
+  `findings` ([the manual's `compare` section](../lightshows/shows/README.md#compare)).
+  `--keep a,b` exits 1 when a named fact differs; an unknown name is a usage error (exit 2).
 - `brief` takes a set (`sets/<stem>.md`, or the stem) and prints the text of
   [the manual's `brief` section](../lightshows/shows/README.md#brief), about 8k characters for
   15 tracks; it needs no show. An unknown set is a usage error (exit 2); a missing or invalid

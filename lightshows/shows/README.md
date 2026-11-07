@@ -973,6 +973,30 @@ in order:
 - `missing`: a track with no map or an invalid one (the clock leaves it out), a map without
   `mix`, a track with no hot cue `B` (not the first) or `G` (not the last).
 
+## `compare`
+
+`uv run scripts/nextrack_show.py compare <show-a> <show-b> [--keep a,b]` compiles two shows
+(each an id or a folder; a folder outside `lightshows/shows/` is fine) and prints, per fact,
+`<fact>: same` or the lines that differ: `- key: value` (only in the first), `+ key: value`
+(only in the second) and `~ key: a -> b`. A track only one show has appears as added or
+removed in the facts that name it. The same inputs give the same bytes. The facts, in order:
+
+- `arrivals`: per track, the arrival's bar, look, matrix draw and matrix colours by palette name.
+- `moments`: per moment name, its track and bar (the first section of a cue or handover that
+  names it; never a bridge or an echo).
+- `drops`: per map drop (`<track> bar N`), its rank and its light response, rounded to 2
+  (`~` when unknown), as in `drops` of the report.
+- `signatures`: per declared signature, the delivered share rounded to 2.
+- `looks` and `colours`: the minutes of the night per look, and per zone and colour
+  (`movers`, `matrix`, `hue`), from the report's `summary`, each rounded to the nearest 0:05.
+- `windows`: per track, the bars of its handover and of its bridge.
+- `findings`: the count of findings per rule, and `advice <rule>` for the advice.
+
+With `--keep a,b` the exit status is 1 when one of the named facts differs, 0 otherwise; an
+unknown name is a usage error (exit 2) that lists the facts. Without `--keep` it exits 0 (1 or
+2 only when a show cannot be read). It is how a rework proves it kept the night's story:
+`--keep arrivals,moments,signatures`.
+
 ## UV (designed, not compiled)
 
 UV makes people and the room glow (white clothes, UV-reactive decorations); it barely shows in
