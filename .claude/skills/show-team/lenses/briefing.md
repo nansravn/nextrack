@@ -12,16 +12,17 @@ fixture roles hold together? A departure is fine if it is deliberate and named a
 
 ## Run
 
-`<show>` stands for the show folder named in your brief; `<set>` is its set's id.
+`<show>` stands for the show folder named in your brief; `<show-id>` is the show's id, which
+your brief's title names.
 
 ```
 uv run scripts/nextrack_show.py report <show> --section identity,budget,arrivals
 ```
 
 Then read the show's `show.yml` (story and identity), and the light plan's cards:
-`lightshows/sets/<set>.md`, section `## Cartões`. Judge from these files and the report alone. If the light plan has no `## Cartões` section
-(a plan written before the team), judge fidelity against the plan's prose chapters and say in
-your report that there were no cards.
+`lightshows/sets/<show-id>.md`, section `## Cartões`. Judge from these files and the report
+alone. If the light plan has no `## Cartões` section (a plan written before the team), judge
+fidelity against the plan's prose chapters and say in your report that there were no cards.
 
 ## Questions
 

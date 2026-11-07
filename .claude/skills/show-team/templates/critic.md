@@ -26,8 +26,9 @@ a scratch folder outside the run folder, made with `mktemp -d`.
 
 Do not open `ledger.md`, the run folder's designer reports, any other critic's report, or
 anything that explains why the author chose what it chose. Never run `book` and never open a
-book file: the book prints the ledger's decisions. If a path you meet points at one of
-these, do not read it and say so in your reply.
+book file: the book prints the ledger's decisions. Never run `git log` or `git show`: the
+commit messages carry the director's routing of the findings. If a path you meet points at
+one of these, do not read it and say so in your reply.
 
 ## Findings
 

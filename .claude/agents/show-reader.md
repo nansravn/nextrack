@@ -11,10 +11,11 @@ documents fail to say.
 
 ## What you read
 
-Your brief file names the show and the paths. Read, in this order:
+Your brief file names the show and the paths: `<show>` below is the show folder it names,
+`<show-id>` the show's id and `<set>` its set file. Read, in this order:
 
-1. `lightshows/shows/<show>/show.yml` (the night: identity, rules, bridges, budgets).
-2. The light plan, `lightshows/sets/<set>.md`, with its cards under `## Cartões` (one per
+1. `<show>/show.yml` (the night: identity, rules, bridges, budgets).
+2. The light plan, `lightshows/sets/<show-id>.md`, with its cards under `## Cartões` (one per
    track; a mix is covered by the outgoing track's `Entrega:` line).
 3. `uv run scripts/nextrack_show.py brief <set>` (the music facts the designers get).
 4. `lightshows/shows/README.md` only when you need the meaning of a term.
