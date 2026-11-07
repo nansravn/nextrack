@@ -459,8 +459,10 @@ The two tracks are beat-matched, and the clock already puts the incoming `B` on 
 
 - The echo runs from the bar after the handover to the outgoing map's end, or to the last
   incoming bar the copy can reach, whichever comes first.
-- It copies the layers exactly, with every bar-numbered value shifted by the offset. It does
-  not copy accents, as the bridge does not.
+- It copies the states, not the events. The layers are copied exactly, with `faster_from`
+  shifted by the offset. `white.accent`, `strobe.hit` and `strobe.roll` are left out, whether
+  written raw or by `accents:` (a layer left empty becomes `auto`): the bridge does not copy
+  accents either, and an event belongs to the track that plays it.
 - Its sections take the incoming sections' names and intents. Their provenance has a new
   `kind: echo` and the record of the incoming cue they copy, so a finding lands in the file
   that owns the chapter.
@@ -707,8 +709,9 @@ mixes), so the scope discipline of B3.6 applies.
 Acceptance of that run:
 
 - the `bridges` advice reads 0;
-- `compare hi-ibiza-pulso@main <run> --keep arrivals,moments` exits 0, comparing the main
-  branch's show (a checkout in the run folder) with the result;
+- `compare <main's show> hi-ibiza-pulso --keep arrivals,moments` exits 0. The first argument
+  is the main branch's show folder, copied into the run folder (`git archive origin/main
+  lightshows/shows/hi-ibiza-pulso`);
 - the `signatures` advice does not get worse;
 - gates, `check_repo.py` and `pytest` are green;
 - no `grave` finding in scope is open without a ruling, and the findings outside it are in
