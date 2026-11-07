@@ -275,11 +275,13 @@ def render(sr=SR, bars=24, kick=(), bass=(), bass_db=None, kick_db=None, perc=No
 def make(stems, sr=SR, anchors=((0, 120.0),), audio_ms=None, hot_cues=None,
          note="not in rekordbox"):
     audio_ms = audio_ms or len(stems["drums"]) * 1000 // sr
+    audio = sum(stems[k] for k in ("vocals", "drums", "bass", "other"))
     return mm.build_map(track="Pedro Sampaio — Dançarina",
                         guid="0123ABCD-0123-4567-89AB-0123456789AB",
                         audio_sha="3f9c1a2b4d5e", audio_ms=audio_ms, anchors=list(anchors),
                         stems=stems, sr=sr, hot_cues=hot_cues,
-                        hot_cues_note=None if hot_cues else note, separator="htdemucs")
+                        hot_cues_note=None if hot_cues else note, separator="htdemucs",
+                        audio=audio, audio_sr=sr)
 
 
 def arrangement(sr=SR):
@@ -373,6 +375,8 @@ def test_build_map_passes_its_own_validation():
     assert m["grid"] == {"bpm": 120.0, "downbeat": "0:00.000", "anchors": [[0, 120.0]],
                          "offset_ms": m["grid"]["offset_ms"]}
     assert m["audio"] == {"sha256": "3f9c1a2b4d5e", "ms": 48000} and m["bars"] == 24
+    assert m["map_version"] == 2 and len(m["mix"]["loudness"]) == m["bars"]
+    assert len(m["mix"]["brightness"]) == m["bars"]
 
 
 def test_same_bars_at_48k():
@@ -537,3 +541,46 @@ def test_full_needs_kick_and_bass_each_within_15_db_of_their_loud_level():
     sections, drops = mm.sections_and_drops({"kick": kick, "bass": bass, "perc": silent, "other": silent})
     assert sections == [{"bars": [1, 4], "kind": "intro"}, {"bars": [5, 12], "kind": "drop"}]
     assert [d["bar"] for d in drops] == [5]
+
+
+# ------------------------------------------------------------------------ the mix block ----
+
+EDGES = [i * 2000.0 for i in range(9)]  # 8 bars at 120 BPM
+
+
+def sine(freq, seconds):
+    return np.sin(2 * np.pi * freq * np.arange(int(seconds * SR)) / SR)
+
+
+def test_mix_loudness_reads_loud_bars_as_9_and_bars_20_db_down_as_0():
+    x = np.concatenate([0.05 * sine(200, 8.0), 0.5 * sine(200, 8.0)])  # bars 1-4 quiet, 5-8 loud
+    assert mm.mix_block(x, SR, EDGES)["loudness"] == "00009999"
+
+
+def test_mix_loudness_steps_by_1_5_db():
+    gains = [0, -1.0, -3.0, -6.0]  # floor(d / 1.5) = 0, 0, 2, 4
+    x = np.concatenate([0.5 * db(g) * sine(200, 2.0) for g in gains * 2])
+    assert mm.mix_block(x, SR, EDGES)["loudness"] == "99759975"
+
+
+def test_mix_brightness_reads_a_high_tone_above_a_low_one():
+    x = np.concatenate([0.3 * sine(200, 8.0), 0.3 * sine(6000, 8.0)])
+    assert mm.mix_block(x, SR, EDGES)["brightness"] == "00009999"
+
+
+def test_a_silent_bar_reads_0_in_both():
+    x = np.concatenate([np.zeros(int(2.0 * SR)), 0.3 * sine(200, 14.0)])
+    mix = mm.mix_block(x, SR, EDGES)
+    assert mix["loudness"][0] == "0" and mix["brightness"][0] == "0"
+    assert mix["loudness"][1:] == "9999999"
+
+
+def test_a_stereo_mix_and_an_all_silent_track_do_not_crash():
+    stereo = np.stack([0.3 * sine(200, 16.0)] * 2, axis=1)
+    assert mm.mix_block(stereo, SR, EDGES)["loudness"] == "9" * 8
+    assert mm.mix_block(np.zeros(16 * SR), SR, EDGES) == {"loudness": "0" * 8, "brightness": "0" * 8}
+
+
+def test_a_flat_brightness_reads_0():
+    mix = mm.mix_block(0.3 * sine(200, 16.0), SR, EDGES)
+    assert mix["brightness"] == "0" * 8
