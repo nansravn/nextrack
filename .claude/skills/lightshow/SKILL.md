@@ -11,6 +11,11 @@ choreography only after approval, preview it and compile a copy. **Writing into 
 is the owner's call, never yours.** The whole night must be good, not one song: spend
 little, and justify every spend against the show plan.
 
+**Whole night, or a show with `lightshows/shows/<id>/ledger.md`:** that show is the team's.
+Use the `show-team` skill ([../show-team/SKILL.md](../show-team/SKILL.md)); steps 4 and 5
+(per-track approval) do not apply to it, the team's run replaces them. Step 6 (apply) is
+unchanged and stays the owner's call.
+
 Read these before the first proposal:
 [lightshows/README.md](../../../lightshows/README.md) (schemas, vocabulary, the 8×7 draws,
 what the compiler does), the [`nextrack_lights.py` section](../../../scripts/README.md#nextrack_lightspy)
@@ -116,6 +121,8 @@ Copy this checklist into your reply and keep it current:
 
 ## 4. Propose in pt-BR, then wait
 
+Skip steps 4 and 5 for a show with a `ledger.md`: `show-team` runs it.
+
 The proposal, in Portuguese, has four parts:
 
 1. **História**: 2-4 lines, the arc of the track in light.
@@ -152,6 +159,8 @@ owner, then write a choreography with `sections: []` so the haze still applies. 
 copy those values into `grid`, unless the owner plays another version of the track.
 
 ## 6. Apply: only on the owner's explicit go
+
+This step is the same for a team's show: the team never applies.
 
 Approving the choreography is not a go. Apply only when the owner says, in this session,
 to write it into SoundSwitch. A go covers one track's choreography as it stands: ask again
