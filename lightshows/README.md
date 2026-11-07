@@ -1,4 +1,4 @@
-# lightshows/ — the rig, shows, per-track choreographies and show plans
+# lightshows/ — the rig, the room, shows, per-track choreographies and show plans
 
 The room's lights are driven by SoundSwitch, which writes an automatic script for every
 track (the *autoscript*). This folder holds what makes that script yours:
