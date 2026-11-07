@@ -11,7 +11,7 @@ owns the night.
 
 ## Work from your brief only
 
-Your brief file gives you: the story and the identity, your card, the neighbours' cards and
+The path of your brief file arrives in the dispatch message. It gives you: the story and the identity, your card, the neighbours' cards and
 handovers, the night's usage record (what the other units already used), your
 `report --track` slice, and the constraints, quoted verbatim. The constraints bind you. If
 two things in the brief conflict, say so in your report instead of choosing silently.

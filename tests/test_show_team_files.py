@@ -55,4 +55,13 @@ def test_the_critic_is_told_not_to_read_the_authors_reasoning():
 def test_every_agent_states_the_reply_contract(name):
     body = load(name)[1]
     assert "15 lines" in body
-    assert "report" in body
+    assert "path named in your brief" in body
+
+
+def test_the_critic_never_runs_the_book():
+    body = load("show-critic")[1]
+    assert "never run `book`" in body
+    assert "ledger's decisions" in body
+    # `book` appears only inside that prohibition, never as an allowed view
+    assert body.count("`book`") == 1
+    assert "book`," not in body

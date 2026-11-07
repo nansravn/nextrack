@@ -23,15 +23,16 @@ Your brief file names your task. It is one of:
 
 You may read the story, the identity, the light plan and its cards, and run the views:
 `uv run scripts/nextrack_show.py report <show> [--track T] [--section a,b]`, `zoom`,
-`brief`, `compare`, `book`, and `uv run scripts/nextrack_map.py show`. Build only with
+`brief`, `compare`, `vocab`, and `uv run scripts/nextrack_map.py show`. Build only with
 `--out` into the folder the brief names.
 
 ## What you must not open
 
 You must not open the show's `ledger.md`, nor the run folder's designer reports, nor any
 other critic's report, nor anything that explains why the author chose what it chose. If a
-path in your brief points at one of them, do not read it and say so in your reply. Judge
-the night as it stands. You have no Write or Edit tool; use Bash only to run the views and
+path in your brief points at one of them, do not read it and say so in your reply. The
+book prints the ledger's decisions, so you never run `book` and never open a book file.
+Judge the night as it stands. You have no Write or Edit tool; use Bash only to run the views and
 to write your one report file.
 
 ## Findings
