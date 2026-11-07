@@ -6,8 +6,10 @@ No new measure lives here: every number comes from `show_analysis`, `show_views`
 compiled sections, and the formulas are theirs. Only the rounding is this module's:
 
 - arrivals: per track, `bar N: look, draw D, colour C` (colours by palette name);
-- moments: per moment name, `<track> bar N` (the first section of a cue or handover with a
-  `moment`; never a bridge or an echo);
+- moments: per occurrence of a moment, `<track> bar N` (the first section of a cue or handover
+  with a `moment`; never a bridge or an echo), keyed by the moment's name in clock order: the
+  first `name`, the next ones `name #2`, `name #3`, ... (a tie goes to the earlier track, then
+  the lower bar), so moving any occurrence is a difference;
 - drops: per `<track> bar N`, `rank R, response X` (response rounded to 2; `~` unknown);
 - signatures: per declared signature, its delivered share rounded to 2;
 - looks: per look, the minutes of the night rounded to 0:05 (`FIVE_S` seconds);
@@ -56,8 +58,10 @@ def _arrivals(show: CompiledShow) -> dict[str, str]:
 
 
 def _moments(show: CompiledShow) -> dict[str, str]:
-    out: dict[str, str] = {}
-    for track in show.tracks:
+    """Every occurrence of a moment, in clock order: `name`, then `name #2`, `name #3`, ..."""
+    clock = show_analysis.analyse(show).clock
+    found = []
+    for i, (track, tc) in enumerate(zip(show.tracks, clock.tracks)):
         previous = None
         for sec in track.sections:
             first = show_views._first_of_cue(previous, sec)
@@ -65,7 +69,12 @@ def _moments(show: CompiledShow) -> dict[str, str]:
             o = sec.origin
             if o.kind in ("bridge", "echo") or not first or not o.moment:
                 continue
-            out[o.moment] = f"{_title(track.track)} bar {sec.bars[0]}"
+            found.append((tc.at(sec.bars[0]), i, sec.bars[0], o.moment, f"{_title(track.track)} bar {sec.bars[0]}"))
+    out: dict[str, str] = {}
+    seen: dict[str, int] = {}
+    for _, _, _, name, where in sorted(found):
+        seen[name] = seen.get(name, 0) + 1
+        out[name if seen[name] == 1 else f"{name} #{seen[name]}"] = where
     return out
 
 

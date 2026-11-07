@@ -671,6 +671,26 @@ def test_keep_exits_1_when_a_kept_fact_differs(mini_repo, tmp_path, capsys):
     assert run(mini_repo, capsys, "compare", "teste", str(folder), "--keep", "moments,signatures")[0] == 0
 
 
+def test_keep_moments_sees_a_repeated_moment_move(mini_repo, tmp_path, capsys):
+    put_show(mini_repo)
+    folders = []
+    for name, moved in (("before", False), ("after", True)):
+        folder = tmp_path / name
+        shutil.copytree(mini_repo.path(SHOW), folder)
+        first = yaml.safe_load((folder / FILE_1).read_text())
+        second = yaml.safe_load((folder / FILE_2).read_text())
+        second["cues"][2]["moment"] = "virada"            # Voa Voa's final repeats Dançarina's virada
+        if moved:                                         # and the first virada starts a bar later
+            first["cues"][1]["with"]["bars"] = [2, 3]
+            first["cues"][2]["at"] = "22"
+        for file, data in ((FILE_1, first), (FILE_2, second)):
+            (folder / file).write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False))
+        folders.append(str(folder))
+    code, out = run(mini_repo, capsys, "compare", *folders, "--keep", "moments")
+    assert code == 1
+    assert "moments:\n  ~ virada: Dançarina bar 21 -> Dançarina bar 22\n" in out
+
+
 def test_keep_unknown_name_is_a_usage_error(mini_repo, capsys):
     put_show(mini_repo)
     code = nextrack_show.main(["compare", "teste", "teste", "--keep", "arrivals,mood", "--repo", str(mini_repo.root)])
