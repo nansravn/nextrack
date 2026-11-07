@@ -20,14 +20,17 @@ Subcommands:
   brief   a set's music for the director: clock, energy per track, drops ranked, target arc,
           label questions, what is missing (SET is a set path or the stem of sets/<stem>.md;
           it needs no show)
+  book    the book of the night: one self-contained HTML page in pt-BR for the owner (concept,
+          palette, signatures, vocabulary, arc, moments, rhythm, track by track, limits,
+          advice), with the latest run of <show folder>/ledger.md when there is one; -o FILE
   vocab   the anchors, the layer words and keys, the gestures and the rules; with a show, its
           palette and looks
 
 SHOW is a folder path or the id of a folder under <repo>/lightshows/shows/; a relative path is
 looked up under --repo first (<repo>/SHOW, then <repo>/lightshows/shows/SHOW), then from the
 current folder. Findings print as `path:line: rule-id: message`. Exit status: 0 clean,
-1 findings (or stale files), 2 usage. Only `build` writes, and only the choreographies. See
-scripts/README.md.
+1 findings (or stale files), 2 usage. Only `build` and `book` write: the choreographies, and
+the book's FILE. See scripts/README.md.
 """
 from __future__ import annotations
 
@@ -39,6 +42,7 @@ from pathlib import Path
 import check_repo
 import lightshow
 import show_analysis
+import show_book
 import show_brief
 import show_compare
 import show_energy
@@ -853,6 +857,35 @@ def _compare(args) -> int:
     return 1 if any(diff[k] for k in kept) else 0
 
 
+# -------------------------------------------------------------------- book --
+
+
+def _book(args) -> int:
+    if args.output is None:
+        return _usage("book needs -o FILE, the HTML page to write")
+    repo, source, errors = _load(args)
+    if repo is None:
+        return 2
+    if errors or source is None or source.parse_failed:
+        _print_findings(errors)
+        return 1
+    compiled, found, rule_found, advice = show_rules.evaluate_show(source, check_repo.show_inputs(repo, source))
+    if found or compiled is None:
+        _print_findings(found)
+        return 1
+    path = repo.root / source.folder / "ledger.md"
+    try:
+        ledger = path.read_text(encoding="utf-8") if path.is_file() else None
+    except (OSError, UnicodeDecodeError) as e:
+        return _usage(f"cannot read {path}: {e}")
+    _write_atomic(Path(args.output), show_book.render_book(compiled, advice, ledger,
+                                                           set_arc=_set_arc(repo.root, compiled)))
+    print(f"wrote {args.output}")
+    if rule_found:                     # the report lists them; the book prints the advice only
+        print(f"{len(rule_found)} rule finding(s): see nextrack_show.py report", file=sys.stderr)
+    return 0
+
+
 # -------------------------------------------------------------------- main --
 
 
@@ -888,13 +921,16 @@ def main(argv: list[str] | None = None) -> int:
     compare.add_argument("other", help="the second show (a folder, or an id)")
     compare.add_argument("--keep", metavar="A,B",
                          help=f"exit 1 when one of these facts differs: {', '.join(show_compare.FACTS)}")
+    book = add("book", "the book of the night: one HTML page in pt-BR for the owner")
+    book.add_argument("-o", "--output", metavar="FILE", help="the HTML file to write (required)")
     add("vocab", "anchors, layer words, gestures and rules (and a show's palette and looks)", show_required=False)
     brief = sub.add_parser("brief", help="a set's music for the director: clock, energy, drops, arc (needs no show)")
     brief.add_argument("set", help="a repo-relative set path, or the stem of sets/<stem>.md")
     brief.add_argument("--repo", type=Path, default=DEFAULT_REPO,
                        help="repo root (default: the repo that holds this script)")
     args = parser.parse_args(argv)
-    return {"build": _build, "report": _report, "zoom": _zoom, "compare": _compare, "vocab": _vocab, "brief": _brief}[args.command](args)
+    return {"build": _build, "report": _report, "zoom": _zoom, "compare": _compare, "book": _book, "vocab": _vocab,
+            "brief": _brief}[args.command](args)
 
 
 if __name__ == "__main__":

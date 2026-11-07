@@ -682,3 +682,27 @@ def test_keep_unknown_name_is_a_usage_error(mini_repo, capsys):
 def test_compare_with_an_unknown_show_is_a_usage_error(mini_repo, capsys):
     put_show(mini_repo)
     assert run(mini_repo, capsys, "compare", "teste", "nao-existe")[0] == 2
+
+
+# -------------------------------------------------------------------- book --
+
+
+def test_book_writes_the_file(mini_repo, tmp_path, capsys):
+    put_show(mini_repo)
+    mini_repo.write(f"{SHOW}/ledger.md", "# Diário do time — teste\n\n## 2026-11-08 — Rodada\n\n"
+                                         "### Decisões\n- A ponte fica curta.\n\n### Para depois\n- Medir a sala.\n")
+    out = tmp_path / "livro" / "book.html"
+    code, printed = run(mini_repo, capsys, "book", "teste", "-o", str(out))
+    assert (code, printed) == (0, f"wrote {out}\n")
+    page = out.read_text(encoding="utf-8")
+    assert page.startswith("<!doctype html>") and "<title>Teste</title>" in page
+    assert "A ponte fica curta." in page and "Medir a sala." in page
+    assert run(mini_repo, capsys, "build", "teste", "--check")[0] == 0      # the ledger is not a track file
+
+
+def test_book_needs_an_output(mini_repo, capsys):
+    put_show(mini_repo)
+    code = nextrack_show.main(["book", "teste", "--repo", str(mini_repo.root)])
+    captured = capsys.readouterr()
+    assert code == 2 and captured.out == ""
+    assert "usage error" in captured.err and "-o FILE" in captured.err
