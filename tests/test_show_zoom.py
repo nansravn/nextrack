@@ -497,3 +497,12 @@ def test_a_strobe_window_marks_strobe_true():
     assert hit.movers == tuple(hit.units) and all(level > 0 for level in hit.movers)
     assert hit.coverage == (1.0, 1.0)
     assert any(s.strobe is False for s in samples)           # the strobe is a hit, not the whole section
+
+
+def test_sample_light_holds_each_vorlanes_lit_cells():
+    track, section = _virada(base())
+    samples = sz.sample_light(track, *section.bars, None, None)
+    assert all(len(s.cells) == 2 and all(len(u) == len(sz.COLOUR_CELLS) for u in s.cells) for s in samples)
+    assert all(s.coverage[u] == sum(s.cells[u]) / len(sz.COLOUR_CELLS) for s in samples for u in range(2))
+    auto = sz.sample_light(base().tracks[0], 1, 1, None, None)
+    assert all(s.cells == () for s in auto)
