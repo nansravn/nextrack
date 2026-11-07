@@ -14,7 +14,8 @@ drop of each track gets the bigger answer; builds grow into the drop.
 ## Run
 
 `<show>` stands for the show folder named in your brief; `<track>` is `Artist — Title` as the
-file names it.
+file names it: take it in full from the track's header line in the `tracks` section (the
+`drops` lines print the title only).
 
 ```
 uv run scripts/nextrack_show.py report <show> --section drops,builds,peaks,hits
@@ -47,11 +48,10 @@ drop's bar from its line. Add `--before 3 --after 2` to see the build and the af
 
 ## Severity
 
-- `grave`: a top drop of the night with contrast near 0 and few changes, or with a late or
-  missing hit in `zoom`; or the main drop of a track answered less than a minor drop; or no
-  build into the top drop at all.
-- `moderado`: a drop below the top that fails one criterion (stale look, flat build, accents
-  spent); low agreement across the mid-ranked drops.
+- `grave`: a top-quartile drop with contrast 0 or less (or unknown) and fewer than 3 changes;
+  or a track's main drop answered below an earlier drop of the same track.
+- `moderado`: a top drop with contrast 0 or less but 3 or more changes; or freshness 0 at a
+  top drop; or a flat build, spent accents or a late hit that does not reach `grave`.
 - `menor`: polish, such as a one-step offset in a hit that otherwise lands.
 
 ## Finding format
@@ -62,10 +62,10 @@ Write each finding in pt-BR with `lente`, `severidade`, `unidade`, `evidência`,
 ```
 - lente: drops
 - severidade: grave
-- unidade: The Akan, drop do compasso 105
-- evidência: "rank 2 · 7:12 · The Akan 105 · salience 0.84 ... response 0.22 (contrast +0.0, changes 7, fresh 0.11)"; zoom: a luz já estava no máximo no compasso 104
-- problema: o segundo maior drop da noite não tem contraste: a luz chega ao drop já alta e
-  nada sobra para o golpe.
-- direção: olhar a construção antes do drop e abrir espaço (um respiro ou escuro curto) para
-  que o golpe tenha de onde subir.
+- unidade: Dirty Cash (Money Talks), drop do compasso 25
+- evidência: "rank 6 · 41:15 · Dirty Cash (Money Talks) 25 · salience 0.68 ... response 0.00 (contrast +0.0, changes 0, fresh 0.00)"
+- problema: um dos maiores drops da noite passa sem resposta: sem contraste e sem nenhuma
+  mudança na luz.
+- direção: olhar a seção que cobre o compasso 25 e dar a ela uma mudança que o golpe precise
+  (um respiro antes, uma troca de olhar no drop).
 ```
