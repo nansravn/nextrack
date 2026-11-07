@@ -61,9 +61,70 @@ sounding window (at least 4 bars must stay).
                      E_light(d-9..d-2) - 1`; else "ramp" when the window's last 4 E_light do
                      not decrease and `E_light(d-1) > E_light(window start)`; else "flat";
                      "unknown" when the bars a test needs are unknown (autoscript)
+
+All the shares below are of time summed over legs (`TrackClock.span_s` of the leg bars a section
+holds; an echo, past its track's G, adds none) and over the night (`ShowClock.total_s`); a leg
+bar no section holds (the autoscript) counts in no value.
+
+variety (`variety`):
+    static_runs   consecutive leg bars with the same `signature`, merged across a leg boundary;
+                  the top 5 by seconds (a tie goes to the earlier). `track` is the run's first
+                  track, `bars` its first bar to its last bar (the last bar may lie in a later
+                  track); `music` joins, in order, the kinds of the map sections under the run
+                  with `+`
+    window        for minute m of the night (m = 0 .. ceil(total / 60) - 1) the signatures' time
+                  shares over the clock window `[60 m - 120, 60 m + 120)`; `H = -sum(p log2 p) /
+                  log2(k)` with k distinct signatures, 0 when k <= 1, digit `round(9 H)` (half
+                  up); None when the window holds no signed bar
+    dominance     per identity dimension, the value (not `auto`) with the largest time share (a
+                  value of several words, such as the aims of a section, gives each word an
+                  equal part of the seconds); `declared` when a signature's `is` names that
+                  dimension and that value
+    similarity    `(i, cosine)` of track i's and track i + 1's vectors of time shares over every
+                  `(dimension, value)` pair (each track's shares of its own signed time);
+                  skipped when a track has no signed bar
+    templates     `(distinct drop templates, number of drops)` of `drops`
+    phrase_share  among the leg bars with `X(b) > 0`, the share that start a map section or have
+                  `(b - section start) % 4 == 0`; None without such bars
+    usage         per track, the looks, colours (movers, matrix, hue; palette names), aims and
+                  gestures its leg sections use (not `auto`, `off` or `none`), and the number of
+                  distinct drop templates of its drops
+
+arc (`arc`), the night against the owner's energy plan (`CompiledShow.energies`, 1-10):
+    mean, p90     the mean and the 90th percentile (`numpy.percentile`, linear) of the night's
+                  E_light over the leg's known bars; activity: the mean of the activity digits
+    warm          the share of the leg's time where the movers' or the lustre's lit colour has an
+                  HSV hue within 30 degrees of red (a grey has no hue)
+    rare          counts per track of the `occurrences` of strobe, white-accent, white-flash and
+                  uv whose bar is inside the sounding window; `total-dark` (sections over the
+                  leg); `gestures` (the gesture calls)
+    rho, rho90    `spearman(energy, mean)` and `spearman(energy, p90)` over the tracks with both
+    headroom      the max p90 over the tracks before the first one at the night's max energy,
+                  over the night's max p90; None without such tracks or with a max of 0
+    staircase     the tracks whose p90 exceeds every earlier p90 while their energy is below an
+                  earlier energy
+    steps         for consecutive tracks, "jump" when `|d mean| >= 2` and `d energy == 0`, "flat"
+                  when `|d mean| < 1` and `d energy >= 1` (the index is the second track's)
+    breathers     each drop of `top(drops, 0.25)` (`(index, bar)`, in rank order) with known light
+                  after it and none of the bars starting within 180 s after it has E_light <= the
+                  night's median E_light (known leg bars)
+    labels        the tracks whose rank by owner energy and by mean night E_music (rank 1 the
+                  highest, ties share the mean rank) differ by 3 or more
+    target        `(clock_s at the leg's start, owner energy)` of each track with an energy
+
+identity (`identity`): a section carries a signature when, for every dimension its `is` lists, one
+of the section's words for that dimension is a listed value. `share` is the time share of the
+carrying leg bars; `ok` is `min <= share <= max` (a missing bound passes); `occurrences` are the
+maximal runs of carrying leg bars inside one track, `(index, track, (first, last), seconds)`.
+`undeclared` is, per dimension, the top value (not `auto`) that no signature lists, with its
+share. `arc` is the identity's own `arc`, None when it names none.
+
+`analyse(show)` bundles the energy series and every analysis; it is memoised in
+`show.cache["analysis"]`.
 """
 from __future__ import annotations
 
+import colorsys
 import math
 from dataclasses import dataclass
 
@@ -72,7 +133,7 @@ import numpy as np
 import show_energy
 import show_views
 from show_energy import CHANGE_DIMENSIONS, TrackEnergy, dimension_values, normalise, signature
-from show_language import CompiledSection, CompiledShow
+from show_language import IDENTITY_DIMENSIONS, CompiledSection, CompiledShow, layer_word
 from show_views import ShowClock
 
 LAG_MAX = 8
@@ -426,3 +487,444 @@ def builds(show: CompiledShow, clock: ShowClock) -> list[Build]:
                              _slope(_known(te, "activity", a, b)), _slope(_known(te, "brightness", a, b)),
                              _into(te, (a, b))))
     return out
+
+
+# ---------------------------------------------------------------- leg bars --
+
+RUNS_TOP = 5
+WINDOW_HALF_S = 120.0
+BREATHER_S = 180.0
+WARM_DEGREES = 30
+STEP_JUMP = 2
+STEP_FLAT = 1
+LABEL_GAP = 3
+_NEUTRAL = ("auto", "off", "none")
+
+
+@dataclass
+class _LegBar:
+    index: int
+    bar: int
+    start_s: float
+    seconds: float
+    values: dict | None          # dimension_values of the holding section, None without one
+    sig: tuple | None
+
+
+def _leg_bars(show: CompiledShow, clock: ShowClock) -> list[_LegBar]:
+    names = show_views._palette_names(show)
+    out = []
+    for i, (track, tc) in enumerate(zip(show.tracks, clock.tracks)):
+        memo: dict[int, tuple] = {}
+        for b in range(tc.leg[0], tc.leg[1] + 1):
+            sec = show_energy._section_at(track, b)
+            values = sig = None
+            if sec is not None:
+                if id(sec) not in memo:
+                    v = dimension_values(sec, show.room, names)
+                    memo[id(sec)] = (v, tuple(v[d] for d in IDENTITY_DIMENSIONS))
+                values, sig = memo[id(sec)]
+            out.append(_LegBar(i, b, tc.at(b), tc.span_s(b, b), values, sig))
+    return out
+
+
+def _shares(bars: list[_LegBar], total: float) -> dict[tuple[str, str], float]:
+    """Time share of each `(dimension, word)` over `bars`, `total` seconds being 1."""
+    out: dict[tuple[str, str], float] = {}
+    for lb in bars:
+        for dim, words in (lb.values or {}).items():
+            for w in words:
+                out[(dim, w)] = out.get((dim, w), 0.0) + lb.seconds / len(words) / total
+    return out
+
+
+def _declared(show: CompiledShow) -> list[dict]:
+    block = show.data.get("identity") if isinstance(show.data, dict) else None
+    sigs = block.get("signatures") if isinstance(block, dict) else None
+    out = []
+    for sig in sigs if isinstance(sigs, list) else []:
+        if isinstance(sig, dict) and isinstance(sig.get("is"), dict):
+            out.append({"name": sig.get("name", ""), "intent": sig.get("intent", ""),
+                        "is": {d: [str(x) for x in (v if isinstance(v, list) else [v])] for d, v in sig["is"].items()},
+                        "share": sig.get("share") if isinstance(sig.get("share"), dict) else {}})
+    return out
+
+
+def _top_value(shares: dict[tuple[str, str], float], dim: str, skip=lambda w: False) -> tuple[str, float] | None:
+    mine = {w: v for (d, w), v in shares.items() if d == dim and w != "auto" and not skip(w)}
+    if not mine:
+        return None
+    value = max(mine, key=lambda w: (mine[w], w))
+    return value, mine[value]
+
+
+# ---------------------------------------------------------------- variety --
+
+
+@dataclass
+class Run:
+    index: int
+    track: str
+    bars: tuple[int, int]
+    seconds: float
+    music: str
+
+
+@dataclass
+class Dominant:
+    value: str
+    share: float
+    declared: bool
+
+
+@dataclass
+class Usage:
+    index: int
+    track: str
+    looks: list[str]
+    colours: dict[str, list[str]]
+    aims: list[str]
+    gestures: list[str]
+    templates: int
+
+
+@dataclass
+class Variety:
+    static_runs: list[Run]
+    window: list[int | None]
+    dominance: dict[str, Dominant]
+    similarity: list[tuple[int, float]]
+    templates: tuple[int, int]
+    phrase_share: float | None
+    usage: list[Usage]
+
+
+def _static_runs(show: CompiledShow, bars: list[_LegBar]) -> list[Run]:
+    runs: list[list[_LegBar]] = []
+    for lb in bars:
+        if lb.sig is None:
+            runs.append([])          # a bar with no section ends the run
+        elif runs and runs[-1] and runs[-1][-1].sig == lb.sig:
+            runs[-1].append(lb)
+        else:
+            runs.append([lb])
+    out = []
+    for r in filter(None, runs):
+        kinds: list[str] = []
+        for index in sorted({x.index for x in r}):
+            mine = [x.bar for x in r if x.index == index]
+            for sec in _sections(show.tracks[index]):
+                if sec["bars"][0] <= max(mine) and sec["bars"][1] >= min(mine) and str(sec["kind"]) not in kinds:
+                    kinds.append(str(sec["kind"]))
+        out.append(Run(r[0].index, show.tracks[r[0].index].track, (r[0].bar, r[-1].bar),
+                       sum(x.seconds for x in r), "+".join(kinds)))
+    out.sort(key=lambda r: -r.seconds)       # stable: a tie goes to the earlier
+    return out[:RUNS_TOP]
+
+
+def _entropy_digit(shares: dict[tuple, float]) -> int:
+    k = len(shares)
+    if k <= 1:
+        return 0
+    total = sum(shares.values())
+    h = -sum((v / total) * math.log2(v / total) for v in shares.values() if v > 0) / math.log2(k)
+    return math.floor(9 * h + 0.5 + 1e-9)
+
+
+def _window(bars: list[_LegBar], total_s: float) -> list[int | None]:
+    out = []
+    for m in range(math.ceil(total_s / 60)):
+        lo, hi = 60.0 * m - WINDOW_HALF_S, 60.0 * m + WINDOW_HALF_S
+        shares: dict[tuple, float] = {}
+        for lb in bars:
+            overlap = min(lb.start_s + lb.seconds, hi) - max(lb.start_s, lo)
+            if lb.sig is not None and overlap > 0:
+                shares[lb.sig] = shares.get(lb.sig, 0.0) + overlap
+        out.append(_entropy_digit(shares) if shares else None)
+    return out
+
+
+def _cosine(a: dict, b: dict) -> float | None:
+    na, nb = math.sqrt(sum(v * v for v in a.values())), math.sqrt(sum(v * v for v in b.values()))
+    if na < 1e-12 or nb < 1e-12:
+        return None
+    return sum(v * b.get(k, 0.0) for k, v in a.items()) / (na * nb)
+
+
+def _phrase_share(show: CompiledShow, clock: ShowClock, energy: list[TrackEnergy]) -> float | None:
+    changed = on_line = 0
+    for track, tc, te in zip(show.tracks, clock.tracks, energy):
+        spans = [s["bars"] for s in _sections(track)]
+        for b in range(tc.leg[0], tc.leg[1] + 1):
+            if (te.at("changes", b) or 0) <= 0:
+                continue
+            changed += 1
+            if any(a <= b <= z and (b - a) % 4 == 0 for a, z in spans):
+                on_line += 1
+    return on_line / changed if changed else None
+
+
+def variety(show: CompiledShow, clock: ShowClock) -> Variety:
+    """Monotony and variety (module docstring)."""
+    energy = show_energy.night_energy(show, clock)
+    bars = _leg_bars(show, clock)
+    total = clock.total_s
+    declared = _declared(show)
+    shares = _shares(bars, total) if total > 0 else {}
+    dominance = {}
+    for dim in IDENTITY_DIMENSIONS:
+        top_value = _top_value(shares, dim)
+        if top_value:
+            dominance[dim] = Dominant(top_value[0], top_value[1], any(top_value[0] in s["is"].get(dim, []) for s in declared))
+    vectors = []
+    for i in range(len(show.tracks)):
+        mine = [lb for lb in bars if lb.index == i and lb.values is not None]
+        secs = sum(lb.seconds for lb in mine)
+        vectors.append(_shares(mine, secs) if secs > 0 else {})
+    similarity = [(i, c) for i in range(len(vectors) - 1) if (c := _cosine(vectors[i], vectors[i + 1])) is not None]
+    rows = drops(show, clock)
+    usage = []
+    for i, track in enumerate(show.tracks):
+        used: dict[str, set[str]] = {d: set() for d in IDENTITY_DIMENSIONS}
+        for lb in bars:
+            for dim, words in (lb.values or {}).items() if lb.index == i else ():
+                used[dim] |= {w for w in words if w not in _NEUTRAL}
+        usage.append(Usage(i, track.track, sorted(used["look"]),
+                           {"movers": sorted(used["movers.colour"]), "matrix": sorted(used["matrix.colour"]),
+                            "hue": sorted(used["hue.colour"])},
+                           sorted(used["aim"]), sorted(used["gesture"]),
+                           len({r.template for r in rows if r.index == i})))
+    return Variety(_static_runs(show, bars), _window(bars, total), dominance, similarity,
+                   (len({r.template for r in rows}), len(rows)), _phrase_share(show, clock, energy), usage)
+
+
+# -------------------------------------------------------------------- arc --
+
+
+@dataclass
+class ArcTrack:
+    index: int
+    track: str
+    energy: int | None
+    mean: float | None
+    p90: float | None
+    activity: float | None
+    warm: float | None
+    rare: dict[str, int]
+
+
+@dataclass
+class Arc:
+    tracks: list[ArcTrack]
+    rho: float | None
+    rho90: float | None
+    headroom: float | None
+    staircase: list[int]
+    steps: list[tuple[int, str]]
+    breathers: list[tuple[int, int]]
+    labels: list[str]
+    target: list[tuple[float, int]]
+
+
+def _warm_hex(value: object) -> bool:
+    if not (isinstance(value, str) and len(value) == 7 and value.startswith("#")):
+        return False
+    try:
+        r, g, b = (int(value[k:k + 2], 16) / 255 for k in (1, 3, 5))
+    except ValueError:
+        return False
+    h, s, _ = colorsys.rgb_to_hsv(r, g, b)
+    degrees = h * 360
+    return s > 0 and min(degrees, 360 - degrees) <= WARM_DEGREES
+
+
+def _warm_section(section: CompiledSection) -> bool:
+    for group in ("movers", "hue"):
+        layer = layer_word(section.layers.get(group))
+        if isinstance(layer, dict) and _warm_hex(layer.get("colour")) and layer.get("state") != "dark":
+            return True
+    return False
+
+
+def _median(values: list[float]) -> float:
+    ordered = sorted(values)
+    mid = len(ordered) // 2
+    return float(ordered[mid]) if len(ordered) % 2 else (ordered[mid - 1] + ordered[mid]) / 2
+
+
+def _arc_stats(tracks: list[ArcTrack]) -> tuple[float | None, float | None, float | None, list[int], list[tuple[int, str]]]:
+    """`rho`, `rho90`, `headroom`, the staircase breaks and the steps (module docstring)."""
+    both = [t for t in tracks if t.energy is not None and t.mean is not None]
+    rho = spearman([t.energy for t in both], [t.mean for t in both])
+    both90 = [t for t in tracks if t.energy is not None and t.p90 is not None]
+    rho90 = spearman([t.energy for t in both90], [t.p90 for t in both90])
+    headroom = None
+    with_e = [t for t in tracks if t.energy is not None]
+    p90s = [t.p90 for t in tracks if t.p90 is not None]
+    if with_e and p90s and max(p90s) > 0:
+        peak = max(t.energy for t in with_e)
+        first = next(t.index for t in with_e if t.energy == peak)
+        before = [t.p90 for t in tracks if t.index < first and t.p90 is not None]
+        headroom = max(before) / max(p90s) if before else None
+    stairs = []
+    for k, t in enumerate(tracks):
+        p_before = [e.p90 for e in tracks[:k] if e.p90 is not None]
+        e_before = [e.energy for e in tracks[:k] if e.energy is not None]
+        if t.energy is not None and t.p90 is not None and p_before and e_before \
+                and t.p90 > max(p_before) and t.energy < max(e_before):
+            stairs.append(t.index)
+    steps = []
+    for a, b in zip(tracks, tracks[1:]):
+        if None in (a.mean, b.mean, a.energy, b.energy):
+            continue
+        dm, de = b.mean - a.mean, b.energy - a.energy
+        if abs(dm) >= STEP_JUMP and de == 0:
+            steps.append((b.index, "jump"))
+        elif abs(dm) < STEP_FLAT and de >= 1:
+            steps.append((b.index, "flat"))
+    return rho, rho90, headroom, stairs, steps
+
+
+def _label_questions(rows: list[tuple[str, int | None, float | None]]) -> list[str]:
+    """`rows` are `(track, owner energy, mean night E_music)`; the label-check questions of the
+    module docstring, in set order."""
+    have = [r for r in rows if r[1] is not None and r[2] is not None]
+    n = len(have)
+    by_energy = [n + 1 - r for r in _ranks([float(r[1]) for r in have])]
+    by_music = [n + 1 - r for r in _ranks([float(r[2]) for r in have])]
+    out = []
+    for (track, e, _), r_e, r_m in zip(have, by_energy, by_music):
+        if abs(r_e - r_m) >= LABEL_GAP:
+            title = track.split(" — ", 1)[-1]
+            out.append(f"{title}: owner energy e{e} ranks {r_e:g}, measured music ranks {r_m:g}: check the label")
+    return out
+
+
+def _breathers(clock: ShowClock, rows: list[Drop], energy: list[TrackEnergy]) -> list[tuple[int, int]]:
+    known = [(tc.at(b), v) for tc, te in zip(clock.tracks, energy) for b in range(tc.leg[0], tc.leg[1] + 1)
+             if (v := te.at("light", b)) is not None]
+    if not known:
+        return []
+    median = _median([v for _, v in known])
+    out = []
+    for d in top(rows, 0.25):
+        after = [v for t, v in known if d.clock_s < t <= d.clock_s + BREATHER_S]
+        if after and not any(v <= median for v in after):
+            out.append((d.index, d.bar))
+    return out
+
+
+def arc(show: CompiledShow, clock: ShowClock) -> Arc:
+    """The night against the owner's energy plan (module docstring)."""
+    import show_rules          # deferred: show_views imports show_rules
+    from show_gestures import GESTURES
+
+    energy = show_energy.night_energy(show, clock)
+    counted = {k: show_rules.occurrences(show, k) for k in (*show_rules.EFFECT_KEYS, *GESTURES)}
+    tracks, music = [], []
+    for track, tc, te in zip(show.tracks, clock.tracks, energy):
+        light = _known(te, "light", tc.leg[0], tc.leg[1])
+        leg_s = tc.span_s(*tc.leg)
+        warm_s = sum(tc.span_s(max(s.bars[0], tc.leg[0]), min(s.bars[1], tc.leg[1]))
+                     for s in track.sections if _warm_section(s))
+        rare = {k: sum(1 for o in counted[k] if o.track == track.track and tc.sounds(o.bar))
+                for k in show_rules.EFFECT_KEYS}
+        rare["total-dark"] = sum(1 for s in track.sections if s.bars[0] <= tc.leg[1] and s.bars[1] >= tc.leg[0]
+                                 and show_rules._total_dark(s.layers))
+        rare["gestures"] = sum(1 for k in GESTURES for o in counted[k] if o.track == track.track)
+        e = show.energies.get(track.track)
+        tracks.append(ArcTrack(te.index, track.track, e, _mean(light),
+                               float(np.percentile(light, 90)) if light else None,
+                               _mean(_known(te, "activity", tc.leg[0], tc.leg[1])),
+                               warm_s / leg_s if leg_s > 0 else None, rare))
+        music.append((track.track, e, _mean(_known(te, "music_night", tc.leg[0], tc.leg[1]))))
+    rho, rho90, headroom, stairs, steps = _arc_stats(tracks)
+    target = [(tc.start_s, t.energy) for tc, t in zip(clock.tracks, tracks) if t.energy is not None]
+    return Arc(tracks, rho, rho90, headroom, stairs, steps, _breathers(clock, drops(show, clock), energy),
+               _label_questions(music), target)
+
+
+# --------------------------------------------------------------- identity --
+
+
+@dataclass
+class SignatureCheck:
+    name: str
+    intent: str
+    share: float
+    min: float | None
+    max: float | None
+    ok: bool
+    occurrences: list[tuple[int, str, tuple[int, int], float]]
+
+
+@dataclass
+class Identity:
+    arc: str | None
+    signatures: list[SignatureCheck]
+    undeclared: dict[str, tuple[str, float]]
+
+
+def _bound(value: object) -> float | None:
+    return float(value) if isinstance(value, (int, float)) and not isinstance(value, bool) else None
+
+
+def identity(show: CompiledShow, clock: ShowClock) -> Identity:
+    """The declared identity, promised against delivered (module docstring)."""
+    bars = _leg_bars(show, clock)
+    total = clock.total_s
+    block = show.data.get("identity") if isinstance(show.data, dict) else None
+    arc_name = block.get("arc") if isinstance(block, dict) and isinstance(block.get("arc"), str) else None
+    declared = _declared(show)
+    checks = []
+    for sig in declared:
+        seconds = 0.0
+        runs: list[list] = []          # [index, first bar, last bar, seconds]
+        for lb in bars:
+            if lb.values is None or not all(any(w in wanted for w in lb.values.get(dim, ()))
+                                            for dim, wanted in sig["is"].items()):
+                continue
+            seconds += lb.seconds
+            if runs and runs[-1][0] == lb.index and runs[-1][2] == lb.bar - 1:
+                runs[-1][2], runs[-1][3] = lb.bar, runs[-1][3] + lb.seconds
+            else:
+                runs.append([lb.index, lb.bar, lb.bar, lb.seconds])
+        share = seconds / total if total > 0 else 0.0
+        lo, hi = _bound(sig["share"].get("min")), _bound(sig["share"].get("max"))
+        ok = (lo is None or share >= lo - 1e-9) and (hi is None or share <= hi + 1e-9)
+        checks.append(SignatureCheck(str(sig["name"]), str(sig["intent"]), share, lo, hi, ok,
+                                     [(r[0], show.tracks[r[0]].track, (r[1], r[2]), r[3]) for r in runs]))
+    shares = _shares(bars, total) if total > 0 else {}
+    undeclared = {}
+    for dim in IDENTITY_DIMENSIONS:
+        found = _top_value(shares, dim, lambda w: any(w in s["is"].get(dim, []) for s in declared))
+        if found:
+            undeclared[dim] = found
+    return Identity(arc_name, checks, undeclared)
+
+
+# ---------------------------------------------------------------- analyse --
+
+
+@dataclass
+class Analysis:
+    clock: ShowClock
+    energy: list[TrackEnergy]
+    follows: list[Follow]
+    drops: list[Drop]
+    builds: list[Build]
+    variety: Variety
+    arc: Arc
+    identity: Identity
+
+
+def analyse(show: CompiledShow) -> Analysis:
+    """Every analysis of the night on `build_clock(show)`, memoised in `show.cache["analysis"]`."""
+    cached = show.cache.get("analysis")
+    if cached is not None:
+        return cached
+    clock = show_views.build_clock(show)
+    result = Analysis(clock, show_energy.night_energy(show, clock), follows(show, clock), drops(show, clock),
+                      builds(show, clock), variety(show, clock), arc(show, clock), identity(show, clock))
+    show.cache["analysis"] = result
+    return result
