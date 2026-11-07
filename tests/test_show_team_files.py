@@ -111,3 +111,65 @@ def test_no_lens_runs_the_book_or_opens_the_ledger(name):
     text = lens_text(name)
     assert "show.py book" not in text
     assert "ledger.md" not in text
+
+
+# --- the dispatch templates (.claude/skills/show-team/templates/*.md) ---
+
+TEMPLATES = ROOT / ".claude" / "skills" / "show-team" / "templates"
+TEMPLATE_NAMES = ["reader", "designer", "critic", "judge", "engineer"]
+PLACEHOLDERS = {
+    "run", "show", "show_id", "set", "unit", "files", "card", "neighbours", "constraints",
+    "request", "lens", "scope", "variant_a", "variant_b", "effect", "report_file",
+}
+
+
+def template_text(name):
+    return (TEMPLATES / f"{name}.md").read_text(encoding="utf-8")
+
+
+def test_the_template_folder_holds_exactly_these_templates():
+    assert sorted(p.stem for p in TEMPLATES.glob("*.md")) == sorted(TEMPLATE_NAMES)
+
+
+@pytest.mark.parametrize("name", TEMPLATE_NAMES)
+def test_templates_use_only_known_placeholders(name):
+    text = template_text(name)
+    used = set(re.findall(r"\{\{(.*?)\}\}", text))
+    assert used <= PLACEHOLDERS, f"{name}: unknown {used - PLACEHOLDERS}"
+    assert "{{report_file}}" in text, f"{name}: no report path"
+    assert "15 lines" in text
+
+
+def test_the_critic_template_hands_no_reasoning():
+    text = template_text("critic")
+    assert "{{request}}" not in text
+    assert "{{lens}}" in text and "{{scope}}" in text
+    assert "whole night" in text
+    assert "Do not open `ledger.md`" in text
+    assert "designer reports" in text
+    assert "Never run `book`" in text
+
+
+def test_the_designer_template_asks_for_three_options_and_the_usage_record():
+    text = template_text("designer")
+    assert "three options" in text
+    assert "report {{show}} --section variety" in text
+    assert "build {{show}} --out" in text
+    assert "{{constraints}}" in text and "{{files}}" in text
+    assert "{{run}}/work/{{unit}}/" in text
+    assert "report {{show}} --track" in text
+
+
+def test_the_judge_template_compares_in_both_orders():
+    text = template_text("judge")
+    assert "compare {{variant_a}} {{variant_b}}" in text
+    assert "compare {{variant_b}} {{variant_a}}" in text
+    assert "undecided" in text
+    assert "{{request}}" not in text
+
+
+def test_the_reader_and_engineer_templates_name_their_inputs():
+    assert "brief {{set}}" in template_text("reader")
+    assert "## Cartões" in template_text("reader")
+    engineer = template_text("engineer")
+    assert "{{effect}}" in engineer and "Add a gesture" in engineer
