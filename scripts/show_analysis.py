@@ -19,9 +19,12 @@ follows (`follows`), per track, over the leg's bars (`TrackClock.leg`) with a kn
     missed      boundaries with `|dm| >= 2` and `|dl| < 1`
     unmotivated boundaries with `|dl| >= 3` and `|dm| < 1` (for information)
     lag         the shift in [-8, 8] that maximises Pearson(music[t], light[t + shift]) over
-                the leg's bars where both are known (a tie goes to the smaller |shift|);
-                positive means the light is late. None below 16 known bars
+                the leg's bars where both are known (a tie goes to the smaller |shift|; a shift
+                needs 16 such pairs); positive means the light is late. None below 16 known
+                bars, and None (no clear lag) when that best correlation is below `LAG_MIN_R`
+                (0.3) or a side is constant
     unknown_share  the share of the leg's bars whose light is unknown
+    known_bars  the leg's bars where both E_music and E_light are known
 
 drops (`drops`): every map drop `d` inside a track's sounding window.
     loud_rise     mean `mix.loudness` digit over d..d+3 minus over d-8..d-1 (a v1 map: the
@@ -83,7 +86,8 @@ variety (`variety`):
     dominance     per identity dimension, the value (not `auto`) with the largest time share (a
                   value of several words, such as the aims of a section, gives each word an
                   equal part of the seconds); `declared` when a signature's `is` names that
-                  dimension and that value
+                  dimension and that value. A dimension whose top value is `none` (the
+                  dimension absent: no gesture, no colour key) is left out
     similarity    `(i, cosine)` of track i's and track i + 1's vectors of time shares over every
                   `(dimension, value)` pair (each track's shares of its own signed time, the bars of a bridge section left
                   out); skipped when a track has no such bar
@@ -114,7 +118,9 @@ arc (`arc`), the night against the owner's energy plan (`CompiledShow.energies`,
                   after it and none of the bars starting within 180 s after it has E_light <= the
                   night's median E_light (known leg bars)
     labels        the tracks whose rank by owner energy and by mean night E_music (rank 1 the
-                  highest, ties share the mean rank) differ by 3 or more
+                  highest, ties share the mean rank) differ by 3 or more; each question also
+                  gives the track's rank by BPM (the mean of its leg's played tempo, `(t0 + t1) /
+                  2`, rank 1 the fastest), which never flags a track on its own
     target        `(clock_s at the leg's start, owner energy)` of each track with an energy
 
 identity (`identity`): a section carries a signature when, for every dimension its `is` lists, one
@@ -122,7 +128,8 @@ of the section's words for that dimension is a listed value. `share` is the time
 carrying leg bars; `ok` is `min <= share <= max` (a missing bound passes); `occurrences` are the
 maximal runs of carrying leg bars inside one track, `(index, track, (first, last), seconds)`.
 `undeclared` is, per dimension, the top value (not `auto`) that no signature lists, with its
-share. `arc` is the identity's own `arc`, None when it names none.
+share; a dimension whose top value is `none` (the dimension absent) is left out. `arc` is the
+identity's own `arc`, None when it names none.
 
 `analyse(show)` bundles the energy series and every analysis; it is memoised in
 `show.cache["analysis"]`.
@@ -143,6 +150,7 @@ from show_views import ShowClock
 
 LAG_MAX = 8
 LAG_MIN_BARS = 16
+LAG_MIN_R = 0.3
 BOUNDARY_SPAN = 4
 MOVE_MUSIC = 2
 MOVE_LIGHT = 1
@@ -239,9 +247,12 @@ class Follow:
     missed: list[Boundary]
     unmotivated: list[Boundary]
     unknown_share: float
+    known_bars: int       # leg bars with both a known E_music and a known E_light
 
 
 def _lag(music: list[float | None], light: list[float | None]) -> int | None:
+    """The best shift (module docstring, `lag`); None when no shift has 16 known pairs, or its
+    correlation is below `LAG_MIN_R`."""
     best, best_r = None, None
     for shift in sorted(range(-LAG_MAX, LAG_MAX + 1), key=lambda s: (abs(s), s)):
         pairs = [(music[t], light[t + shift]) for t in range(len(music))
@@ -251,7 +262,7 @@ def _lag(music: list[float | None], light: list[float | None]) -> int | None:
         r = _pearson([p[0] for p in pairs], [p[1] for p in pairs])
         if r is not None and (best_r is None or r > best_r + 1e-9):
             best, best_r = shift, r
-    return best
+    return best if best_r is not None and best_r >= LAG_MIN_R - 1e-9 else None
 
 
 def follows(show: CompiledShow, clock: ShowClock) -> list[Follow]:
@@ -282,7 +293,7 @@ def follows(show: CompiledShow, clock: ShowClock) -> list[Follow]:
         unmotivated = [b for b in boundaries if abs(b.light) >= BIG_LIGHT and abs(b.music) < MOVE_LIGHT]
         unknown = sum(1 for v in light if v is None)
         out.append(Follow(te.index, te.track, rho, agreement, _lag(music, light), missed, unmotivated,
-                          unknown / len(window) if window else 1.0))
+                          unknown / len(window) if window else 1.0, len(pairs)))
     return out
 
 
@@ -714,7 +725,7 @@ def variety(show: CompiledShow, clock: ShowClock) -> Variety:
     dominance = {}
     for dim in IDENTITY_DIMENSIONS:
         top_value = _top_value(shares, dim)
-        if top_value:
+        if top_value and top_value[0] != "none":
             dominance[dim] = Dominant(top_value[0], top_value[1], any(top_value[0] in s["is"].get(dim, []) for s in declared))
     vectors = []
     for i in range(len(show.tracks)):
@@ -825,18 +836,22 @@ def _arc_stats(tracks: list[ArcTrack]) -> tuple[float | None, float | None, floa
     return rho, rho90, headroom, stairs, steps
 
 
-def _label_questions(rows: list[tuple[str, int | None, float | None]]) -> list[str]:
-    """`rows` are `(track, owner energy, mean night E_music)`; the label-check questions of the
-    module docstring, in set order."""
+def _label_questions(rows: list[tuple[str, int | None, float | None, float]]) -> list[str]:
+    """`rows` are `(track, owner energy, mean night E_music, BPM)`; the label-check questions of
+    the module docstring, in set order: `<title>: owner energy e<n> ranks <r>, measured music
+    ranks <m>, BPM ranks <b>: check the label`. The ranks are over the tracks with an energy and a
+    music; only the music rank flags (|r - m| >= 3)."""
     have = [r for r in rows if r[1] is not None and r[2] is not None]
     n = len(have)
     by_energy = [n + 1 - r for r in _ranks([float(r[1]) for r in have])]
     by_music = [n + 1 - r for r in _ranks([float(r[2]) for r in have])]
+    by_bpm = [n + 1 - r for r in _ranks([float(r[3]) for r in have])]
     out = []
-    for (track, e, _), r_e, r_m in zip(have, by_energy, by_music):
+    for (track, e, _, _), r_e, r_m, r_b in zip(have, by_energy, by_music, by_bpm):
         if abs(r_e - r_m) >= LABEL_GAP:
             title = track.split(" — ", 1)[-1]
-            out.append(f"{title}: owner energy e{e} ranks {r_e:g}, measured music ranks {r_m:g}: check the label")
+            out.append(f"{title}: owner energy e{e} ranks {r_e:g}, measured music ranks {r_m:g}, "
+                       f"BPM ranks {r_b:g}: check the label")
     return out
 
 
@@ -877,7 +892,7 @@ def arc(show: CompiledShow, clock: ShowClock) -> Arc:
                                float(np.percentile(light, 90)) if light else None,
                                _mean(_known(te, "activity", tc.leg[0], tc.leg[1])),
                                warm_s / leg_s if leg_s > 0 else None, rare))
-        music.append((track.track, e, _mean(_known(te, "music_night", tc.leg[0], tc.leg[1]))))
+        music.append((track.track, e, _mean(_known(te, "music_night", tc.leg[0], tc.leg[1])), sum(tc.tempo) / 2))
     rho, rho90, headroom, stairs, steps = _arc_stats(tracks)
     target = [(tc.start_s, t.energy) for tc, t in zip(clock.tracks, tracks) if t.energy is not None]
     return Arc(tracks, rho, rho90, headroom, stairs, steps, _breathers(clock, drops(show, clock), energy),
@@ -938,7 +953,7 @@ def identity(show: CompiledShow, clock: ShowClock) -> Identity:
     undeclared = {}
     for dim in IDENTITY_DIMENSIONS:
         found = _top_value(shares, dim, lambda w: any(w in s["is"].get(dim, []) for s in declared))
-        if found:
+        if found and found[0] != "none":
             undeclared[dim] = found
     return Identity(arc_name, checks, undeclared)
 

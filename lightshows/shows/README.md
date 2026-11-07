@@ -464,12 +464,12 @@ rules:
 | `bridges` | `{max: 1-32}` | a compiled handover section, or the bridge section that copies it, is longer than `max` bars. Both findings point at the handover's line in the outgoing track's file (the handover owns the window) and name both lengths and both tracks |
 | `signatures` | `true` | a signature declared under `identity:` has a measured time share below its `share.min` or above its `share.max` (the message gives the share and the bound). Points at the signature's line in `show.yml`. "cannot check" without a declared signature or a known light |
 | `static-run` | `{max_seconds: 30-600}` | one of the five longest runs of consecutive leg bars with the same light signature (it may cross a bridge or a leg) lasts more than `max_seconds`; the message gives the bars, the time and the map's section kinds under the run. Points at the run's first section. "cannot check" without a known light |
-| `neighbours-differ` | `{max_similarity: 0-1}` | the cosine similarity of two consecutive tracks' vectors of time shares over every (identity dimension, value) pair is above `max_similarity`; bridge sections are left out of the vectors. Points at the second track's arrival section, else its first. "cannot check" when no pair has a known light, and one finding names each pair skipped because a track has no signed bar |
+| `neighbours-differ` | `{max_similarity: 0-1}` | the cosine similarity of two consecutive tracks' vectors of time shares over every (identity dimension, value) pair is above `max_similarity`; bridge sections are left out of the vectors. Points at the second track's arrival section, else its first. The similarity prints with two decimals, or more (up to six) when two would not read above the max. "cannot check" when no pair has a known light, and one finding names each pair skipped because a track has no signed bar |
 | `distinct-drops` | `{top: int >= 1, or 0 < float <= 1}` | among the `top` drops by salience (a count, or a fraction of the night's drops), ordered by the set clock, two consecutive ones have the same template (the signatures just before and at the drop). A pair with a drop whose template is unknown (the autoscript at the drop or the bar before it, or an unknown light at the drop) is skipped. Points at the later drop's section. "cannot check" without drops, with fewer than two top drops, or when no pair has two known templates |
 | `phrase-aligned` | `{min_share: 0-1}` | among the leg bars where the light changes (`X(b) > 0`), the share on a phrase line (a map section's start, or a multiple of 4 bars after it) is below `min_share`; the message lists the first five bars off the lines. Points at the rule's line in `show.yml`. "cannot check" when the light never changes |
-| `drop-contrast` | `{top: int >= 1, or 0 < float <= 1, min_change: 1-9}` | among the `top` drops by salience, a drop has a `contrast` (mean light energy over the drop's 4 bars minus the 2 bars before) that is not positive or unknown, or a `change` (`X(d)`, how many of the nine dimensions change at the drop) below `min_change`. Points at the drop's section. "cannot check" without drops |
+| `drop-contrast` | `{top: int >= 1, or 0 < float <= 1, min_change: 1-9}` | among the `top` drops by salience, a drop has a `contrast` (mean light energy over the drop's 4 bars minus the 2 bars before) that is not positive or unknown, or a `change` (`X(d)`, how many of the nine dimensions change at the drop) below `min_change`. The message names only the criteria that fail: `no known contrast` or `contrast C (needs above 0)`, and `N changes, min M`. Points at the drop's section. "cannot check" without drops |
 | `main-drop` | `true` | a track's main drop (one per track: the drop with the biggest loudness rise, a tie to the later; its last drop when none rises above 0) has a lower `response` (`0.5 clip01(contrast / 4) + 0.25 change / 9 + 0.25 freshness`) than the best earlier drop of the same track; the message names that drop. Points at the main drop's section. "cannot check" without drops or without a main drop that has a response |
-| `follows-track` | `{min_rho?: -1..1, max_lag?: 0-8}`, at least one | per track, `rho` (Spearman of the music energy and the light energy over the leg's known bars) is below `min_rho`, or `abs(lag)` (the shift of the light in bars, positive is late, that best matches the music) is above `max_lag`; the message lists the missed boundaries (music change of 2 or more the light does not answer). Points at the section of the first missed boundary, else the track's first section. "cannot check" for a track whose asked measure is unknown (no known light; the lag needs 16 known bars) |
+| `follows-track` | `{min_rho?: -1..1, max_lag?: 0-8}`, at least one | per track, `rho` (Spearman of the music energy and the light energy over the leg's known bars) is below `min_rho`, or `abs(lag)` (the shift of the light in bars, positive is late, that best matches the music) is above `max_lag`; the message lists the missed boundaries (music change of 2 or more the light does not answer). Points at the section of the first missed boundary, else the track's first section. "cannot check" for a track whose asked measure is unknown (no known light; the lag needs 16 bars with a known light). A lag that is unknown over enough bars (its best correlation is under 0.3) is no clear lag: never a finding of its own, and named `no clear lag` in a finding the track has for its `rho` |
 | `follows-set` | `{min_rho?: -1..1, max_headroom?: 0-1}`, at least one | the night's `rho` (Spearman of the owner's energy digit and the light's mean energy per track) is below `min_rho`, or the `headroom` (the max p90 before the first track at the night's top energy, over the night's max p90) is above `max_headroom`. Points at the rule's line in `show.yml`. "cannot check" for a `rho` over fewer than 3 tracks, or an unknown headroom |
 
 **Advice** is a design goal the show states without making it a gate. Hï Ibiza's:
@@ -753,8 +753,10 @@ and, when the section before is total dark, the voices over those dark bars:
   same for E_light. Among the boundaries where the music moves (`|dm| >= 2`), the share where the
   light moves the same way by 1 or more.
 - `lag`: the shift in -8..8 bars that best correlates the music with the light shifted (Pearson;
-  a tie goes to the smaller shift; `-` below 16 known bars); `+` means the light is late, and a
-  lag beyond 1 is flagged.
+  a tie goes to the smaller shift; a shift needs 16 bars where both are known); `+` means the
+  light is late, and a lag beyond 1 is flagged. It is `-` below 16 known bars, and `-` (no clear
+  lag) when the best correlation is under 0.3 or a side is constant: a shift that correlates
+  that little is a search artefact, not a late light.
 - `missed`: the boundaries where the music moves and the light moves less than 1, with `dm` and
   `dl`. `unmotivated`: where the light moves 3 or more and the music less than 1 (for
   information). `unknown`: the share of the leg whose light is unknown.
@@ -810,7 +812,8 @@ when the autoscript plays a bar the test needs.
   (0 for one), as `round(9 x H)`.
 - **dominant**: per dimension, the value (not `auto`) with the largest share (a value of several
   words, such as a section's aims, shares its time among them), `(declared)` when a signature
-  of the identity names it.
+  of the identity names it. A dimension whose top value is `none` (the dimension absent: no
+  gesture, no colour key) is left out, as in the book.
 - **similarity**: the cosine of two neighbouring tracks' shares of every dimension value; the bars
   of a bridge section (the copy of a handover) are left out of both vectors.
 - **drop templates**: the distinct pairs (signature before the drop, signature at it) against
@@ -846,21 +849,23 @@ each `-` when nothing is listed:
 - `no breather`: a drop of the top quarter by salience with no bar at or below the night's median
   E_light within 3:00 after it.
 - `label`: a track whose rank by owner energy and by measured E_music (night scope) differ by
-  three or more: a question for the owner, never a fix.
+  three or more: a question for the owner, never a fix. Each question also gives the track's rank
+  by BPM (the mean of its leg's played tempo, `(t0 + t1) / 2`, rank 1 the fastest; ties share the
+  mean rank), which never flags a track on its own.
 
 ```
   5:36 · The Akan · e6 · light 3.8, p90 4.0 · activity 0.7 · warm 90% · rare -
   rho 0.00 (mean) and 0.13 (p90): the owner's energy against the light per track
   headroom 0.89: the highest p90 before the first track at the night's top energy, over the night's highest
   step jump: Say What -> Baianá (Pablo Fierro Edit): energy e7 -> e7, light mean 2.9 -> 5.2
-  label: The Akan: owner energy e6 ranks 13.5, measured music ranks 1: check the label
+  label: The Akan: owner energy e6 ranks 13.5, measured music ranks 1, BPM ranks 14: check the label
 ```
 
 **identity**: the arc (the identity's `arc`, else the set's front-matter `arc`, else `none`),
 then each declared [signature](#identity): the share of the night its sections hold against its
 `share` bounds (`in range`, `below min` or `above max`) with its intent, and one line per
 occurrence (its clock, bars and length). Then, per dimension, the most present value no
-signature declares.
+signature declares; a dimension whose top value is `none` (absent) is left out.
 
 ```
   arc: single-peak (the set's)
@@ -975,7 +980,8 @@ in order:
   strip joins the energies at the legs' starts by straight lines, flat at the ends, read at the
   middle of each minute and rounded half up.
 - `labels`: the label check's questions, as in `arc`: owner energy rank against measured
-  `E_music` rank, three places or more apart. Questions for the owner, never a fix.
+  `E_music` rank, three places or more apart, with the BPM rank beside them. Questions for the
+  owner, never a fix.
 - `missing`: a track with no map or an invalid one (the clock leaves it out), a map without
   `mix`, a track with no hot cue `B` (not the first) or `G` (not the last).
 

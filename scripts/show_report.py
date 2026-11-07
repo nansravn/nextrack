@@ -185,8 +185,9 @@ def _run_last(clock: ShowClock, run: Run) -> int:
 
 def variety_items(a: Analysis, show: CompiledShow) -> list[Line]:
     """`variety`: the longest static runs, the windowed variety per minute, each dimension's
-    dominant value, the neighbours' similarity, the drop templates, the phrase alignment of the
-    changes and what each track uses."""
+    dominant value (a dimension whose top value is `none`, the dimension absent, is left out),
+    the neighbours' similarity, the drop templates, the phrase alignment of the changes and what
+    each track uses."""
     v = a.variety
     out = _frame("variety")
     runs: list[Line] = []
@@ -280,7 +281,8 @@ def arc_lines(a: Analysis, show: CompiledShow) -> list[str]:
 def identity_items(a: Analysis, show: CompiledShow, set_arc: str | None = None) -> list[Line]:
     """`identity`: the arc (the identity's own, else `set_arc`, the set's front matter, else
     none), each declared signature's measured share against its wanted bounds with its
-    occurrences on the clock, and the most present undeclared value per dimension."""
+    occurrences on the clock, and the most present undeclared value per dimension (a dimension
+    whose top value is `none`, the dimension absent, is left out)."""
     ident = a.identity
     if ident.arc is not None:
         arc = f"{ident.arc} (identity)"

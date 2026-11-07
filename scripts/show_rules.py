@@ -608,6 +608,15 @@ def _unknown_light(analysis) -> bool:
                    for te, tc in zip(analysis.energy, analysis.clock.tracks) for b in range(tc.leg[0], tc.leg[1] + 1))
 
 
+def _above(value: float, limit: float) -> str:
+    """`value` with the fewest decimals, from two up to six, that reads above `limit`."""
+    for decimals in range(2, 7):
+        text = f"{value:.{decimals}f}"
+        if float(text) > limit:
+            return text
+    return text
+
+
 def _percent(share: float) -> str:
     return f"{round(share * 100)}%"
 
@@ -676,9 +685,10 @@ def neighbours_differ(show: CompiledShow, params: dict) -> list[ShowFinding]:
 
     The cosine similarity of two consecutive tracks' vectors of time shares over every
     `(dimension, value)` pair (`show_analysis.variety`'s `similarity`) is above `max_similarity`.
-    The finding points at the second track's arrival section, else its first section. With no
-    pair of tracks that both have a known light it says it cannot check, and it names each pair it
-    skipped for that reason. The bars of bridge sections are not in the vectors."""
+    The finding points at the second track's arrival section, else its first section; it prints
+    the similarity with two decimals, or more (up to six) when two would not read above the max.
+    With no pair of tracks that both have a known light it says it cannot check, and it names
+    each pair it skipped for that reason. The bars of bridge sections are not in the vectors."""
     from show_analysis import analyse
 
     pairs = analyse(show).variety.similarity
@@ -697,7 +707,8 @@ def neighbours_differ(show: CompiledShow, params: dict) -> list[ShowFinding]:
         section = next((s for s in sections if s.origin.role == "arrival"), sections[0] if sections else None)
         out.append(_found(show, "neighbours-differ", section,
                           f"{_title(second.track)} looks like {_title(first.track)} "
-                          f"(similarity {cosine:.2f}, max {params['max_similarity']:g})"))
+                          f"(similarity {_above(cosine, params['max_similarity'])}, "
+                          f"max {params['max_similarity']:g})"))
     if not pairs and not skipped:
         out.append(_at_rule(show, "neighbours-differ", "cannot check: the show has fewer than two tracks"))
     return out
@@ -813,8 +824,9 @@ def drop_contrast(show: CompiledShow, params: dict) -> list[ShowFinding]:
     Among the `top` drops by salience (`show_analysis.top`: a count, or a fraction of the night's
     drops), a drop whose light `contrast` (mean E_light over d..d+3 minus over d-2..d-1) is not
     positive, or unknown, or whose `change` (`X(d)`, how many of the nine dimensions change at
-    the drop) is below `min_change`. The finding points at the drop's section. With no drops it
-    says it cannot check."""
+    the drop) is below `min_change`. The finding points at the drop's section and names only the
+    criteria that fail: `no known contrast` or `contrast C (needs above 0)`, and `N changes, min
+    M`. With no drops it says it cannot check."""
     from show_analysis import analyse, top
 
     rows = analyse(show).drops
@@ -822,12 +834,17 @@ def drop_contrast(show: CompiledShow, params: dict) -> list[ShowFinding]:
         return [_at_rule(show, "drop-contrast", "cannot check: the night has no drops")]
     out = []
     for drop in sorted(top(rows, params["top"]), key=lambda d: d.clock_s):
-        if drop.contrast is not None and drop.contrast > 0 and drop.change >= params["min_change"]:
+        failed = []
+        if drop.contrast is None:
+            failed.append("no known contrast")
+        elif drop.contrast <= 0:
+            failed.append(f"contrast {drop.contrast:.1f} (needs above 0)")
+        if drop.change < params["min_change"]:
+            failed.append(f"{_count(drop.change, 'change')}, min {params['min_change']}")
+        if not failed:
             continue
-        contrast = "no known contrast" if drop.contrast is None else f"contrast {drop.contrast:.1f}"
         out.append(_found(show, "drop-contrast", drop.holder,
-                          f"{_title(drop.track)} {drop.bar} (top drop {drop.rank}) has {contrast} and "
-                          f"{_count(drop.change, 'change')}, min {params['min_change']}"))
+                          f"{_title(drop.track)} {drop.bar} (top drop {drop.rank}) has {' and '.join(failed)}"))
     return out
 
 
@@ -870,17 +887,19 @@ def follows_track(show: CompiledShow, params: dict) -> list[ShowFinding]:
     the music; positive is late) beyond `max_lag` in either direction. The finding lists the
     failed measures and the track's missed boundaries (a music change of 2 or more that the
     light does not answer), and points at the section of the first missed boundary, else the
-    track's first section. A track whose asked measure is unknown (no known light, or under 16
-    known bars for the lag) is reported as "cannot check" at the rule's line."""
-    from show_analysis import analyse
+    track's first section. A track whose asked measure is unknown (no known light; for the lag,
+    under 16 bars with a known light) is reported as "cannot check" at the rule's line. A lag
+    that is None over enough bars (its best correlation is under 0.3) is no clear lag: never a
+    finding of its own, and named as `no clear lag` in a finding the track has for its rho."""
+    from show_analysis import LAG_MIN_BARS, analyse
     from show_energy import _section_at
 
     out = []
     for row in analyse(show).follows:
         track = show.tracks[row.index]
-        asked = [(name, value) for name, key, value in (("rho", "min_rho", row.rho), ("lag", "max_lag", row.lag))
-                 if key in params]
-        unknown = [name for name, value in asked if value is None]
+        short = row.known_bars < LAG_MIN_BARS
+        unknown = [name for name, key, value in (("rho", "min_rho", row.rho), ("lag", "max_lag", row.lag))
+                   if key in params and value is None and (name == "rho" or short)]
         if unknown:
             out.append(_at_rule(show, "follows-track", f"cannot check {_title(row.track)}: no known "
                                                        f"{' or '.join(unknown)} (the light is unknown or too short)"))
@@ -891,6 +910,8 @@ def follows_track(show: CompiledShow, params: dict) -> list[ShowFinding]:
             parts.append(f"lag {_count(row.lag, 'bar')}, max {params['max_lag']}")
         if not parts:
             continue
+        if "max_lag" in params and row.lag is None and not short:
+            parts.append("no clear lag")
         if row.missed:
             parts.append("missed boundaries " + ", ".join(str(b.bar) for b in row.missed))
         section = _section_at(track, row.missed[0].bar) if row.missed else None

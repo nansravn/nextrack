@@ -598,6 +598,21 @@ def test_neighbours_differ_points_at_the_arrival_of_the_second_track():
     assert analysed({"neighbours-differ": {"max_similarity": 0.91}}, patch=patch)[1] == []
 
 
+def test_neighbours_differ_prints_enough_decimals_to_read_above_the_max():
+    # the base show's real similarity, 0.6667, reads 0.67 at two decimals
+    assert analysed({"neighbours-differ": {"max_similarity": 0.66}})[1][0][2] == (
+        "neighbours-differ: Voa Voa (Ao Vivo) looks like Dançarina (similarity 0.67, max 0.66)")
+    assert analysed({"neighbours-differ": {"max_similarity": 0.67}})[1] == []
+
+    def close(value):
+        def patch(a, compiled):
+            a.variety.similarity = [(0, value)]
+        return patch
+    for value, shown in ((0.853, "0.853"), (0.8504, "0.8504"), (0.857, "0.86")):
+        found = analysed({"neighbours-differ": {"max_similarity": 0.85}}, patch=close(value))[1]
+        assert found[0][2].endswith(f"(similarity {shown}, max 0.85)")
+
+
 def test_neighbours_differ_falls_back_to_the_first_section_and_cannot_check_without_pairs():
     def patch(a, compiled):
         a.variety.similarity = [(0, 0.9)]
@@ -741,13 +756,23 @@ def test_drop_contrast_reports_a_drop_without_contrast_or_change():
     second = next(s for s in compiled.tracks[1].sections if s.bars == (9, 16)).origin
     final = compiled.tracks[1].sections[-1].origin
     assert found == [
-        (first.path, first.line, "drop-contrast: Dançarina 9 (top drop 3) has no known contrast and 9 changes, "
-                                 "min 2"),
-        (second.path, second.line, "drop-contrast: Voa Voa (Ao Vivo) 9 (top drop 4) has contrast 0.0 and 1 change, "
-                                   "min 2")]
+        (first.path, first.line, "drop-contrast: Dançarina 9 (top drop 3) has no known contrast"),
+        (second.path, second.line, "drop-contrast: Voa Voa (Ao Vivo) 9 (top drop 4) has contrast 0.0 (needs above "
+                                   "0) and 1 change, min 2")]
     assert analysed({"drop-contrast": {"top": 0.5, "min_change": 8}}, patch=patch)[1] == [
-        (final.path, final.line, "drop-contrast: Voa Voa (Ao Vivo) 21 (top drop 2) has contrast 4.5 and 7 changes, "
-                                 "min 8")]
+        (final.path, final.line, "drop-contrast: Voa Voa (Ao Vivo) 21 (top drop 2) has 7 changes, min 8")]
+
+
+def test_drop_contrast_names_the_criteria_a_real_drop_fails():
+    # the base show as compiled: Dançarina 21 (+3.0, 8 changes) and Voa Voa 21 (+4.5, 7) pass;
+    # Dançarina 9 follows the autoscript, Voa Voa 9 dims under its bridge with one change
+    compiled, found = analysed({"drop-contrast": {"top": 4, "min_change": 2}})
+    first = compiled.tracks[0].sections[0].origin
+    second = next(s for s in compiled.tracks[1].sections if s.bars == (9, 16)).origin
+    assert found == [
+        (first.path, first.line, "drop-contrast: Dançarina 9 (top drop 3) has no known contrast"),
+        (second.path, second.line, "drop-contrast: Voa Voa (Ao Vivo) 9 (top drop 4) has contrast -5.0 (needs above "
+                                   "0) and 1 change, min 2")]
 
 
 def test_drop_contrast_passes_and_cannot_check_without_drops():
@@ -814,16 +839,25 @@ def test_follows_track_falls_back_to_the_first_section_and_checks_a_negative_lag
 
 
 def test_follows_track_cannot_check_a_track_without_the_measure():
-    found = analysed({"follows-track": {"min_rho": 0.3, "max_lag": 1}})[1]
+    # the base show's v1 maps give a flat music: no rho, and no clear lag over 16 and 28 known bars
+    compiled, found = analysed({"follows-track": {"min_rho": 0.3, "max_lag": 1}})
+    assert [(f.lag, f.known_bars) for f in sa.analyse(compiled).follows] == [(None, 16), (None, 28)]
     assert found == [
-        (SHOW_PATH, RULES_LINE + 1, "follows-track: cannot check Dançarina: no known rho or lag "
+        (SHOW_PATH, RULES_LINE + 1, "follows-track: cannot check Dançarina: no known rho "
                                     "(the light is unknown or too short)"),
-        (SHOW_PATH, RULES_LINE + 1, "follows-track: cannot check Voa Voa (Ao Vivo): no known rho or lag "
+        (SHOW_PATH, RULES_LINE + 1, "follows-track: cannot check Voa Voa (Ao Vivo): no known rho "
                                     "(the light is unknown or too short)")]
-    partial = set_follows({"rho": 0.9, "lag": None}, {"rho": 0.9, "lag": 0})
-    assert analysed({"follows-track": {"min_rho": 0.3, "max_lag": 1}}, patch=partial)[1] == [
+    assert analysed({"follows-track": {"max_lag": 1}})[1] == []                  # no clear lag is no finding
+    short = set_follows({"rho": 0.9, "lag": None, "known_bars": 15}, {"rho": 0.9, "lag": 0})
+    assert analysed({"follows-track": {"min_rho": 0.3, "max_lag": 1}}, patch=short)[1] == [
         (SHOW_PATH, RULES_LINE + 1, "follows-track: cannot check Dançarina: no known lag "
                                     "(the light is unknown or too short)")]
+
+
+def test_follows_track_says_no_clear_lag_beside_a_failed_rho():
+    patch = set_follows({"rho": 0.1, "lag": None, "known_bars": 20, "missed": []}, {"rho": 0.9, "lag": 0})
+    compiled, found = analysed({"follows-track": {"min_rho": 0.3, "max_lag": 1}}, patch=patch)
+    assert [m for _, _, m in found] == ["follows-track: Dançarina: rho 0.10, min 0.30; no clear lag"]
 
 
 def set_arc(**values):

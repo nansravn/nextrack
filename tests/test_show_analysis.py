@@ -109,10 +109,21 @@ def test_lag_reads_a_late_light():
     assert sa.follows(show, clock)[0].lag == -1
 
 
+def test_unrelated_series_have_no_lag():
+    wave = [1, 7, 3, 9, 2, 8, 4, 6, 0, 5, 9, 1, 7, 2, 8, 3, 6, 0, 4, 9, 1, 5, 8, 2, 6, 3, 9, 0, 7, 4, 5, 2, 8]
+    other = [1, 2, 5, 4, 4, 7, 2, 0, 1, 3, 1, 4, 6, 8, 3, 5, 6, 5, 6, 8, 8, 7, 8, 8, 6, 1, 4, 4, 8, 5, 2, 3, 4]
+    show, clock = night(lambda b: wave[b % len(wave)], lambda b: other[b % len(other)])
+    rows = sa.follows(show, clock)
+    # every shift in -8..8 correlates under 0.3 (0.17 at best): no clear lag, though the bars are enough
+    assert [(r.lag, r.known_bars) for r in rows] == [(None, 24), (None, 28)]
+    late, clock = night(lambda b: wave[b % len(wave)], lambda b: wave[(b - 2) % len(wave)])
+    assert [r.lag for r in sa.follows(late, clock)] == [2, 2]
+
+
 def test_a_track_all_autoscript_gives_none_not_a_crash():
     show, clock = night(stepped, lambda b: None)
     row = sa.follows(show, clock)[0]
-    assert (row.rho, row.agreement, row.lag) == (None, None, None)
+    assert (row.rho, row.agreement, row.lag, row.known_bars) == (None, None, None, 0)
     assert row.missed == [] and row.unknown_share == 1.0
     assert all(d.contrast is None and d.response is None for d in sa.drops(show, clock))
     assert {b.into for b in sa.builds(show, clock)} == {"unknown"}
@@ -410,9 +421,22 @@ def test_a_top_drop_without_a_breather_is_listed():
 
 
 def test_the_label_check_names_a_track_three_ranks_off():
-    rows = [("X — A", 9, 1.0), ("X — B", 8, 8.0), ("X — C", 7, 7.0), ("X — D", 6, 6.0)]
-    assert sa._label_questions(rows) == ["A: owner energy e9 ranks 1, measured music ranks 4: check the label"]
-    assert sa._label_questions([("X — A", None, 1.0)]) == []
+    rows = [("X — A", 9, 1.0, 120.0), ("X — B", 8, 8.0, 124.0), ("X — C", 7, 7.0, 124.0), ("X — D", 6, 6.0, 126.0)]
+    assert sa._label_questions(rows) == [
+        "A: owner energy e9 ranks 1, measured music ranks 4, BPM ranks 4: check the label"]
+    # the BPM rank is printed, never flagged: a slow track the music agrees with is no question
+    slow = [("X — A", 9, 9.0, 100.0), ("X — B", 8, 8.0, 124.0), ("X — C", 7, 7.0, 124.0), ("X — D", 6, 6.0, 126.0)]
+    assert sa._label_questions(slow) == []
+    assert sa._label_questions([("X — A", None, 1.0, 120.0)]) == []
+
+
+def test_none_is_never_a_dominant_or_an_undeclared_value():
+    # the base show calls a gesture in two sections only: `none` (no gesture) tops that dimension
+    analysis = sa.analyse(compiled(*two_track_show()))
+    assert "gesture" not in analysis.variety.dominance and "gesture" not in analysis.identity.undeclared
+    assert "none" not in {d.value for d in analysis.variety.dominance.values()}
+    assert "none" not in {v for v, _ in analysis.identity.undeclared.values()}
+    assert analysis.variety.dominance["look"].value == "pulso" and analysis.identity.undeclared["look"][0] == "pulso"
 
 
 def test_the_arc_reads_the_owner_energies_of_the_show():
