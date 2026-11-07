@@ -1,11 +1,16 @@
+import os
 import shutil
+import subprocess
+import sys
+from pathlib import Path
 
 import pytest
 import yaml
-from showdata import FILE_1, FILE_2, put_show
+from showdata import FILE_1, FILE_2, TRACK_1, TRACK_2, put_show
 
 import lightshow
 import nextrack_show
+import show_report
 
 SHOW = "lightshows/shows/teste"
 T1 = f"lightshows/tracks/{FILE_1}"
@@ -290,12 +295,13 @@ def test_report_has_the_night_summary(mini_repo, capsys):
     assert night[0].startswith("night ")
     labels = [line.split(":")[0].strip() for line in night[1:]]
     assert labels == ["looks", "colours movers", "colours matrix", "colours hue", "aims", "zones lit",
-                      "centre dark", "total dark", "events", "light level", "legend"]
+                      "centre dark", "total dark", "events", "light unknown", "legend"]
     assert "respiracao" in night[1] and "azul" in night[2]
     assert "(" in next(l for l in night if "centre dark" in l) and "%" in next(l for l in night if "centre dark" in l)
     assert "section(s)" in next(l for l in night if "total dark" in l)
     assert "strobe" in next(l for l in night if l.strip().startswith("events"))
-    assert "an index" in night[-2] and "rounded half up" in night[-2] and "README" in night[-2]
+    assert night[-2] == "  light unknown: 0:16 (15%), the autoscript decides"   # Dançarina 1-8
+    assert "E_music" in night[-1] and "E_light" in night[-1] and "README" in night[-1]
 
 
 def test_report_track_header_has_clock_and_arrival(mini_repo, capsys):
@@ -321,10 +327,12 @@ def test_report_section_line_has_clock_and_voices(mini_repo, capsys):
 def test_report_has_strips_peaks_and_hits(mini_repo, capsys):
     lines = _report_out(mini_repo, capsys)
     at = next(i for i, l in enumerate(lines) if l.startswith("1. "))
-    assert lines[at + 1].startswith("  music    1 |") and lines[at + 2].startswith("  light    1 |")
+    assert [lines[at + k][:17] for k in (1, 2, 3, 4)] == [
+        "  music       1 |", "  light       1 |", "  bright      1 |", "  activity    1 |"]
+    assert " · (interim)" in lines[at]                    # the mini repo's maps have no `mix` block
     second = next(i for i, l in enumerate(lines) if l.startswith("2. "))
     first_bar = lines[second].split("B ")[1].split(" ·")[0]
-    assert lines[second + 1].startswith(f"  music {first_bar:>4} |")
+    assert lines[second + 1].startswith(f"  music    {first_bar:>4} |")
     assert sum(l.startswith("  legend:") for l in lines) == 1
     assert lines.index(next(l for l in lines if l.startswith("  legend:"))) < at
     peaks = lines.index("peaks")
@@ -332,7 +340,7 @@ def test_report_has_strips_peaks_and_hits(mini_repo, capsys):
     row = lines[peaks + 2]
     assert " · drop " not in row and "+12.5 dB" in row and " · light " in row and ">" in row
     hits = lines.index("hit checks")
-    assert peaks < hits < lines.index("decided by the compiler")
+    assert peaks < hits < lines.index("follows") < lines.index("identity") < lines.index("decided by the compiler")
     assert any(" · arrival" in l and "kick" in l for l in lines[hits + 2:])
     assert any("moment virada" in l and "kick" in l for l in lines[hits + 2:])
 
@@ -381,6 +389,17 @@ def test_report_exits_one_on_rule_findings(mini_repo, capsys):
     code, out = run(mini_repo, capsys, "report", "teste")
     assert code == 1
     assert "show-rules: budget:" in out and out.splitlines()[0].startswith("night ")
+    # the exit status follows what is printed: a cut without the findings exits 0
+    assert run(mini_repo, capsys, "report", "teste", "--section", "drops")[0] == 0
+    code, out = run(mini_repo, capsys, "report", "teste", "--section", "findings")
+    assert code == 1 and out.splitlines()[0].endswith("show-rules: budget: pulso is used 3 times, max 0: "
+                                                      "Dançarina 25, Voa Voa (Ao Vivo) 9, Voa Voa (Ao Vivo) 21")
+    # a track's slice prints the findings of its own file alone
+    finding = out.splitlines()[0]
+    holder = next(t for t, f in ((TRACK_1, FILE_1), (TRACK_2, FILE_2)) if finding.startswith(f"{SHOW}/{f}:"))
+    other = TRACK_2 if holder == TRACK_1 else TRACK_1
+    assert run(mini_repo, capsys, "report", "teste", "--track", holder, "--section", "findings") == (1, out)
+    assert run(mini_repo, capsys, "report", "teste", "--track", other, "--section", "findings") == (0, "")
 
 
 def test_report_prints_findings_and_exits_one_on_source_findings(mini_repo, capsys):
@@ -496,10 +515,12 @@ def test_help_exits_zero():
 
 
 def test_strips_interleave_and_label_chunks():
-    music, light = "9" * 70, "3" * 70
-    rows = nextrack_show._strip_block(music, light, 57)
-    assert rows == [f"  music   57 |{'9' * 64}|", f"  light   57 |{'3' * 64}|",
-                    f"  music  121 |{'9' * 6}|", f"  light  121 |{'3' * 6}|"]
+    strips = {"music": "9" * 70, "light": "3" * 70, "bright": "~" * 70, "activity": "1" * 70}
+    rows = nextrack_show._strip_block(strips, 57)
+    assert rows == [f"  music      57 |{'9' * 64}|", f"  light      57 |{'3' * 64}|",
+                    f"  bright     57 |{'~' * 64}|", f"  activity   57 |{'1' * 64}|",
+                    f"  music     121 |{'9' * 6}|", f"  light     121 |{'3' * 6}|",
+                    f"  bright    121 |{'~' * 6}|", f"  activity  121 |{'1' * 6}|"]
 
 
 def test_hit_and_peak_rows_show_unknown_levels_and_the_other_track():
@@ -522,3 +543,74 @@ def test_night_lists_pending_aims_with_their_fallback():
                "zones": {"movers": 0.0, "matrix": 0.0, "hue": 0.0}, "centre_dark_s": 0.0,
                "total_dark": {"s": 0.0, "count": 0}, "events": {}}
     assert any("pending, played by fallback: apice -> centro" in l for l in nextrack_show._night_lines(summary))
+
+
+def _part(lines, header):
+    """The lines of one report section: its header up to the next blank line."""
+    at = lines.index(header)
+    end = next((i for i in range(at, len(lines)) if lines[i] == ""), len(lines))
+    return lines[at:end]
+
+
+def test_report_section_filter_prints_only_that_section(mini_repo, capsys):
+    put_show(mini_repo)
+    code, out = run(mini_repo, capsys, "report", "teste", "--section", "drops")
+    assert code == 0, out
+    lines = out.splitlines()
+    assert lines[0] == "drops" and lines[2].startswith("  rank 1 · ") and "" not in lines
+    code, out = run(mini_repo, capsys, "report", "teste", "--section", "arc, follows")
+    lines = out.splitlines()
+    assert lines[0] == "follows" and lines.index("arc") > lines.index("follows")      # the report's order
+    assert "drops" not in lines and not any(l.startswith(("night ", "1. ")) for l in lines)
+
+
+def test_report_track_filter_prints_that_track_and_its_neighbours_handover(mini_repo, capsys):
+    put_show(mini_repo)
+    code, out = run(mini_repo, capsys, "report", "teste", "--track", TRACK_2)
+    assert code == 0, out
+    lines = out.splitlines()
+    assert lines[0].startswith("  legend: ") and not any(l.startswith("night ") for l in lines)
+    head = next(i for i, l in enumerate(lines) if l.startswith(f"2. {TRACK_2} · 32 bars"))
+    assert [lines[head + k].split()[0] for k in (1, 2, 3, 4)] == ["music", "light", "bright", "activity"]
+    assert any(" 5-8 ponte | bridge pulso" in l for l in lines) and any(" 21-32 final | " in l for l in lines)
+    # Dançarina: its handover alone, under its name
+    assert lines[lines.index(f"1. {TRACK_1} · handover") + 1].startswith("  0:48 25-32 entrega | handover pulso")
+    assert not any(l.startswith((f"1. {TRACK_1} · 32 bars", "  0:16 9-16 chegada")) for l in lines)
+    # the track's own lines of the night sections
+    follows = _part(lines, "follows")
+    assert len(follows) == 3 and follows[2].startswith("  Voa Voa (Ao Vivo) (interim) · rho ")
+    drops = _part(lines, "drops")[2:]
+    assert drops and all(l.startswith("  rank ") and "Voa Voa" in l for l in drops)
+    assert [l.split(" · ")[1] for l in _part(lines, "builds")[2:]] == ["Voa Voa (Ao Vivo) (interim) 17-20"]
+    assert all("Dançarina" not in l for l in _part(lines, "peaks")[2:])
+
+    code, out = run(mini_repo, capsys, "report", "teste", "--track", TRACK_1)
+    lines = out.splitlines()
+    assert lines[lines.index(f"2. {TRACK_2} · bridge") + 1].startswith("  0:48 5-8 ponte | bridge pulso")
+    assert not any(" 21-32 final | " in l for l in lines)
+
+
+def test_report_unknown_section_is_a_usage_error(mini_repo, capsys):
+    put_show(mini_repo)
+    assert nextrack_show.main(["report", "teste", "--section", "drops,nope", "--repo", str(mini_repo.root)]) == 2
+    captured = capsys.readouterr()
+    assert captured.out == "" and "nope" in captured.err
+    assert all(name in captured.err for name in show_report.REPORT_SECTIONS)
+    assert nextrack_show.main(["report", "teste", "--track", "Ninguém — Nada", "--repo", str(mini_repo.root)]) == 2
+    captured = capsys.readouterr()
+    assert captured.out == "" and "Ninguém — Nada" in captured.err and TRACK_1 in captured.err
+    assert TRACK_2 in captured.err
+
+
+def test_report_is_deterministic(mini_repo, capsys):
+    put_show(mini_repo)
+    script = Path(nextrack_show.__file__)
+    outs = []
+    for seed in ("1", "2"):                     # two processes, two hash seeds: set order cannot leak
+        env = {**os.environ, "PYTHONHASHSEED": seed}
+        done = subprocess.run([sys.executable, str(script), "report", "teste", "--repo", str(mini_repo.root)],
+                              capture_output=True, text=True, encoding="utf-8", env=env, check=False)
+        assert done.returncode == 0, done.stderr
+        outs.append(done.stdout)
+    assert outs[0] == outs[1] and "follows" in outs[0].splitlines()
+    assert run(mini_repo, capsys, "report", "teste") == (0, outs[0])

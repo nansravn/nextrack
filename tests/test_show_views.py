@@ -1,5 +1,5 @@
-"""The critic's views (show_views.py): the set clock, light and music levels, voices, the night
-summary, the peak table, the hit checks and the strips, on small synthetic shows.
+"""The critic's views (show_views.py): the set clock, the voices, the night summary, the peak
+table, the hit checks and the strips, on small synthetic shows.
 
 The base show is `two_track_show` at 120 BPM, so a bar takes 2 s. Dançarina (B 5, G 25) plays
 bars 1-24: the autoscript 1-8, chegada 9-16 (respiracao, arrival), the spiral 17-18 and 19-20
@@ -7,11 +7,13 @@ bars 1-24: the autoscript 1-8, chegada 9-16 (respiracao, arrival), the spiral 17
 entrega 25-32 (pulso, moment passagem, white on 25.1) sounds past G. Voa Voa (B 5) plays bars
 5-32 from 0:48: the bridge ponte 5-8 (a copy of entrega), chegada 9-16 (pulso, zigzag,
 arrival), subida 17-20 (respiracao, pingpong, Up) and final 21-32 (pulso, moment final, a
-strobe roll). The expected light digits below are worked by hand from the spec's table."""
+strobe roll). The peaks, the hit checks and the strips read the energy series of
+show_energy.py: `hand_energy` makes them by hand so each digit is known."""
 import pytest
 
 import check_repo
 import set_timeline
+import show_energy as se
 import show_room
 import show_views as sv
 from show_language import compile_show
@@ -71,60 +73,27 @@ def bar_string(bars: int, levels: dict[int, str], default: str = "5") -> str:
     return "".join(levels.get(b, default) for b in range(1, bars + 1))
 
 
-# ------------------------------------------------------------------ levels --
+def hand_energy(show, clock, music=lambda i, b: 5, light=lambda i, b: 5, bright=None, activity=None):
+    """The energy series of every track over its sounding window, from `series(track index, bar)`
+    (a light of None is unknown); `bright` and `activity` default to the light."""
+    bright, activity = bright or light, activity or light
+    out = []
+    for i, (track, tc) in enumerate(zip(show.tracks, clock.tracks)):
+        bars = range(tc.sounding[0], tc.sounding[1] + 1)
+        out.append(se.TrackEnergy(i, track.track, tc.sounding[0], [music(i, b) for b in bars],
+                                  [music(i, b) for b in bars], [light(i, b) for b in bars],
+                                  [bright(i, b) for b in bars], [activity(i, b) for b in bars],
+                                  [0] * len(bars), False))
+    return out
 
 
-def test_light_level_table():
-    # each entry of the spec's table, as the 0-1 value of its layer
-    values = sv.light_values
-    assert values({"movers": "off", "matrix": "off", "hue": "dark"}) == (0.0, 0.0, 0.0)
-    assert values({"movers": {"move": "hold", "level": 0.5}, "matrix": "off", "hue": "off"})[0] == 0.5
-    assert values({"movers": {"move": "sweep"}, "matrix": "off", "hue": "off"})[0] == 0.85
-    assert values({"movers": {"move": "pingpong", "level": 0.6}, "matrix": "off", "hue": "off"})[0] == \
-        pytest.approx(0.5)
-    # the compiler lights pingpong and blink at full, so their `level` does not count
-    assert values({"movers": {"move": "pingpong"}, "matrix": "off", "hue": "off"})[0] == 0.5
-    assert values({"movers": {"move": "blink", "level": 0.2}, "matrix": "off", "hue": "off"})[0] == 0.5
-    assert values({"movers": {"move": "uv"}, "matrix": "off", "hue": "off"})[0] == 0.3
-    shares = {"solid": 1, "fill-up": 0.6, "rows-down": 1 / 6, "rows-up": 1 / 6, "columns": 1 / 8,
-              "centre-out": 0.25, "arrow-up": 0.15, "zigzag": 1 / 48}
-    for draw, share in shares.items():
-        layers = {"movers": "off", "matrix": {"draw": draw, "rate": "1/4"}, "hue": "off"}
-        assert values(layers)[1] == pytest.approx(share * 0.6), draw
-        layers["matrix"]["pingpong"] = True
-        assert values(layers)[1] == pytest.approx(share * 0.5 * 0.6), draw
-    assert values({"movers": "off", "matrix": "off", "hue": {"state": "pulse"}})[2] == 0.5
-    assert values({"movers": "off", "matrix": "off", "hue": "bright"})[2] == 0.85
-    assert values({"movers": "off", "matrix": "off", "hue": {"state": "dark", "colour": "#FF0A2A"}})[2] == 0.0
-    # the digit: round(9 * (0.4 m + 0.4 x + 0.2 h)), halves up
-    level = sv.light_level
-    assert level(BREU) == 0
-    assert level({"movers": {"move": "hold", "level": 1}, "matrix": "off", "hue": "off"}) == 4          # 3.6
-    assert level({"movers": {"move": "sweep"}, "matrix": {"draw": "solid"}, "hue": "bright"}) == 7      # 6.75
-    assert level({"movers": {"move": "hold", "level": 1}, "matrix": "off", "hue": "pulse"}) == 5        # 4.5
-    assert level({"movers": {"move": "blink"}, "matrix": {"draw": "solid"}, "hue": {"state": "pulse"}}) == 5  # 4.59
-    assert level({"movers": {"move": "uv"}, "matrix": {"draw": "zigzag"}, "hue": "dark"}) == 1          # 1.125
-    # accents do not enter the level
-    accented = {**BREU, "white": {"accent": ["1.1"]}, "strobe": {"roll": [1, 2]}, "uv": "on"}
-    assert level(accented) == 0
+# ------------------------------------------------------------------ voices --
 
 
-def test_light_level_unknown_when_auto():
-    lit = {"movers": {"move": "hold"}, "matrix": {"draw": "solid"}, "hue": "bright"}
-    assert sv.light_level(lit) is not None
-    for layer in ("movers", "matrix", "hue"):
-        assert sv.light_level({**lit, layer: "auto"}) is None, layer
-        assert sv.light_level({k: v for k, v in lit.items() if k != layer}) is None, layer
-    assert sv.light_level({}) is None
-    assert sv.light_level({**lit, "movers": {"move": "spin"}}) is None      # not a word of the table
-
-
-def test_music_level_and_voices():
+def test_voices():
     data = show_map(bars=4, sections=[(1, 4, "drop")])
     for voice, bars in {"kick": "9000", "bass": "0800", "other": "0070", "vocals": "1119", "perc": "6666"}.items():
         data["voices"][voice]["bars"] = bars
-    assert [sv.music_level(data, b) for b in (1, 2, 3, 4)] == [9, 8, 7, 0]   # vocals and perc left out
-    assert sv.music_level(data, 5) == 0 and sv.music_level(data, 0) == 0     # outside the map: silent
     assert sv.voices(data, 1, 4) == {"kick": 9, "bass": 8, "vocals": 9, "perc": 6, "other": 7}
     assert list(sv.voices(data, 1, 4)) == ["kick", "bass", "vocals", "perc", "other"]
     assert sv.voices(data, 4, 4) == {"kick": 0, "bass": 0, "vocals": 9, "perc": 6, "other": 0}
@@ -298,23 +267,46 @@ def test_summary_splits_cycling_aims_evenly():
 # ------------------------------------------------------------ peaks, hits --
 
 
+def test_peaks_use_the_light_energy():
+    # `music` is the track-scope E_music at the drop, `at` the E_light there and `before` the
+    # E_light of the bar before; on Voa Voa's B (5) the bar before is Dançarina's last leg bar (24)
+    src, inp = two_track_show()
+    inp.maps[KEY_2]["drops"] = [{"bar": 5, "db": 20.0}, {"bar": 21, "db": 10.0}]
+    show = compiled(src, inp)
+    clock = sv.build_clock(show, {})
+    energy = hand_energy(show, clock, music=lambda i, b: (b + 1) % 10, light=lambda i, b: (b + 3 * i) % 10)
+    energy[1].light[21 - energy[1].first] = None                     # an unknown bar
+    rows = sv.peaks(show, clock, energy)
+    assert [(r["index"], r["bar"], r["music"], r["before"], r["at"]) for r in rows] == [
+        (0, 9, 0, 8, 9), (0, 21, 2, 0, 1), (1, 5, 6, 4, 8), (1, 21, 2, 3, None)]
+    hits = sv.hit_checks(show, clock, energy)
+    assert [(r["index"], r["bar"], r["before"], r["at"]) for r in hits if r["arrival"]] == [
+        (0, 9, 8, 9), (1, 9, 1, 2)]
+
+
 def test_peaks_include_drops_during_the_mix():
     src, inp = two_track_show()
     inp.maps[KEY_1]["drops"] = [{"bar": 9, "db": 12.5}, {"bar": 21, "db": 30.0}, {"bar": 27, "db": 6.0}]
     inp.maps[KEY_2]["drops"] = [{"bar": 3, "db": 4.0}, {"bar": 9, "db": 8.0}, {"bar": 21, "db": 10.0}]
     src.track_files[FILE_2]["cues"][0]["with"]["white"] = {"accent": ["9.3"]}     # any beat of the bar
     show = compiled(src, inp)
-    rows = sv.peaks(show, sv.build_clock(show, {}))
-    got = [(r["clock_s"], r["index"], r["bar"], r["db"], r["music"], r["before"], r["at"], r["accents"], r["moment"])
-           for r in rows]
+    clock = sv.build_clock(show, {})
+    energy = se.night_energy(show, clock)
+    rows = sv.peaks(show, clock, energy)
+    got = [(r["clock_s"], r["index"], r["bar"], r["db"], r["accents"], r["moment"]) for r in rows]
     assert got == [
-        (16.0, 0, 9, 12.5, 5, None, 4, [], None),                       # bar 8 is the autoscript's
-        (40.0, 0, 21, 30.0, 5, 2, 5, ["white", "strobe"], "virada"),
-        (52.0, 0, 27, 6.0, 5, 3, 3, [], "passagem"),                    # Dançarina's handover, past G
-        (56.0, 1, 9, 8.0, 5, 3, 3, ["white"], None),                    # bar 3 is before Voa Voa's B: left out
-        (80.0, 1, 21, 10.0, 5, 3, 3, ["roll"], "final"),
+        (16.0, 0, 9, 12.5, [], None),
+        (40.0, 0, 21, 30.0, ["white", "strobe"], "virada"),
+        (52.0, 0, 27, 6.0, [], "passagem"),                             # Dançarina's handover, past G
+        (56.0, 1, 9, 8.0, ["white"], None),                             # bar 3 is before Voa Voa's B: left out
+        (80.0, 1, 21, 10.0, ["roll"], "final"),
     ]
     assert [r["track"] for r in rows] == [TRACK_1, TRACK_1, TRACK_1, TRACK_2, TRACK_2]
+    for r in rows:                     # the outgoing music's own series during the mix (27)
+        te = energy[r["index"]]
+        assert (r["music"], r["before"], r["at"]) == (te.at("music", r["bar"]), te.at("light", r["bar"] - 1),
+                                                      te.at("light", r["bar"]))
+    assert rows[0]["before"] is None and rows[2]["at"] is not None       # bar 8 is the autoscript's
 
 
 def test_echo_sections_add_no_events_and_no_hit_rows():
@@ -333,16 +325,17 @@ def test_echo_sections_add_no_events_and_no_hit_rows():
     bare = dataclasses.replace(show, tracks=[
         dataclasses.replace(t, sections=[s for s in t.sections if s.origin.kind != "echo"]) for t in show.tracks])
     clock = sv.build_clock(show, {})
+    energy = se.night_energy(show, clock)
     assert clock.tracks[0].sounding == (1, 48)                       # the echo sounds: the outgoing music plays
     assert sv.night_summary(show, clock, None) == sv.night_summary(bare, clock, None)
     assert sv.night_summary(show, clock, None)["events"]["uv"]["count"] == 1     # Voa Voa's subida alone
-    assert sv.hit_checks(show, clock) == sv.hit_checks(bare, clock)
-    assert [(r["track"], r["bar"], r["moment"]) for r in sv.hit_checks(show, clock)] == [
+    assert sv.hit_checks(show, clock, energy) == sv.hit_checks(bare, clock, energy)
+    assert [(r["track"], r["bar"], r["moment"]) for r in sv.hit_checks(show, clock, energy)] == [
         (TRACK_1, 9, None), (TRACK_1, 21, "virada"), (TRACK_1, 25, "passagem"), (TRACK_2, 9, None),
         (TRACK_2, 21, "final")]
     # a drop under the echo is a peak of the outgoing track, with the copy's light and no moment
-    peak = next(r for r in sv.peaks(show, clock) if (r["track"], r["bar"]) == (TRACK_1, 41))
-    assert peak["moment"] is None and peak["at"] == sv.light_level(echo[2].layers)
+    peak = next(r for r in sv.peaks(show, clock, energy) if (r["track"], r["bar"]) == (TRACK_1, 41))
+    assert peak["moment"] is None and peak["at"] is not None and peak["at"] == energy[0].at("light", 41)
 
 
 def test_hit_checks_report_voices_in_a_dark_bar_before():
@@ -356,17 +349,35 @@ def test_hit_checks_report_voices_in_a_dark_bar_before():
     data["onsets"]["kick"] = ["".join(kick[i:i + 8]) for i in range(0, 32, 8)]
     src.track_files[FILE_2]["cues"][0]["with"]["white"] = {"accent": ["9.3"]}     # not on the hit's beat
     show = compiled(src, inp)
-    rows = sv.hit_checks(show, sv.build_clock(show, {}))
+    clock = sv.build_clock(show, {})
+    energy = hand_energy(show, clock, light=lambda i, b: None if i == 0 and b < 9 else (b + i) % 10)
+    rows = sv.hit_checks(show, clock, energy)
     got = [(r["clock_s"], r["index"], r["bar"], r["arrival"], r["moment"], r["kick"], r["before"], r["at"],
             r["accents"], r["dark"]) for r in rows]
     assert got == [
-        (16.0, 0, 9, True, None, ".", None, 4, [], None),
-        (40.0, 0, 21, False, "virada", "7", 0, 5, ["white", "strobe"],
+        (16.0, 0, 9, True, None, ".", None, 9, [], None),
+        (40.0, 0, 21, False, "virada", "7", 0, 1, ["white", "strobe"],
          {"track": TRACK_1, "bars": (17, 20), "voices": {"kick": 0, "bass": 0, "vocals": 9, "perc": 0, "other": 3}}),
-        (48.0, 0, 25, False, "passagem", "9", 5, 3, ["white"], None),   # the handover, at its own clock
-        (56.0, 1, 9, True, None, "9", 3, 3, [], None),                  # the bridge's copied moment is no hit
-        (80.0, 1, 21, False, "final", "9", 3, 3, ["roll"], None),
+        (48.0, 0, 25, False, "passagem", "9", 4, 5, ["white"], None),   # the handover, at its own clock
+        (56.0, 1, 9, True, None, "9", 9, 0, [], None),                  # the bridge's copied moment is no hit
+        (80.0, 1, 21, False, "final", "9", 1, 2, ["roll"], None),
     ]
+
+
+def test_strips_have_four_rows():
+    show = base()
+    clock = sv.build_clock(show, {})
+    energy = hand_energy(show, clock, music=lambda i, b: b % 10, light=lambda i, b: None if b < 9 else (b + i) % 10,
+                         bright=lambda i, b: None if b < 9 else 7, activity=lambda i, b: None if b < 9 else 2)
+    strips = sv.strips(show.tracks[0], clock.tracks[0], energy[0])
+    assert list(strips) == ["music", "light", "bright", "activity"]
+    leg = range(1, 25)                                               # Dançarina plays bars 1-24
+    assert strips["music"] == "".join(str(b % 10) for b in leg)
+    assert strips["light"] == "~" * 8 + "".join(str(b % 10) for b in range(9, 25))
+    assert strips["bright"] == "~" * 8 + "7" * 16 and strips["activity"] == "~" * 8 + "2" * 16
+    second = sv.strips(show.tracks[1], clock.tracks[1], energy[1])
+    assert [len(s) for s in second.values()] == [28] * 4             # Voa Voa plays bars 5-32
+    assert second["light"][4:] == "".join(str((b + 1) % 10) for b in range(9, 33))
 
 
 def test_strips_wrap_nothing_and_use_tilde_for_unknown():
@@ -376,12 +387,15 @@ def test_strips_wrap_nothing_and_use_tilde_for_unknown():
     src.track_files[FILE_2]["cues"][1]["with"]["matrix"] = "auto"
     show = compiled(src, inp)
     clock = sv.build_clock(show, {})
-    music, light = sv.strips(show.tracks[0], clock.tracks[0])
-    assert len(music) == len(light) == 72 and "\n" not in music + light     # bars 1-72, one string each
-    assert music == "5" * 72
-    assert light == "~" * 8 + "4" * 8 + "2" * 4 + "5" * 52                  # 1-8 is the autoscript's
-    music, light = sv.strips(show.tracks[1], clock.tracks[1])
-    assert light == "3" * 12 + "~" * 4 + "3" * 12                   # subida's matrix is auto
+    energy = se.night_energy(show, clock)
+    strips = sv.strips(show.tracks[0], clock.tracks[0], energy[0])
+    assert all(len(s) == 72 and "\n" not in s for s in strips.values())       # bars 1-72, one string each
+    assert strips["music"] == "".join(str(energy[0].at("music", b)) for b in range(1, 73))
+    for row in ("light", "bright", "activity"):                       # 1-8 is the autoscript's
+        assert strips[row][:8] == "~" * 8 and "~" not in strips[row][8:], row
+    strips = sv.strips(show.tracks[1], clock.tracks[1], energy[1])
+    for row in ("light", "bright", "activity"):                       # subida (17-20) has an auto matrix
+        assert [i + 5 for i, c in enumerate(strips[row]) if c == "~"] == [17, 18, 19, 20], row
 
 
 def test_before_b_is_the_outgoing_tracks_last_leg_section():
@@ -389,8 +403,12 @@ def test_before_b_is_the_outgoing_tracks_last_leg_section():
     src, inp = two_track_show()
     inp.maps[KEY_2]["drops"] = [{"bar": 5, "db": 20.0}]
     show = compiled(src, inp)
-    (row,) = [r for r in sv.peaks(show, sv.build_clock(show, {})) if r["index"] == 1]
-    assert (row["clock_s"], row["bar"], row["before"], row["at"]) == (48.0, 5, 5, 3)
+    clock = sv.build_clock(show, {})
+    energy = se.night_energy(show, clock)
+    (row,) = [r for r in sv.peaks(show, clock, energy) if r["index"] == 1]
+    assert (row["clock_s"], row["bar"]) == (48.0, 5)
+    assert (row["before"], row["at"]) == (energy[0].at("light", 24), energy[1].at("light", 5))
+    assert row["before"] is not None
     assert row["moment"] is None              # the bridge copies the handover's moment; it is not this one's
 
     # bridge: false and an arrival at B: before it is Dançarina's last leg section, here total dark,
@@ -402,8 +420,11 @@ def test_before_b_is_the_outgoing_tracks_last_leg_section():
     for voice, level in {"kick": "0", "bass": "0", "vocals": "9", "perc": "0", "other": "2"}.items():
         inp.maps[KEY_1]["voices"][voice]["bars"] = bar_string(32, {b: level for b in range(21, 25)})
     show = compiled(src, inp)
-    (row,) = [r for r in sv.hit_checks(show, sv.build_clock(show, {})) if r["index"] == 1 and r["bar"] == 5]
-    assert (row["clock_s"], row["arrival"], row["before"], row["at"]) == (48.0, True, 0, 3)
+    clock = sv.build_clock(show, {})
+    energy = se.night_energy(show, clock)
+    (row,) = [r for r in sv.hit_checks(show, clock, energy) if r["index"] == 1 and r["bar"] == 5]
+    assert (row["clock_s"], row["arrival"]) == (48.0, True)
+    assert (row["before"], row["at"]) == (energy[0].at("light", 24), energy[1].at("light", 5))
     assert row["dark"] == {"track": TRACK_1, "bars": (21, 24),
                            "voices": {"kick": 0, "bass": 0, "vocals": 9, "perc": 0, "other": 2}}
 
@@ -411,9 +432,10 @@ def test_before_b_is_the_outgoing_tracks_last_leg_section():
 def test_views_take_bad_maps_without_raising():
     def views(show, tempos=None):
         clock = sv.build_clock(show, tempos or {})
+        energy = se.night_energy(show, clock)
         night = sv.night_summary(show, clock, ROOM)
-        sv.peaks(show, clock), sv.hit_checks(show, clock)
-        return clock, night, [sv.strips(t, c) for t, c in zip(show.tracks, clock.tracks)]
+        sv.peaks(show, clock, energy), sv.hit_checks(show, clock, energy)
+        return clock, night, [sv.strips(t, c, e) for t, c, e in zip(show.tracks, clock.tracks, energy)]
 
     show = base()
     show.tracks[1].map["hot_cues"] = {"A": "1.1", "B": "x"}                  # an unreadable B: from bar 1
@@ -424,7 +446,8 @@ def test_views_take_bad_maps_without_raising():
     show = compiled(*three_track_show())
     show.tracks[1].map["hot_cues"] = {"A": "1.1", "B": "9.1", "G": "9.1"}    # G <= B: a 0-bar leg
     clock, night, strips = views(show)
-    assert (clock.tracks[1].leg, clock.tracks[1].played) == ((9, 8), 0) and strips[1] == ("", "")
+    assert (clock.tracks[1].leg, clock.tracks[1].played) == ((9, 8), 0)
+    assert strips[1] == {"music": "", "light": "", "bright": "", "activity": ""}
     assert clock.tracks[2].start_s == pytest.approx(48.0) and night["total_s"] == pytest.approx(48.0 + 56.0)
 
     show = base()
@@ -436,7 +459,7 @@ def test_views_take_bad_maps_without_raising():
     show = base()
     show.tracks[1].sections = []                                              # no section: the autoscript
     clock, night, strips = views(show)
-    assert clock.tracks[1].sounding == (5, 32) and strips[1][1] == "~" * 28
+    assert clock.tracks[1].sounding == (5, 32) and strips[1]["light"] == "~" * 28
     assert night["autoscript_s"] == pytest.approx(16.0 + 56.0)
 
 

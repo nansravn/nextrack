@@ -467,6 +467,8 @@ uv run scripts/nextrack_show.py build <show> --check          # write nothing; e
 uv run scripts/nextrack_show.py build <dir> --out <scratch>   # a variant: write the choreographies elsewhere
 uv run scripts/nextrack_show.py build <show> --adopt          # first build of a ported set: take over hand-written files
 uv run scripts/nextrack_show.py report <show>                 # the night as text, for a critic
+uv run scripts/nextrack_show.py report <show> --track "<Artist — Title>"   # one track's slice, with its neighbours' handover and bridge
+uv run scripts/nextrack_show.py report <show> --section follows,drops     # only those sections
 uv run scripts/nextrack_show.py zoom <show> <moment>                   # a moment at 1/16 of a beat: the map's music over the light `build` writes
 uv run scripts/nextrack_show.py zoom <show> "<Artist — Title>" <anchor> [--before N] [--after N] [--frames B.b,...]
 uv run scripts/nextrack_show.py vocab [<show>]                # anchors, layer words, gestures, rules (and the show's palette and looks)
@@ -480,16 +482,23 @@ uv run scripts/nextrack_show.py vocab [<show>]                # anchors, layer w
   `stale <path>: owned by this show, which no longer compiles it; delete it` for each
   choreography with this show's header whose track the show no longer compiles (a track that
   left the set). They never delete it, and exit 1 while it is there.
-- `report` prints, in order: the night summary (time per look, colour and aim, zones lit,
-  dark, events), the legend, then per track a header, the music and light strips (one digit per
-  bar), and one line per compiled section (clock, bars, name, source, layers, accents, role,
-  moment, the music under it with the voices `k b v p o`); then the peaks (every map drop, with
-  the dB jump, the music level and the light level before and at it), the hit checks (arrivals
-  and moments against the kick onset), the budget tally, the arrivals, the `advice` section,
-  what the compiler decided on its own (bridges, default ends, aim fallbacks) and the findings.
-  The light level is an index with a stated formula; `~` means unknown (the autoscript
-  decides). Formulas and windows (states over legs, events over sounding windows):
-  [the manual](../lightshows/shows/README.md#the-critics-views).
+- `report` prints, in order, the sections `summary` (time per look, colour and aim, zones lit,
+  dark, events, the time whose light is unknown), `tracks` (the legend, then per track a header,
+  four strips of one digit per bar: E_music, E_light, its brightness and its activity, and one
+  line per compiled section: clock, bars, name, source, layers, accents, role, moment, the music
+  under it with the voices `k b v p o`), `peaks` (every map drop, with the dB jump, E_music and
+  E_light before and at it), `hits` (arrivals and moments against the kick onset), the six
+  analyses `follows`, `drops`, `builds`, `variety`, `arc` and `identity`, then `budget`,
+  `arrivals`, `advice`, `decided` (what the compiler decided on its own: bridges, default ends,
+  aim fallbacks, echoes) and `findings`. `~` means unknown (the autoscript decides); a track whose
+  map has no `mix` block is marked `(interim)`. Formulas and windows (states over legs, events
+  over sounding windows): [the manual](../lightshows/shows/README.md#the-critics-views).
+- `report --section a,b` prints only the named sections, in the report's order; `report --track
+  "<Artist — Title>"` (matched as `zoom` matches a track) prints that track's header, strips and
+  section lines between the previous track's handover and the next track's bridge, and in every
+  other section only the lines that name it (a slice of Hï Ibiza is 5-10k characters). Both
+  combine. An unknown section or track is a usage error (exit 2) that lists the valid ones.
+  `report` exits 1 only when a finding is among the printed lines.
 - `zoom` prints one column per 1/16 step around a moment (a name from the show) or around a bar of
   a track (`"Artist — Title"` plus an anchor): the map's music lanes over the light lanes as
   `compile` would write them, each step sampled 2 ms after its start. `--before` (default 3) and
@@ -509,7 +518,7 @@ uv run scripts/nextrack_show.py vocab [<show>]                # anchors, layer w
 the rule id `show-advice`; `check_repo.py` never reports it. `0` no findings, `1` findings
 (for `report`, any finding printed; for `build --check`, a file that would change; for both
 `build` and `build --check`, a stale file), `2` usage (unknown show, a show outside
-`lightshows/shows/` without `--out`).
+`lightshows/shows/` without `--out`, an unknown `report` section or track).
 
 ### Safety model
 

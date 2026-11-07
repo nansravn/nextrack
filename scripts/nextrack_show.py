@@ -8,7 +8,9 @@ Subcommands:
   build   compile the show, run its rules, write the choreographies (--check: write nothing,
           --out DIR: write elsewhere, --adopt: take over hand-written files); name the stale
           files the show owns but no longer compiles, never deleting them; print the advice
-  report  the night as text, one line per section, for a critic
+  report  the night as text, one line per section, for a critic, with the energy measures and
+          the six analyses (follows, drops, builds, variety, arc, identity); --track cuts it to
+          one track and its neighbours' handover and bridge, --section to named sections
   zoom    a moment at 1/16 of a beat: the map's music lanes over the light `build` would
           compile, and with --frames the Vorlanes' 8x7 cells (needs no SoundSwitch project;
           rule findings are the report's: it counts them on stderr and exits 1 only on source
@@ -31,8 +33,11 @@ from pathlib import Path
 
 import check_repo
 import lightshow
+import show_analysis
+import show_energy
 import show_gestures
 import show_language
+import show_report
 import show_room
 import show_rules
 import show_views
@@ -276,8 +281,9 @@ def _timed(items: dict) -> str:
     return ", ".join(f"{k} {show_views.clock_text(v)}" for k, v in ranked if v > 0) or "-"
 
 
-def _night_lines(summary: dict) -> list[str]:
-    """The night summary, one line per category (spec section 3)."""
+def _night_lines(summary: dict, unknown_s: float = 0.0) -> list[str]:
+    """The night summary, one line per category (spec section 3), and `unknown_s`, the seconds
+    of the legs whose light is unknown (`show_report.light_unknown_s`)."""
     total = summary["total_s"]
     clock = show_views.clock_text
     looks = dict(summary["looks"])
@@ -295,24 +301,27 @@ def _night_lines(summary: dict) -> list[str]:
             f"  centre dark: {clock(summary['centre_dark_s'])} ({_share(summary['centre_dark_s'], total)})",
             f"  total dark: {clock(dark['s'])} in {dark['count']} section(s)",
             f"  events: {events}",
-            "  light level: an index from 0 to 9, not a measurement, rounded half up; "
-            "formula in lightshows/shows/README.md"]
+            f"  light unknown: {clock(unknown_s)} ({_share(unknown_s, total)}), the autoscript decides"]
     return out
 
 
-def _strip_block(music: str, light: str, first: int, width: int = 64) -> list[str]:
-    """The two strips wrapped at `width` bars, music chunk then light chunk, each row labelled
-    with the track bar of its first character: `  music   57 |...|`."""
+def _strip_block(strips: dict[str, str], first: int, width: int = 64) -> list[str]:
+    """The four strips (`show_views.STRIP_ROWS`) wrapped at `width` bars, one row each per
+    chunk, each row labelled with the track bar of its first character:
+    `  music      57 |...|`."""
     out = []
-    for i in range(0, max(len(music), len(light), 1), width):
-        for label, text in (("music", music), ("light", light)):
-            out.append(f"  {label} {first + i:>4} |{text[i:i + width]}|")
+    for i in range(0, max(max((len(t) for t in strips.values()), default=0), 1), width):
+        for label in show_views.STRIP_ROWS:
+            out.append(f"  {label:<8} {first + i:>4} |{strips[label][i:i + width]}|")
     return out
 
 
-_LEGEND = ("  legend: strips show one digit per bar, music level 0-9 (the highest of kick, bass, other) and "
-           "light level 0-9 (an index); ~ is unknown (the autoscript decides). voices: k kick, b bass, "
-           "v vocals, p perc, o other. ~ in peaks and hit checks is unknown too.")
+_LEGEND = ("  legend: strips show one digit 0-9 per bar: music is E_music (loudness, brightness, onset "
+           "density, texture; track scope), light is E_light (brightness and activity of the rig as the "
+           "compiler writes it), bright and activity its two parts (night scope); ~ is unknown (the "
+           "autoscript decides) and stays out of every statistic. (interim): a map without `mix`, its "
+           "E_music from onset density and texture alone. voices: k kick, b bass, v vocals, p perc, o other. "
+           "Formulas: lightshows/shows/README.md, The critic's views.")
 
 
 def _layers_named(sec, room) -> dict:
@@ -344,20 +353,24 @@ def _level_pair(row: dict) -> str:
     return f"light {one(row['before'])}>{one(row['at'])}"
 
 
-def _peak_lines(rows: list[dict]) -> list[str]:
+def _peak_lines(rows: list[dict], interim: frozenset[int] = frozenset()) -> list[str]:
+    """The peak table: a header, its columns and a row per drop; a track in `interim` (indices)
+    is marked `(interim)`, its E_music from the interim formula."""
     out = ["", "peaks",
-           "  clock · track bar · drop vs the two bars before · music level · light level before>at · accents · moment"]
+           "  clock · track bar · drop vs the two bars before · E_music · E_light before>at · accents · moment"]
     for r in rows:
         db = "-" if r["db"] is None else f"{r['db']:+.1f} dB"
-        out.append(f"  {show_views.clock_text(r['clock_s'])} · {_title(r['track'])} {r['bar']} · {db} · "
-                   f"music {r['music']} · {_level_pair(r)} · accents {','.join(r['accents']) or '-'} · "
+        music = "~" if r["music"] is None else r["music"]
+        name = _title(r["track"]) + (" (interim)" if r.get("index") in interim else "")
+        out.append(f"  {show_views.clock_text(r['clock_s'])} · {name} {r['bar']} · {db} · "
+                   f"music {music} · {_level_pair(r)} · accents {','.join(r['accents']) or '-'} · "
                    f"moment {r['moment'] or '-'}")
     return out
 
 
 def _hit_lines(rows: list[dict]) -> list[str]:
     out = ["", "hit checks",
-           "  clock · track bar · arrival or moment · kick onset on the first step · light level before>at · "
+           "  clock · track bar · arrival or moment · kick onset on the first step · E_light before>at · "
            "accents · voices of the total dark before"]
     for r in rows:
         kind = " ".join(x for x in ("arrival" if r["arrival"] else "",
@@ -372,67 +385,235 @@ def _hit_lines(rows: list[dict]) -> list[str]:
     return out
 
 
-def render_report(show: CompiledShow, findings: list[ShowFinding], advice: list[ShowFinding],
-                  clock: show_views.ShowClock, room: show_room.Room | None) -> str:
-    """The night as text: the night summary, each track (header with its clock and arrival, the
-    two strips, a line per section starting with the clock and with the voices after
-    `music:`), the peak table, the hit checks, the budget, the arrivals, the advice (the
-    `show-advice` findings, goals that do not hold yet), the compiler's decisions and the
-    findings. Facts only; every number comes from `show_views`."""
-    palette = show.data.get("palette") or {}
-    names = {str(hexa).upper(): name for name, hexa in palette.items()}
-    out: list[str] = [*_night_lines(show_views.night_summary(show, clock, room)), _LEGEND]
-    for n, (track, tc) in enumerate(zip(show.tracks, clock.tracks), 1):
-        cues = track.map.get("hot_cues") or {}
-        marks = [f"{key} {_bar_of(cues[key])}" for key in ("B", "G") if key in cues]
-        head = [f"{n}. {track.track}", f"{track.map.get('bars')} bars", *marks,
-                f"enters {show_views.clock_text(tc.start_s)}"]
-        arrival = next((s for s in track.sections if s.origin.role == "arrival"), None)
-        if arrival is not None:
-            head.append(f"arrival {arrival.bars[0]} at {show_views.clock_text(tc.at(arrival.bars[0]))}")
-        music_strip, light_strip = show_views.strips(track, tc)
-        out += ["", " · ".join(head), *_strip_block(music_strip, light_strip, tc.leg[0])]
-        for sec in track.sections:
-            a, b = sec.bars
-            named = _layers_named(sec, room)
-            layers = "; ".join(_layer_text(k, named[k], names) for k in lightshow.LAYERS if k in named)
-            tags = [t for t in (sec.origin.role, f"moment {sec.origin.moment}" if sec.origin.moment else None) if t]
-            music = ", ".join(x for x in (_music(sec, track.map),
-                                          _voices_text(show_views.voices(track.map, a, b))) if x)
-            cells = [f"  {show_views.clock_text(tc.at(a))} {a}-{b} {sec.name}", _source_text(sec.origin), layers,
-                     *tags, f"music: {music}"]
-            out.append(" | ".join(cells))
-    out += _peak_lines(show_views.peaks(show, clock))
-    out += _hit_lines(show_views.hit_checks(show, clock))
+def track_index(show: CompiledShow, name: str) -> int | None:
+    """The set-order index of the show track named `name` exactly as its track file names it
+    (`Artist — Title`), or None."""
+    return next((i for i, t in enumerate(show.tracks) if t.track == name), None)
+
+
+def _tracks_text(show: CompiledShow) -> str:
+    return "; ".join(t.track for t in show.tracks)
+
+
+def _section_line(sec, track, tc, room, names: dict[str, str]) -> str:
+    """`clock bars name | source | layers | role and moment | music: kinds, drops, voices`."""
+    a, b = sec.bars
+    named = _layers_named(sec, room)
+    layers = "; ".join(_layer_text(k, named[k], names) for k in lightshow.LAYERS if k in named)
+    tags = [t for t in (sec.origin.role, f"moment {sec.origin.moment}" if sec.origin.moment else None) if t]
+    music = ", ".join(x for x in (_music(sec, track.map), _voices_text(show_views.voices(track.map, a, b))) if x)
+    cells = [f"  {show_views.clock_text(tc.at(a))} {a}-{b} {sec.name}", _source_text(sec.origin), layers,
+             *tags, f"music: {music}"]
+    return " | ".join(cells)
+
+
+def _track_block(show: CompiledShow, clock, energy: list, room, names: dict[str, str], i: int) -> list[str]:
+    """A track's header (bars, B, G, when it enters, its arrival, `(interim)`), its four
+    strips and one line per compiled section."""
+    track, tc = show.tracks[i], clock.tracks[i]
+    cues = track.map.get("hot_cues") or {}
+    marks = [f"{key} {_bar_of(cues[key])}" for key in ("B", "G") if key in cues]
+    head = [f"{i + 1}. {track.track}", f"{track.map.get('bars')} bars", *marks,
+            f"enters {show_views.clock_text(tc.start_s)}"]
+    arrival = next((s for s in track.sections if s.origin.role == "arrival"), None)
+    if arrival is not None:
+        head.append(f"arrival {arrival.bars[0]} at {show_views.clock_text(tc.at(arrival.bars[0]))}")
+    if energy[i].interim:
+        head.append("(interim)")
+    out = ["", " · ".join(head), *_strip_block(show_views.strips(track, tc, energy[i]), tc.leg[0])]
+    return out + [_section_line(sec, track, tc, room, names) for sec in track.sections]
+
+
+def _neighbour_lines(show: CompiledShow, clock, room, names: dict[str, str], i: int, kinds: tuple[str, ...],
+                     what: str) -> list[str]:
+    """Track `i`'s sections of `kinds` under `N. Artist — Title · <what>`; none without such a
+    section."""
+    track, tc = show.tracks[i], clock.tracks[i]
+    lines = [_section_line(sec, track, tc, room, names) for sec in track.sections if sec.origin.kind in kinds]
+    return ["", f"{i + 1}. {track.track} · {what}", *lines] if lines else []
+
+
+def _tracks_part(show: CompiledShow, clock, energy: list, room, names: dict[str, str],
+                 index: int | None) -> list[show_report.Line]:
+    """The legend and every track's block; with `index`, that track's block between the
+    previous track's handover (and echo) and the next track's bridge."""
+    if index is None:
+        out: list[show_report.Line] = [(_LEGEND, None)]
+        for i in range(len(show.tracks)):
+            out += [(t, frozenset({i})) for t in _track_block(show, clock, energy, room, names, i)]
+        return out
+    lines = [_LEGEND]
+    if index > 0:
+        lines += _neighbour_lines(show, clock, room, names, index - 1, ("handover", "echo"), "handover")
+    lines += _track_block(show, clock, energy, room, names, index)
+    if index + 1 < len(show.tracks):
+        lines += _neighbour_lines(show, clock, room, names, index + 1, ("bridge",), "bridge")
+    return [(t, frozenset({index})) for t in lines]
+
+
+def _rows_part(lines: list[str], rows: list[dict]) -> list[show_report.Line]:
+    """A table from `_peak_lines` or `_hit_lines`: its blank, header and columns are the frame,
+    each row names its track."""
+    return [(t, None) for t in lines[:3]] + [(t, frozenset({r["index"]})) for t, r in zip(lines[3:], rows)]
+
+
+def _named_by(show: CompiledShow, path: str | None = None, text: str | None = None) -> frozenset[int]:
+    """The tracks a finding's path (the track file) or a decision's text (`Title: ...`) names."""
+    return frozenset(i for i, t in enumerate(show.tracks)
+                     if (path is not None and t.path == path)
+                     or (text is not None and text.startswith(f"{_title(t.track)}: ")))
+
+
+def _track_findings(show: CompiledShow, findings: list[ShowFinding], index: int | None) -> list[ShowFinding]:
+    """The findings a report prints: all, or with a track `index`, those of its track file."""
+    return findings if index is None else [f for f in findings if index in _named_by(show, path=f.path)]
+
+
+def _budget_part(show: CompiledShow) -> list[show_report.Line]:
     budget = (show.data.get("rules") or {}).get("budget") or {}
-    if budget:
-        out += ["", "budget"]
-        for key, limits in budget.items():
-            found = show_rules.occurrences(show, key)
-            top = (limits or {}).get("max")
-            listed = ", ".join(f"{_title(o.track)} {o.bar}" for o in found)
-            out.append(f"  {key}: max {'-' if top is None else top}, used {len(found)}"
-                       + (f": {listed}" if listed else ""))
-    arrivals = []
-    for track in show.tracks:
+    if not budget:
+        return []
+    index = {t.track: i for i, t in enumerate(show.tracks)}
+    out: list[show_report.Line] = [("", None), ("budget", None)]
+    for key, limits in budget.items():
+        found = show_rules.occurrences(show, key)
+        top = (limits or {}).get("max")
+        listed = ", ".join(f"{_title(o.track)} {o.bar}" for o in found)
+        out.append((f"  {key}: max {'-' if top is None else top}, used {len(found)}"
+                    + (f": {listed}" if listed else ""),
+                    frozenset(index[o.track] for o in found if o.track in index)))
+    return out
+
+
+def _arrivals_part(show: CompiledShow, names: dict[str, str]) -> list[show_report.Line]:
+    arrivals: list[show_report.Line] = []
+    for i, track in enumerate(show.tracks):
         for sec in track.sections:
             if sec.origin.role == "arrival":
                 matrix = show_language.layer_word(sec.layers.get("matrix"))
                 draw = matrix.get("draw") if isinstance(matrix, dict) else matrix
                 colour = _colour_name(matrix.get("colour"), names) if isinstance(matrix, dict) else None
-                arrivals.append(f"  {_title(track.track)} {sec.bars[0]}: draw {draw}, colour {colour}")
-    if arrivals:
-        out += ["", "arrivals", *arrivals]
-    if advice:
-        out += ["", "advice", *(f"  {_finding_line(f)}" for f in advice)]
-    if show.decisions:
-        out += ["", "decided by the compiler", *(f"  {d}" for d in show.decisions)]
-    if findings:
-        out += ["", *(_finding_line(f) for f in findings), f"{len(findings)} finding(s)"]
-    return "\n".join(out) + "\n"
+                arrivals.append((f"  {_title(track.track)} {sec.bars[0]}: draw {draw}, colour {colour}",
+                                 frozenset({i})))
+    return [("", None), ("arrivals", None), *arrivals] if arrivals else []
+
+
+def _findings_part(shown: list[ShowFinding], index: int | None) -> list[show_report.Line]:
+    """The findings already cut to the report (`_track_findings`) and their count; each names
+    the report's track, if any."""
+    if not shown:
+        return []
+    names = frozenset() if index is None else frozenset({index})
+    return [("", None), *((_finding_line(f), names) for f in shown), (f"{len(shown)} finding(s)", None)]
+
+
+def render_report(show: CompiledShow, findings: list[ShowFinding], advice: list[ShowFinding],
+                  clock: show_views.ShowClock, room: show_room.Room | None, *, track: str | None = None,
+                  sections: tuple[str, ...] = show_report.REPORT_SECTIONS, set_arc: str | None = None) -> str:
+    """The night as text, its sections in `show_report.REPORT_SECTIONS` order: the night
+    summary; the legend and each track (header with its clock and arrival, the four strips, a
+    line per section starting with the clock and with the voices after `music:`); the peak
+    table and the hit checks (E_music and E_light, `show_views`); the six analyses of
+    `show_analysis` (follows, drops, builds, variety, arc, identity, text from `show_report`;
+    the identity's arc falls back to `set_arc`, the set's front matter); the budget, the
+    arrivals, the advice (the `show-advice` findings, goals that do not hold yet), the
+    compiler's decisions and the findings. Facts only. The six analyses run on the clock of
+    `show_analysis.analyse` (`show_views.build_clock(show)`, the one `report` passes).
+
+    `sections` keeps only those sections. `track` (`Artist — Title`, a track of the show; a
+    ValueError otherwise) cuts the report to that track: the legend, its block between the
+    previous track's handover and the next track's bridge, and in every other section the
+    lines that name it (its rows, findings and advice of its file, decisions about it), a
+    section with none being left out; the summary names no track and is left out."""
+    index = None
+    if track is not None:
+        index = track_index(show, track)
+        if index is None:
+            raise ValueError(f"{track!r} is not a track of the show")
+    palette = show.data.get("palette") or {}
+    names = {str(hexa).upper(): name for name, hexa in palette.items()}
+    memo: dict = {}
+
+    def energy() -> list:
+        if "energy" not in memo:
+            memo["energy"] = show_energy.night_energy(show, clock)
+        return memo["energy"]
+
+    def analysis():
+        if "analysis" not in memo:
+            memo["analysis"] = show_analysis.analyse(show)
+        return memo["analysis"]
+
+    def summary() -> list[show_report.Line]:
+        night = show_views.night_summary(show, clock, room)
+        return [(t, frozenset()) for t in _night_lines(night, show_report.light_unknown_s(clock, energy()))]
+
+    def peaks() -> list[show_report.Line]:
+        rows = show_views.peaks(show, clock, energy())
+        interim = frozenset(i for i, te in enumerate(energy()) if te.interim)
+        return _rows_part(_peak_lines(rows, interim), rows)
+
+    def hits() -> list[show_report.Line]:
+        rows = show_views.hit_checks(show, clock, energy())
+        return _rows_part(_hit_lines(rows), rows)
+
+    def analysed(items) -> list[show_report.Line]:
+        return [("", None), *items]
+
+    def listed(header: str, lines: list[tuple[str, frozenset[int]]]) -> list[show_report.Line]:
+        return [("", None), (header, None), *lines] if lines else []
+
+    parts = {
+        "summary": summary,
+        "tracks": lambda: _tracks_part(show, clock, energy(), room, names, index),
+        "peaks": peaks,
+        "hits": hits,
+        "follows": lambda: analysed(show_report.follows_items(analysis(), show)),
+        "drops": lambda: analysed(show_report.drops_items(analysis(), show)),
+        "builds": lambda: analysed(show_report.builds_items(analysis(), show)),
+        "variety": lambda: analysed(show_report.variety_items(analysis(), show)),
+        "arc": lambda: analysed(show_report.arc_items(analysis(), show)),
+        "identity": lambda: analysed(show_report.identity_items(analysis(), show, set_arc)),
+        "budget": lambda: _budget_part(show),
+        "arrivals": lambda: _arrivals_part(show, names),
+        "advice": lambda: listed("advice", [(f"  {_finding_line(f)}", _named_by(show, path=f.path)) for f in advice]),
+        "decided": lambda: listed("decided by the compiler",
+                                  [(f"  {d}", _named_by(show, text=d)) for d in show.decisions]),
+        "findings": lambda: _findings_part(_track_findings(show, findings, index), index),
+    }
+    out: list[str] = []
+    for name in show_report.REPORT_SECTIONS:
+        if name in sections:
+            out += show_report.select(parts[name](), index)
+    while out and out[0] == "":
+        out.pop(0)
+    return "\n".join(out) + "\n" if out else ""
+
+
+def _set_arc(root: Path, show: CompiledShow) -> str | None:
+    """The `arc` in the front matter of the show's set (`set:` in show.yml), or None when the
+    set has none or cannot be read."""
+    rel = show.data.get("set") if isinstance(show.data, dict) else None
+    if not isinstance(rel, str):
+        return None
+    try:
+        text = check_repo.read_text(root / rel)
+    except (OSError, UnicodeDecodeError):
+        return None
+    front = check_repo._split_block(rel, text, []).front
+    arc = front.get("arc") if isinstance(front, dict) else None
+    return arc if isinstance(arc, str) else None
 
 
 def _report(args) -> int:
+    sections = show_report.REPORT_SECTIONS
+    if args.section is not None:
+        wanted = [s.strip() for s in args.section.split(",") if s.strip()]
+        bad = [s for s in wanted if s not in show_report.REPORT_SECTIONS]
+        if bad or not wanted:
+            return _usage(f"--section takes section names, comma-separated, from "
+                          f"{', '.join(show_report.REPORT_SECTIONS)}; not {', '.join(bad) or repr(args.section)}")
+        sections = tuple(s for s in show_report.REPORT_SECTIONS if s in wanted)
     repo, source, errors = _load(args)
     if repo is None:
         return 2
@@ -443,9 +624,16 @@ def _report(args) -> int:
     if found or compiled is None:
         _print_findings(found)
         return 1
+    index = None
+    if args.track is not None:
+        index = track_index(compiled, args.track)
+        if index is None:
+            return _usage(f"{args.track!r} is not a track of the show (tracks: {_tracks_text(compiled)})")
     clock = show_views.build_clock(compiled)
-    print(render_report(compiled, rule_found, advice, clock, check_repo.valid_room(repo)), end="")
-    return 1 if rule_found else 0
+    print(render_report(compiled, rule_found, advice, clock, check_repo.valid_room(repo), track=args.track,
+                        sections=sections, set_arc=_set_arc(repo.root, compiled)), end="")
+    printed = "findings" in sections and _track_findings(compiled, rule_found, index)
+    return 1 if printed else 0
 
 
 # -------------------------------------------------------------------- zoom --
@@ -470,10 +658,9 @@ def zoom_target(show: CompiledShow, target: str, anchor: str | None) -> tuple[in
             return f'{target!r} is a track: give an anchor too (zoom SHOW "{target}" drop.1)'
         return (f"{target!r} is not a moment of the show (moments: {moments}); "
                 'or give a track and an anchor (zoom SHOW "Artist — Title" ANCHOR)')
-    index = next((i for i, t in enumerate(show.tracks) if t.track == target), None)
+    index = track_index(show, target)
     if index is None:
-        tracks = "; ".join(t.track for t in show.tracks)
-        return f"{target!r} is not a track of the show (tracks: {tracks}; moments: {moments})"
+        return f"{target!r} is not a track of the show (tracks: {_tracks_text(show)}; moments: {moments})"
     bar, problem = show_language.resolve_anchor(anchor, show.tracks[index].map)
     if problem is not None:
         return f"anchor of {target}: {problem}"
@@ -618,7 +805,12 @@ def main(argv: list[str] | None = None) -> int:
     build.add_argument("--check", action="store_true", help="write nothing; exit 1 if a file would change")
     build.add_argument("--out", type=Path, help="write the choreographies into DIR instead (a variant)")
     build.add_argument("--adopt", action="store_true", help="take over hand-written files")
-    add("report", "the night as text, for a critic")
+    report = add("report", "the night as text, for a critic")
+    report.add_argument("--track", metavar="TEXT",
+                        help='only this track ("Artist — Title"), its neighbours\' handover and bridge, and the lines '
+                             "that name it")
+    report.add_argument("--section", metavar="A,B",
+                        help=f"only these sections: {', '.join(show_report.REPORT_SECTIONS)}")
     zoom = add("zoom", "a moment at 1/16 of a beat: the map's music over the compiled light")
     zoom.add_argument("target", help='a moment name, or a track ("Artist — Title") followed by ANCHOR')
     zoom.add_argument("anchor", nargs="?", help="with a track: its bar, as an anchor (49, G, drop.2, drop.2 - 1)")

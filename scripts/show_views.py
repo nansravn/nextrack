@@ -1,10 +1,13 @@
-"""show_views.py — the critic's views of a compiled show: the set clock, the light and music
-levels, the voices, the night summary, the peak table, the hit checks and the strips.
+"""show_views.py — the critic's views of a compiled show: the set clock, the voices, the night
+summary, the peak table, the hit checks and the strips.
 
 Every view reads the compiled show (the sections `build` writes, with their provenance), the
-maps inside it and, to name aims, the room. Nothing here reads a file or raises on bad
-content. Every number comes from a function whose docstring states its formula: the spec's,
-docs/superpowers/specs/2026-11-06-show-critic-design.md, sections 3 to 6.
+maps inside it and, to name aims, the room; the peaks, the hit checks and the strips also read
+the energy series of `show_energy.night_energy` (E_music, E_light, brightness and activity per
+bar, formulas in that module's docstring). Nothing here reads a file or raises on bad content.
+Every number comes from a function whose docstring states its formula: the spec's,
+docs/superpowers/specs/2026-11-06-show-critic-design.md, sections 3 to 6, with the measures of
+docs/superpowers/specs/2026-11-07-show-team-design.md, sections A2 and A3.
 
 **Two windows per track** (spec section 3, decision 10). The **leg** is `[B, G)`: the first
 track plays from bar 1, the last runs to its last non-silent bar (`set_timeline.last_bar`).
@@ -15,8 +18,8 @@ counted twice: during a mix the time belongs to the incoming track, whose bridge
 outgoing handover. **Events** (accents, strobe, UV, moments, map drops) are listed over
 sounding windows, at their own clock.
 
-Python API: `light_values`, `light_level`, `music_level`, `voices`, `TrackClock`, `ShowClock`,
-`build_clock`, `section_aims`, `night_summary`, `peaks`, `hit_checks`, `strips`, `clock_text`.
+Python API: `voices`, `TrackClock`, `ShowClock`, `set_clock`, `build_clock`, `section_aims`,
+`night_summary`, `peaks`, `hit_checks`, `strips` (`STRIP_ROWS`), `clock_text`.
 """
 from __future__ import annotations
 
@@ -32,20 +35,8 @@ from show_language import CompiledSection, CompiledShow, CompiledTrack, layer_wo
 
 COLOUR_GROUPS = ("movers", "matrix", "hue")     # the zones: movers east, Vorlanes west, lustre centre
 VOICE_ORDER = ("kick", "bass", "vocals", "perc", "other")
-MUSIC_VOICES = ("kick", "bass", "other")       # vocals are shown apart (spec section 5)
+STRIP_ROWS = ("music", "light", "bright", "activity")
 STEPS_PER_BAR = 16
-
-# The light-level table (spec section 4): each layer's value in 0-1.
-DEFAULT_LEVEL = 0.85                            # a movers mapping without `level`
-MOVER_LEVELLED = ("hold", "sweep")              # the moves that read `level`
-MOVER_FLAT = {"pingpong": 0.5, "blink": 0.5}    # lit at full by the compiler, one of two movers or pulses
-MOVER_UV = 0.3
-DRAW_SHARES = {"solid": 1.0, "fill-up": 0.6, "rows-down": 1 / 6, "rows-up": 1 / 6, "columns": 1 / 8,
-               "centre-out": 0.25, "arrow-up": 0.15, "zigzag": 1 / 48}      # lit share of the colour cells
-MATRIX_PINGPONG = 0.5
-MATRIX_DECAY = 0.6                              # draws pulse and decay
-HUE_VALUES = {"dark": 0.0, "off": 0.0, "pulse": 0.5, "bright": 0.85}
-WEIGHTS = (0.4, 0.4, 0.2)                       # movers, matrix, hue
 
 _BEAT_RE = re.compile(r"([0-9]+)\.([0-9]+)")
 _ACCENT_ORDER = ("white", "flash", "strobe", "roll", "uv")
@@ -59,73 +50,7 @@ def _add(totals: dict, key: str, seconds: float) -> None:
     totals[key] = totals.get(key, 0.0) + seconds
 
 
-# ------------------------------------------------------------------ levels --
-
-
-def _mover_value(value: object) -> float | None:
-    value = layer_word(value)
-    if value == "off":
-        return 0.0
-    if not isinstance(value, dict):
-        return None                             # auto, unset, or not a word of the table
-    move = value.get("move")
-    if move == "uv":
-        return MOVER_UV
-    level = value.get("level", DEFAULT_LEVEL)
-    if move in MOVER_FLAT:
-        return MOVER_FLAT[move]                 # the compiler ignores `level` for these
-    if move not in MOVER_LEVELLED or not _num(level):
-        return None
-    return level
-
-
-def _matrix_value(value: object) -> float | None:
-    value = layer_word(value)
-    if value == "off":
-        return 0.0
-    if not isinstance(value, dict) or not isinstance(value.get("draw"), str) or value["draw"] not in DRAW_SHARES:
-        return None
-    share = DRAW_SHARES[value["draw"]] * (MATRIX_PINGPONG if value.get("pingpong") is True else 1.0)
-    return share * MATRIX_DECAY
-
-
-def _hue_state(value: object) -> object:
-    value = layer_word(value)
-    return value.get("state") if isinstance(value, dict) else value
-
-
-def _hue_value(value: object) -> float | None:
-    state = _hue_state(value)
-    return HUE_VALUES.get(state) if isinstance(state, str) else None
-
-
-def light_values(layers: dict) -> tuple[float | None, float | None, float | None]:
-    """The 0-1 values of a section's movers, matrix and hue layers, from the table in
-    `light_level`'s docstring; None for a layer that is `auto`, unset or outside the table."""
-    return (_mover_value(layers.get("movers")), _matrix_value(layers.get("matrix")),
-            _hue_value(layers.get("hue")))
-
-
-def light_level(layers: dict) -> int | None:
-    """The light level of a section, an index from 0 to 9 and not a measurement (spec section
-    4): `round(9 x (0.4 x movers + 0.4 x matrix + 0.2 x hue))`, rounded half up, each layer's
-    value in 0-1 being (`light_values`):
-
-        movers  off 0; hold, sweep: level (default 0.85); pingpong, blink: 0.5 (the compiler lights them
-                at full, so their `level` does not count); uv: 0.3
-        matrix  off 0; per draw, the lit share of the colour cells: solid 1, fill-up 0.6,
-                rows-* 1/6, columns 1/8, centre-out 0.25, arrow-up 0.15, zigzag 1/48;
-                x 0.5 with pingpong; then x 0.6 (draws pulse and decay)
-        hue     dark, off 0; pulse 0.5; bright 0.85
-
-    None (shown `~`: the autoscript decides) when the movers, the matrix or the hue is `auto`,
-    unset or outside the table. The `white`, `strobe` and `uv` layers do not enter the level;
-    they show as accents."""
-    values = light_values(layers)
-    if any(v is None for v in values):
-        return None
-    total = sum(w * v for w, v in zip(WEIGHTS, values))
-    return max(0, min(9, math.floor(9 * total + 0.5 + 1e-9)))   # the 1e-9 keeps 4.4999... a half
+# ------------------------------------------------------------------ voices --
 
 
 def _bar_text(map_data: dict, voice: str) -> str:
@@ -137,15 +62,6 @@ def _bar_text(map_data: dict, voice: str) -> str:
 
 def _digit(char: str) -> int:
     return int(char) if len(char) == 1 and char in "0123456789" else 0
-
-
-def music_level(map_data: dict, bar: int) -> int:
-    """The music level of a bar, 0-9: the highest of its `kick`, `bass` and `other` levels in
-    the map (`voices.<voice>.bars`, one digit per bar). Vocals are shown apart (`voices`). A
-    bar outside the map is 0."""
-    if bar < 1:
-        return 0
-    return max(_digit(_bar_text(map_data, v)[bar - 1:bar]) for v in MUSIC_VOICES)
 
 
 def voices(map_data: dict, first: int, last: int) -> dict[str, int]:
@@ -298,8 +214,10 @@ def _section_before(show: CompiledShow, clock: ShowClock, i: int,
     return _section_at(show.tracks[i], bar - 1), show.tracks[i]
 
 
-def _level(section: CompiledSection | None) -> int | None:
-    return light_level(section.layers) if section is not None else None
+def _hue_state(value: object) -> object:
+    """The hue's state word: the `state` of a mapping, else the bare word itself."""
+    value = layer_word(value)
+    return value.get("state") if isinstance(value, dict) else value
 
 
 def _look_name(section: CompiledSection) -> str:
@@ -571,18 +489,26 @@ def _events(show: CompiledShow, clock: ShowClock) -> dict[str, dict]:
 # ------------------------------------------------------------ peaks, hits --
 
 
-def peaks(show: CompiledShow, clock: ShowClock) -> list[dict]:
+def _light_before(clock: ShowClock, energy: list, i: int, bar: int) -> int | None:
+    """E_light of the bar that plays just before `bar` of track `i`: bar - 1 of the same track;
+    but when bar - 1 is before the track's leg (its B) and a track comes before it, the previous
+    track's last leg bar (G - 1), which is what plays then. None when unknown."""
+    if i > 0 and bar - 1 < clock.tracks[i].leg[0]:
+        return energy[i - 1].at("light", clock.tracks[i - 1].leg[1])
+    return energy[i].at("light", bar - 1)
+
+
+def peaks(show: CompiledShow, clock: ShowClock, energy: list) -> list[dict]:
     """The peak table (spec section 4): one row per map drop inside its track's sounding
-    window (the outgoing music's drops during a mix included), sorted by clock. A row:
-    `clock_s` (`ShowClock.at`), `index` and `track`, `bar`, `db` (the map's drop against the
-    two bars before it, so a drop after a musical silence reads huge), `music`
-    (`music_level`), `before` and `at` (`light_level` of the section that plays just before
-    the bar and of the one holding it; None for `auto` or the autoscript), `accents`
-    (`_accents` at the bar) and `moment` (of the section holding the bar; None for a bridge,
-    whose moment is the copied handover's, and for an echo, whose moment is the incoming
-    cue's). The section before is the one holding bar - 1, except on the track's first leg bar
-    (its B): there it is the previous track's section at the last bar of its leg
-    (`_section_before`)."""
+    window (the outgoing music's drops during a mix included), sorted by clock. `energy` is
+    `show_energy.night_energy(show, clock)`. A row: `clock_s` (`ShowClock.at`), `index` and
+    `track`, `bar`, `db` (the map's drop against the two bars before it, so a drop after a
+    musical silence reads huge), `music` (E_music at the bar, track scope), `before` and `at`
+    (E_light of the bar that plays just before, `_light_before`, and of the bar; None when the
+    autoscript decides), `accents` (`_accents` at the bar, of the section holding it) and
+    `moment` (of the section holding the bar; None for a bridge, whose moment is the copied
+    handover's, and for an echo, whose moment is the incoming cue's). On the track's first leg
+    bar (its B) the bar before is the previous track's last leg bar."""
     rows = []
     for track, tc in zip(show.tracks, clock.tracks):
         for drop in track.map.get("drops") or []:
@@ -590,23 +516,23 @@ def peaks(show: CompiledShow, clock: ShowClock) -> list[dict]:
             if not isinstance(bar, int) or isinstance(bar, bool) or not tc.sounds(bar):
                 continue
             at = _section_at(track, bar)
-            before, _ = _section_before(show, clock, tc.index, bar)
             moment = at.origin.moment if at is not None and at.origin.kind not in ("bridge", "echo") else None
             rows.append({"clock_s": tc.at(bar), "index": tc.index, "track": track.track, "bar": bar,
-                         "db": drop.get("db"), "music": music_level(track.map, bar),
-                         "before": _level(before), "at": _level(at),
+                         "db": drop.get("db"), "music": energy[tc.index].at("music", bar),
+                         "before": _light_before(clock, energy, tc.index, bar),
+                         "at": energy[tc.index].at("light", bar),
                          "accents": _accents(at, bar), "moment": moment})
     return sorted(rows, key=lambda r: r["clock_s"])
 
 
-def hit_checks(show: CompiledShow, clock: ShowClock) -> list[dict]:
+def hit_checks(show: CompiledShow, clock: ShowClock, energy: list) -> list[dict]:
     """The hit checks (spec section 6): one row per arrival (`role: arrival`) and per moment
     (the first section of a cue or handover with a `moment`; a bridge's copied moment is not
     one, and an echo makes no row: its original does), inside the sounding window, in set
-    order. A row: `clock_s`, `index`, `track`, `bar` (the section's first), `arrival` (bool),
-    `moment` (or None), `kick` (the kick onset strength on the hit's first 1/16 step,
-    `onsets.kick`, `.` = none), `before` and `at` (`light_level` of the section that plays just
-    before the hit and of the hit's section),
+    order. `energy` is `show_energy.night_energy(show, clock)`. A row: `clock_s`, `index`,
+    `track`, `bar` (the section's first), `arrival` (bool), `moment` (or None), `kick` (the kick
+    onset strength on the hit's first 1/16 step, `onsets.kick`, `.` = none), `before` and `at`
+    (E_light of the bar before, `_light_before`, and of the hit's bar; None when unknown),
     `accents` (`_accents` on the hit's first beat) and `dark`: when the section just before is
     total dark, `{track, bars, voices}`, the track that holds it, its bars and the voices'
     levels over them in that track's map (`voices`), else None. The section before is the one
@@ -632,17 +558,19 @@ def hit_checks(show: CompiledShow, clock: ShowClock) -> list[dict]:
                 dark = {"track": holder.track, "bars": tuple(before.bars), "voices": voices(holder.map, *before.bars)}
             rows.append({"clock_s": tc.at(bar), "index": tc.index, "track": track.track, "bar": bar,
                          "arrival": arrival, "moment": moment, "kick": _kick(track.map, bar),
-                         "before": _level(before), "at": light_level(section.layers),
+                         "before": _light_before(clock, energy, tc.index, bar),
+                         "at": energy[tc.index].at("light", bar),
                          "accents": _accents(section, bar, first_beat=True), "dark": dark})
     return rows
 
 
-def strips(track: CompiledTrack, clock: TrackClock) -> tuple[str, str]:
-    """The music and light strips of a track (spec section 4): one character per bar of its
-    leg, unwrapped. Music: `music_level` of the bar. Light: `light_level` of the section that
-    holds the bar, `~` when it is unknown (`auto`) or no section holds it (the autoscript)."""
+def strips(track: CompiledTrack, clock: TrackClock, energy) -> dict[str, str]:
+    """The strips of a track (spec section A3): one character per bar of its leg, unwrapped,
+    from its energy series (`show_energy.TrackEnergy`), keyed by `STRIP_ROWS`: `music` (E_music,
+    track scope), `light` (E_light), `bright` (the brightness digit, round(9 x B-hat)) and
+    `activity` (round(9 x A-hat)), the last three night-normalised. `~` is unknown: the
+    autoscript decides (an `auto` layer or no section), or the bar is outside the series."""
     first, last = clock.leg
-    bars = range(first, last + 1)
-    music = "".join(str(music_level(track.map, b)) for b in bars)
-    light = "".join("~" if (lv := _level(_section_at(track, b))) is None else str(lv) for b in bars)
-    return music, light
+    series = {"music": "music", "light": "light", "bright": "brightness", "activity": "activity"}
+    return {row: "".join("~" if (v := energy.at(name, b)) is None else str(v) for b in range(first, last + 1))
+            for row, name in series.items()}
