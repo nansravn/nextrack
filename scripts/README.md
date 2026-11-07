@@ -471,6 +471,7 @@ uv run scripts/nextrack_show.py report <show> --track "<Artist — Title>"   # o
 uv run scripts/nextrack_show.py report <show> --section follows,drops     # only those sections
 uv run scripts/nextrack_show.py zoom <show> <moment>                   # a moment at 1/16 of a beat: the map's music over the light `build` writes
 uv run scripts/nextrack_show.py zoom <show> "<Artist — Title>" <anchor> [--before N] [--after N] [--frames B.b,...]
+uv run scripts/nextrack_show.py brief <set>                    # a set's music for the director: clock, energy, drops, target arc (needs no show)
 uv run scripts/nextrack_show.py vocab [<show>]                # anchors, layer words, gestures, rules (and the show's palette and looks)
 ```
 
@@ -499,6 +500,10 @@ uv run scripts/nextrack_show.py vocab [<show>]                # anchors, layer w
   other section only the lines that name it (a slice of Hï Ibiza is 5-10k characters). Both
   combine. An unknown section or track is a usage error (exit 2) that lists the valid ones.
   `report` exits 1 only when a finding is among the printed lines.
+- `brief` takes a set (`sets/<stem>.md`, or the stem) and prints the text of
+  [the manual's `brief` section](../lightshows/shows/README.md#brief), about 8k characters for
+  15 tracks; it needs no show. An unknown set is a usage error (exit 2); a missing or invalid
+  map is a line under `missing`.
 - `zoom` prints one column per 1/16 step around a moment (a name from the show) or around a bar of
   a track (`"Artist — Title"` plus an anchor): the map's music lanes over the light lanes as
   `compile` would write them, each step sampled 2 ms after its start. `--before` (default 3) and

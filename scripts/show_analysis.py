@@ -349,43 +349,61 @@ def _bass(map_data: dict, bars: int) -> list[int]:
     return show_energy._digits(bass.get("bars"), bars)
 
 
-def drops(show: CompiledShow, clock: ShowClock) -> list[Drop]:
-    """Every sounding map drop with its salience and its light response, sorted by rank
-    (module docstring)."""
-    energy = show_energy.night_energy(show, clock)
-    names = show_views._palette_names(show)
+def map_drops(maps: list[dict], clock: ShowClock) -> list[dict]:
+    """The map-only part of `drops` (module docstring): for every map drop inside a track's
+    sounding window, in set order, `{"index", "d", "loud", "bass", "density", "main", "salience"}`
+    with `loud_rise`, `bass_return`, `density_rise`, `main` and `S = 0.4 L^ + 0.3 bass_return +
+    0.2 D^ + 0.1 main` (`L^`, `D^`: divided by the night's largest, 0 when that is <= 0). A track
+    with no `mix` takes `loud_rise` from its track-scope E_music (the interim formula). `maps` are
+    the maps of the tracks in set order; no show is needed."""
     raw = []
-    for track, tc, te in zip(show.tracks, clock.tracks, energy):
-        mb = show_energy.music_bars(track.map)
-        bass = _bass(track.map, len(mb))
+    for i, (data, tc) in enumerate(zip(maps, clock.tracks)):
+        mb = show_energy.music_bars(data)
+        bass = _bass(data, len(mb))
+        first, last = max(tc.sounding[0], 1), min(tc.sounding[1], len(mb))
+        window = mb[first - 1:last]
+        interim = any(b.loudness is None for b in window)
+        music = show_energy.music_energy(window, mb[max(tc.leg[0] - 1, 0):max(tc.leg[1], 0)]) if interim else []
+
+        def interim_at(b: int) -> int | None:
+            return music[b - first] if 0 <= b - first < len(music) else None
         found = []
-        for drop in track.map.get("drops") or []:
+        for drop in data.get("drops") or []:
             d = drop.get("bar") if isinstance(drop, dict) else None
             if not isinstance(d, int) or isinstance(d, bool) or not tc.sounds(d) or not 1 <= d <= len(mb):
                 continue
-            if te.interim:
-                loud = _rise(lambda b: te.at("music", b), d, len(mb))
-            else:
-                loud = _rise(lambda b: mb[b - 1].loudness, d, len(mb))
+            loud = _rise(interim_at, d, len(mb)) if interim else _rise(lambda b: mb[b - 1].loudness, d, len(mb))
             before = bass[max(d - 9, 0):d - 1]
             ret = max(0, bass[d - 1] - min(before)) / 9 if before else 0.0
-            found.append({"d": d, "loud": loud, "bass": ret, "density": _rise(lambda b: mb[b - 1].density, d, len(mb))})
+            found.append({"index": i, "d": d, "loud": loud, "bass": ret,
+                          "density": _rise(lambda b: mb[b - 1].density, d, len(mb))})
         best = max((f["loud"] for f in found), default=0.0)
         for f in found:
             f["main"] = f["loud"] == best or f is found[-1]
-            raw.append((track, tc, te, f))
+            raw.append(f)
 
     def biggest(key: str) -> float:
-        return max([max(0.0, r[3][key]) for r in raw], default=0.0)
+        return max([max(0.0, r[key]) for r in raw], default=0.0)
     max_loud, max_density = biggest("loud"), biggest("density")
 
     def hat(x: float, m: float) -> float:
         return max(0.0, x) / m if m > 0 else 0.0
+    for f in raw:
+        f["salience"] = (WEIGHTS["loud"] * hat(f["loud"], max_loud) + WEIGHTS["bass"] * f["bass"]
+                         + WEIGHTS["density"] * hat(f["density"], max_density) + WEIGHTS["main"] * f["main"])
+    return raw
+
+
+def drops(show: CompiledShow, clock: ShowClock) -> list[Drop]:
+    """Every sounding map drop with its salience and its light response, sorted by rank
+    (module docstring; the salience is `map_drops`)."""
+    energy = show_energy.night_energy(show, clock)
+    names = show_views._palette_names(show)
     rows = []
-    for track, tc, te, f in raw:
+    for f in map_drops([t.map for t in show.tracks], clock):
+        track, tc, te = show.tracks[f["index"]], clock.tracks[f["index"]], energy[f["index"]]
         i, d = tc.index, f["d"]
-        s = (WEIGHTS["loud"] * hat(f["loud"], max_loud) + WEIGHTS["bass"] * f["bass"]
-             + WEIGHTS["density"] * hat(f["density"], max_density) + WEIGHTS["main"] * f["main"])
+        s = f["salience"]
         after = _known(te, "light", d, d + 3)
         before = _light_around(energy, clock, i, range(d - 2, d))
         contrast = _mean(after) - _mean(before) if after and before else None

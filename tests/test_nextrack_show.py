@@ -614,3 +614,20 @@ def test_report_is_deterministic(mini_repo, capsys):
         outs.append(done.stdout)
     assert outs[0] == outs[1] and "follows" in outs[0].splitlines()
     assert run(mini_repo, capsys, "report", "teste") == (0, outs[0])
+
+
+# ------------------------------------------------------------------- brief --
+
+
+def test_brief_accepts_a_set_stem(mini_repo, capsys):
+    put_show(mini_repo)
+    code, by_stem = run(mini_repo, capsys, "brief", "teste")
+    code2, by_path = run(mini_repo, capsys, "brief", "sets/teste.md")
+    assert (code, code2) == (0, 0)
+    assert by_stem == by_path and by_stem.startswith("night\n")
+
+
+def test_brief_unknown_set_is_a_usage_error(mini_repo, capsys):
+    code = nextrack_show.main(["brief", "nao-existe", "--repo", str(mini_repo.root)])
+    assert code == 2
+    assert "not a set" in capsys.readouterr().err
