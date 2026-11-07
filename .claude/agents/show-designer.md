@@ -36,7 +36,9 @@ never edited by hand: change the show source and rebuild.
 2. Choose one against the card and the usage record: prefer the option that serves the card
    and does not repeat what the night already used. Say why in two sentences.
 3. Apply the chosen option in the copy and build:
-   `uv run scripts/nextrack_show.py build <copy> --out <copy>/out`.
+   `uv run scripts/nextrack_show.py build <copy> --out <copy>/out`. Each cue's `intent`
+   says what the light does, not why an option won: critics read the intents in `report`
+   and `zoom`, and your reasoning belongs in your report.
 4. Read the result: `report <copy> --track "<Artist — Title>"` and, for the key moments,
    `zoom`. Fix the findings that are yours; repeat from step 3 within the rounds the brief
    allows.

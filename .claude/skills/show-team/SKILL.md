@@ -79,8 +79,10 @@ commands.
                  engineer-<gesture>.md
   reports/       the agents' full reports, named like their briefs
   work/<unit>/   each designer's copy of the show
+  critic/        the critics' copy of the show (<show-id>/), without its ledger
   main/          a rework's starting show
   blind/a, b/    two versions under a blind comparison
+  commit-msg.txt the next commit's message, grepped before the commit
   book.html
 ```
 
@@ -96,7 +98,7 @@ latest run only: its title and the list items of its `### Decisões` and `### Pa
 ## 2026-11-08 — Pontes de até 16 compassos sem perder a história
 Pedido: "Hï Ibiza: pontes de até 16 compassos, sem perder a história."
 Tipo: retrabalho de unidades (13 mixagens) · ramo: feat/show-hi-ibiza-pulso-pontes · execução: 2026-11-08-1405
-Estimativa: 1 leitura + 13 unidades × até 3 rodadas + 5 críticos × até 2 passadas + 4 comparações = até 54 despachos
+Estimativa: 1 leitura + 13 unidades × até 3 rodadas + 5 críticos × até 2 passadas + 4 comparações = até ~54 despachos, mais revisões
 Diagnóstico: ...
 Contrato: `compare --keep arrivals,moments`; o aviso `signatures` não piora.
 Unidades: mix-02 2/3, mix-03 1/3, mix-04 1/3, ...
@@ -122,9 +124,12 @@ Rodadas: 2 · versões: v1, v2
 - **One commit per round** (phase 7), plus one when the plan is ready (phase 3) and one at
   delivery. Version `v<r>` is round r's commit. Write the state line before the commit, so the
   commit carries it.
-- Before every commit, `git diff --cached | grep -iE "/(home|mnt)/|C:\\\\Users"` must print
-  nothing: no machine path, user name or local config. Subjects are imperative English; end
-  the message with the attribution lines your session asks for.
+- **Before every commit**, write its message to `<run>/commit-msg.txt`: an imperative English
+  subject, the body, and at the end the attribution lines your session asks for. Then
+  `git diff --cached | grep -iE "/(home|mnt)/|C:\\\\Users"` and
+  `grep -iE "/(home|mnt)/|C:\\\\Users" <run>/commit-msg.txt` must both print nothing: no
+  machine path, user name or local config, in the files or in the message (a `Record round`
+  body quotes the findings verbatim). Commit with `git commit -F <run>/commit-msg.txt`.
 
 | n | phase | `<name>` in the state line | next phase |
 |---|---|---|---|
@@ -146,14 +151,14 @@ Copy this into your reply and keep it current:
 ```
 - [ ] 0. Intake: fetch; resume check; kind; worktree + branch + uv sync; run folder; ledger entry + estimate
 - [ ] 1. Inputs: every track has a valid v2 map and the hot cues its bridges need; brief read whole
-- [ ] 2. Concept (3, with likelihoods) or diagnosis (problem, units, contract); show.yml; plan + cards
-- [ ] 3. Cold read: every reader question answered in the plan, the cards or show.yml; commit
+- [ ] 2. Concept (3, with likelihoods) or diagnosis (problem, units, contract); show.yml; plan (front matter) + cards
+- [ ] 3. Cold read: every reader question answered in the plan, the cards or show.yml; check_repo; commit
 - [ ] 4. Design, round r: batches of <= 5 units with disjoint files; merged; built; Unidades updated
 - [ ] 5. Gates: build with no show-source or show-rules finding; at most one bounce per unit
 - [ ] 6. Critique: five lenses (full pass p of 2, or a re-review); scope discipline
 - [ ] 7. Consolidation: each finding fix / decision / later; the round committed with its fixes
 - [ ] 8. Selection: blind judge where a unit or the night has 2+ acceptable versions
-- [ ] 9. Delivery: gates, check_repo, pytest, compare --keep, book, ledger, commit, report
+- [ ] 9. Delivery: ledger, gates, check_repo, pytest, compare --keep, commit, book, report
 After each phase: its state line in the ledger.
 ```
 
@@ -170,6 +175,12 @@ After each phase: its state line in the ledger.
    resume it. On yes:
    - enter its worktree (`EnterWorktree` with `path`; with no worktree, first
      `git worktree add .claude/worktrees/<name> <branch>`) and run `uv sync`;
+   - run `git status` there. Changes under `lightshows/` are merges no commit holds yet
+     (phases 4 to 6 commit nothing). Keep them, or discard them with
+     `git checkout -- lightshows` (it also drops the ledger lines written since the last
+     commit) and restart at the phase the ledger's last state line then gives. Kept merges
+     without the round's `design, rodada <r>` state line (a crash mid-phase-4) are units
+     already merged: design only the round's other units, then redo the build and the gates;
    - make a new run folder (step 5) and start at the next phase the table gives, skipping the
      rest of this phase;
    - rebuild what the old run folder held only when a phase needs it (`brief.txt`, `main/`,
@@ -189,8 +200,9 @@ After each phase: its state line in the ledger.
    `date '+%Y-%m-%d-%H%M'`.
 6. **Ledger entry:** the `## ` heading (today, a pt-BR title), `Pedido:` in the owner's words,
    `Tipo:` with the branch and the run's stamp, and `Estimativa:` of the dispatches: 1 reader +
-   units × up to 3 rounds + 5 critics × up to 2 full passes (plus re-reviews) + comparisons. If
-   the owner set a cap, plan within it and write what you give up.
+   units × up to 3 rounds + 5 critics × up to 2 full passes + comparisons; re-reviews,
+   gate bounces and the engineer with its code review come on top (`até ~54 despachos, mais
+   revisões`). If the owner set a cap, plan within it and write what you give up.
 
 ### 1. Inputs
 
@@ -219,10 +231,15 @@ After each phase: its state line in the ledger.
 2. Write `lightshows/shows/<show-id>/show.yml`: `show_version` (required: `1`), `set`, `plan`,
    `story`, `palette`, `looks`, `gesture_defaults`, `identity`, `bridge`, `handover`, `rules`,
    `advice` (the manual's "`show.yml`").
-3. Write the light plan `lightshows/sets/<show-id>.md` in pt-BR with its `## Cartões`.
+3. Write the light plan `lightshows/sets/<show-id>.md` in pt-BR with its `## Cartões`. A new
+   plan starts with its front matter, `set:` (the set file, relative to the repo root) and
+   `budget:` (where each rare effect may appear), as "Show plan" in `lightshows/README.md`
+   shows: the `lightshow-plan` rule of `check_repo.py` fails a plan without it.
 4. For a new show, write a skeleton per set track (`<map slug>.yml`: `track` copied from the
    map, `story` from its card, `cues: []`, and the handover look its card's `Entrega` names) so
    the night builds between batches.
+5. In the ledger, `Unidades:` lists every track of the set at `0/3` (by its file stem), in a
+   new show as in a rework of the night.
 
 **Diagnosis** (`retrabalho de unidades`):
 
@@ -264,15 +281,17 @@ Run it whenever the concept or the cards changed; otherwise the state line says
 `leitura a frio, dispensada`.
 
 1. Fill `templates/reader.md` (`{{show}}` = `lightshows/shows/<show-id>`; `{{scope}}` =
-   `whole night`, the units, or the revised cards) into `<run>/briefs/reader.md` and dispatch
-   `show-reader`.
+   `whole night`, the units named as [Placeholders](#placeholders) says, or the revised cards)
+   into `<run>/briefs/reader.md` and dispatch `show-reader`.
 2. Answer every question in the plan, the cards or `show.yml` before any unit is designed;
    never in a reply: designers read files, not this conversation.
 3. `uv run scripts/nextrack_show.py build <show-id>` and fix every `show-source` finding in
    `show.yml` (a skeleton's rule findings wait for the designers). If `build` refuses a
    hand-written choreography (`refused <path>: not generated by a show`), `--adopt` is the
    owner's call: stop and ask.
-4. Commit the plan: `git add lightshows`, subject `Plan <topic> for <show-id>`.
+4. Run `uv run scripts/check_repo.py` and fix what it finds (a `lightshow-plan` finding is
+   the plan's front matter); only a skeleton's `show-rules` findings wait for the designers.
+   Then commit the plan: `git add lightshows`, subject `Plan <topic> for <show-id>`.
 
 ### 4. Design (round r)
 
@@ -288,7 +307,10 @@ Run it whenever the concept or the cards changed; otherwise the state line says
 3. **Dispatch** the batch's `show-designer` agents in one message.
 4. **Merge** when the whole batch is back, checking every unit before copying any:
    `diff -rq -x out -x ledger.md lightshows/shows/<show-id> <run>/work/<unit>` must list only
-   files of its `{{files}}` (any other change sends the unit back). Then copy them,
+   files of its `{{files}}`. Then `diff` each listed file,
+   `diff lightshows/shows/<show-id>/<file>.yml <run>/work/<unit>/<file>.yml`, and confirm that
+   only the part named in `{{files}}` changed: a mix's designer could touch the neighbouring
+   mix's part of a shared track file. Any other change sends the unit back. Then copy them,
    `cp <run>/work/<unit>/<file>.yml lightshows/shows/<show-id>/`, and
    `uv run scripts/nextrack_show.py build <show-id>`.
 5. Next batch, until every unit of the round is merged. Then add 1 to each designed unit in
@@ -307,7 +329,13 @@ finding (advice is fine). The gates repair inside the round: a bounce is not a d
 
 - A finding in one unit's files: that unit goes back to its designer once, with the findings
   verbatim in `{{constraints}}` (brief `designer-<unit>-r<r>-gate.md`, report likewise). **At
-  most one bounce per unit per round.**
+  most one bounce per unit per round.** Before the bounce, give it a fresh copy:
+  `mv <run>/work/<unit> <run>/work/<unit>-r<r>-pre-gate`, then
+  `cp -r lightshows/shows/<show-id> <run>/work/<unit>`. The merged show already holds the
+  unit's round-r work and its neighbours'. The old copy predates the later batches' merges:
+  a fix there would build without the neighbours' work, which a finding across units depends
+  on, and the merge check would flag their merged files. Merge the bounced unit as in
+  phase 4, step 4.
 - A finding two units make together (a budget count across tracks): decide which one changes,
   record the decision, and bounce that one.
 - Still failing after its bounce: restore the unit's last green version (its files at `HEAD`,
@@ -316,9 +344,12 @@ finding (advice is fine). The gates repair inside the round: a bounce is not a d
 
 ### 6. Critique
 
-1. Fill `templates/critic.md` once per lens into `<run>/briefs/critic-<lens>-r<r>.md`
-   (`{{show}}` = `lightshows/shows/<show-id>`), and dispatch the five `show-critic` agents in
-   one message.
+1. Copy the show for the critics, without its ledger, as for the judge: `mkdir -p <run>/critic`
+   (in a later critique, first `rm -r <run>/critic/<show-id>`), then
+   `cp -r lightshows/shows/<show-id> <run>/critic/<show-id>`, then
+   `rm <run>/critic/<show-id>/ledger.md`. Fill `templates/critic.md` once per lens into
+   `<run>/briefs/critic-<lens>-r<r>.md` (`{{show}}` = `<run>/critic/<show-id>`), and dispatch
+   the five `show-critic` agents in one message.
 2. **`{{scope}}`:**
    - a new show or a rework of the night, first pass: `whole night`;
    - a rework of units: the units, their neighbours, and the night-level facts the change can
@@ -329,6 +360,9 @@ finding (advice is fine). The gates repair inside the round: a bounce is not a d
      changes (when in doubt, the lens of each routed finding), not all five. That is a
      **re-review**, not a full pass.
    - A second full pass runs only after an upstream change to the concept or to several cards.
+
+   Name every unit by its tracks (`Artist — Title`, both for a mix) and the bars it covers in
+   each, with its id beside (`mix-05`): critics never read this skill.
 3. Never put the request, the ledger, a designer's report or your reasoning in a critic's brief.
 4. **Scope discipline.** A finding outside the request's scope that this run did not cause is
    not fixed in this run: it goes to `### Para depois` as a proposal for the owner's backlog,
@@ -350,7 +384,8 @@ Read every critic's report and route every finding:
 Then update `Rodadas:`, write the state line (`consolidação, rodada <r>: <k> correções`) and
 commit the round: `git add lightshows`, subject `Record round <r> of <topic> in <show-id>`. The
 body holds each routed finding verbatim (unit, lens, severity, evidence, problem, direction):
-a resumed run reads them back from there. With fixes, start round r+1 at phase 4 within
+a resumed run reads them back from there. Grep the message file like the diff before the
+commit: a finding can quote a path. With fixes, start round r+1 at phase 4 within
 [the limits](#stopping-and-self-healing); with none, go to phase 8.
 
 ### 8. Selection
@@ -437,12 +472,14 @@ selection, not necessarily the last.
 
    For example `--keep arrivals,moments`. Exit 1 means the story moved: route it as a fix
    within the budget, or stop on it.
-4. **The book:** `uv run scripts/nextrack_show.py book <show-id> -o <run>/book.html`. When the
-   Artifact tool is available, publish the file as a private Artifact (do what the tool asks
-   before a publish: load a skill, read the file); otherwise give the file's path (on WSL also
+4. **The state line** `entrega`, then the commit on the branch,
+   `git commit -F <run>/commit-msg.txt` (both greps first). `git status` is clean.
+5. **The book, last:** publishing reads the whole HTML, so the work is committed before it and
+   a context limit here loses nothing.
+   `uv run scripts/nextrack_show.py book <show-id> -o <run>/book.html`. When the Artifact tool
+   is available, publish the file as a private Artifact (do what the tool asks before a
+   publish: load a skill, read the file); otherwise give the file's path (on WSL also
    `wslpath -w <run>/book.html`).
-5. **The state line** `entrega`, then the commit on the branch (the grep first). `git status`
-   is clean.
 6. **The report to the owner, in pt-BR**, short:
    - what changed, and what was kept;
    - the book: the Artifact link, or the file's path;
@@ -462,9 +499,9 @@ You fill every placeholder; the agents fill none.
 | `{{run}}` | reader, designer, engineer | the run folder, `<scratch>/show-team/<show-id>/<YYYY-MM-DD-HHMM>` |
 | `{{report_file}}` | all five | `<run>/reports/<the brief's file name>` |
 | `{{show_id}}` | reader, designer, critic, judge | the show's id, also the light plan's stem (`hi-ibiza-pulso`) |
-| `{{show}}` | reader, designer, critic | reader and critic: `lightshows/shows/<show-id>`; designer: its copy, `<run>/work/<unit>` |
+| `{{show}}` | reader, designer, critic | reader: `lightshows/shows/<show-id>`; critic: its copy without the ledger, `<run>/critic/<show-id>` (phase 6); designer: its copy, `<run>/work/<unit>` |
 | `{{set}}` | reader, designer, critic, judge | `show.yml`'s `set:` (`sets/hi-ibiza-pulso.md`) |
-| `{{scope}}` | reader, critic, judge | reader and critic: `whole night`, or the units and their neighbours (phase 6); judge: the unit, or `the night` |
+| `{{scope}}` | reader, critic, judge | reader and critic: `whole night`, or the units and their neighbours (phase 6), each named by its tracks (`Artist — Title`, both for a mix) and the bars it covers, with its id beside: they never read this skill, so `mix-<nn>` alone tells them nothing; judge: the unit, named the same way, or `the night` |
 | `{{unit}}` | designer | the unit's id: a track file's stem, or `mix-<nn>` |
 | `{{files}}` | designer | one bullet per file it may change, with the part (`only the handover`); never `show.yml` |
 | `{{card}}` | designer | the unit's cards, verbatim from `## Cartões` (both for a mix) |

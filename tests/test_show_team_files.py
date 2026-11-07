@@ -306,3 +306,92 @@ def test_skill_runs_existing_report_sections_and_compare_facts():
     for group in kept:
         for fact in group.split(","):
             assert fact in show_compare.FACTS, f"SKILL.md: unknown compare fact {fact}"
+
+
+def phase(n):
+    """The text of the skill's `### <n>. ...` phase, with its wrapping flattened."""
+    body = skill()[1]
+    start = re.search(rf"^### {n}\. .*$", body, re.M)
+    assert start, f"SKILL.md: no phase {n}"
+    rest = body[start.end():]
+    end = re.search(r"^#{2,3} ", rest, re.M)
+    return " ".join(rest[: end.start() if end else None].split())
+
+
+def placeholder_row(name):
+    rows = [line for line in skill_section("## Placeholders").splitlines()
+            if line.startswith(f"| `{{{{{name}}}}}`")]
+    assert len(rows) == 1, f"no {{{{{name}}}}} row"
+    return rows[0]
+
+
+def test_a_gate_bounce_starts_from_the_merged_show():
+    gates = phase(5)
+    assert "mv <run>/work/<unit> <run>/work/<unit>-r<r>-pre-gate" in gates
+    assert "cp -r lightshows/shows/<show-id> <run>/work/<unit>" in gates
+    assert "The merged show already holds the unit's round-r work and its neighbours'" in gates
+
+
+def test_the_merge_check_reads_each_listed_file():
+    design = phase(4)
+    assert "diff -rq -x out -x ledger.md" in design
+    assert "only the part named in `{{files}}` changed" in design
+
+
+def test_critics_review_a_copy_without_the_ledger():
+    critique = phase(6)
+    assert "cp -r lightshows/shows/<show-id> <run>/critic/<show-id>" in critique
+    assert "rm <run>/critic/<show-id>/ledger.md" in critique
+    assert "critic: its copy without the ledger, `<run>/critic/<show-id>`" in placeholder_row("show")
+    for text in (template_text("critic"), load("show-critic")[1]):
+        assert "Never run `git log` or `git show`" in text
+    for text in (template_text("designer"), load("show-designer")[1]):
+        assert "says what the light does, not why" in " ".join(text.split())
+
+
+def test_the_scope_names_each_unit_by_its_tracks_and_bars():
+    row = placeholder_row("scope")
+    assert "`Artist — Title`" in row and "bars" in row
+    assert "never read this skill" in row
+
+
+def test_every_commit_message_is_grepped_before_the_commit():
+    flat = " ".join(skill()[1].split())
+    assert 'grep -iE "/(home|mnt)/|C:\\\\\\\\Users" <run>/commit-msg.txt' in flat
+    assert "git commit -F <run>/commit-msg.txt" in flat
+
+
+def test_delivery_commits_before_it_publishes_the_book():
+    delivery = skill_section("## Delivery")
+    assert delivery.index("git commit -F") < delivery.index("nextrack_show.py book")
+    assert "compare --keep, commit, book, report" in skill_section("## Checklist")
+
+
+def test_a_new_plan_is_validated_before_the_plan_commit():
+    assert "`lightshow-plan`" in phase(2)
+    cold_read = phase(3)
+    assert cold_read.index("uv run scripts/check_repo.py") < cold_read.index("git add lightshows")
+
+
+def test_the_units_and_the_estimate_count_from_the_start():
+    assert "every track of the set at `0/3`" in phase(2)
+    flat = " ".join(skill()[1].split())
+    assert "até ~54 despachos, mais revisões" in flat
+    assert "gate bounces and the engineer with its code review come on top" in phase(0)
+
+
+def test_a_resume_settles_the_uncommitted_merges():
+    intake = phase(0)
+    assert "git status" in intake
+    assert "git checkout -- lightshows" in intake
+    assert "redo the build and the gates" in intake
+
+
+def test_the_agents_and_the_briefing_lens_name_paths_like_their_templates():
+    reader = load("show-reader")[1]
+    assert "lightshows/shows/<show>/" not in reader
+    assert "`<show>/show.yml`" in reader and "lightshows/sets/<show-id>.md" in reader
+    critic = load("show-critic")[1]
+    assert "mktemp -d" in critic and "the folder the brief names" not in critic
+    briefing = lens_text("briefing")
+    assert "lightshows/sets/<show-id>.md" in briefing and "lightshows/sets/<set>.md" not in briefing
