@@ -997,6 +997,92 @@ unknown name is a usage error (exit 2) that lists the facts. Without `--keep` it
 2 only when a show cannot be read). It is how a rework proves it kept the night's story:
 `--keep arrivals,moments,signatures`.
 
+## `book`
+
+`uv run scripts/nextrack_show.py book <show> -o <file>.html` writes the book of the night: one
+HTML page the owner reads before playing the set, laid out like a visual-identity presentation,
+with pt-BR labels. It is generated, never written: the prose comes from the show (`story`, the
+identity's intents, each track's `story` and `budget`, each cue's `intent`) and from the ledger
+below; every number comes from the report's measures. The same inputs give the same bytes.
+Without `-o` it is a usage error (exit 2); it prints `wrote <file>`, and on stderr the count of
+the show's rule findings, which `report` lists (the book prints the advice only). It writes only
+that file.
+
+The page is self-contained, so the team can publish it as a private Artifact: inline CSS and
+inline SVG, no script and no external reference; a `<title>` made of the show's id in words (at
+most four: `Hi Ibiza Pulso`); colour tokens with a dark mode (the system's setting, or
+`data-theme`); one column that reads at 360 px. The swatches and the colour score draw the
+palette's real hex colours in both themes. Every text is escaped. Its sections, each a
+`<section>` with this `id`:
+
+- `capa`: the show, its set, the night's length, the number of tracks, the tempo ramp and the
+  story's first sentence.
+- `conceito`: the story, the arc (the identity's `arc`, else the set's front matter `arc`, else
+  "não declarado"), the declared signatures with their intents and their `is`, and the
+  "Decisões" of the ledger's latest run.
+- `paleta`: a swatch per palette colour (name, hex, the minutes each zone shows it); per zone
+  (movings east, Vorlanes west, lustre centre) its lit time and a bar where each colour takes its
+  share of the night (the report's `summary`); and the **colour score**, one ribbon per zone on
+  the set clock with one rect per compiled section, clipped to its track's leg (an echo, after
+  `G`, falls outside it; a bridge lies inside the incoming leg), in the colour the zone shows: a
+  palette hex, violet for UV, light grey when the zone is off or dark, mid grey for the
+  autoscript. Each rect's tooltip names the track, the section, its bars and clock.
+- `assinaturas`: per declared signature, its intent, the share promised (`min`, `max`) against
+  the share delivered (the report's `identity`), and its occurrences on a ribbon of the night;
+  then the most present undeclared value per dimension, the largest first (a top value `none`,
+  the dimension absent, is left out).
+- `vocabulario`: a card per look of `show.yml` (its layers in words, its minutes, how many
+  sections play it and where, as the budget counts them), the time of the looks written inline,
+  the gestures the show calls, and the aims it uses with their `figure` from `room.yml` (a
+  pending aim marked with the aim that plays in its place).
+- `arco`: one chart, x in minutes, with three lines on one 0-10 scale: the owner's target energy
+  (1-10, the `brief`'s `target`), the night's `E_music` and `E_light` (0-9); grey bands where
+  the light is unknown, and the played BPM as a strip under them. Then the arc's `rho` and
+  headroom, and a table per minute. Minute m holds the leg bars that start in `[60 m, 60 m + 60)`:
+  `E_music` is the mean of their night-scope `E_music`, `E_light` the mean of their known
+  `E_light`, the BPM the mean of their played tempo (bar k of a leg of n bars plays at
+  `t0 + (t1 - t0) x min((k + 0.5) / n, 1)`), the target the owner's energy at the minute's middle.
+- `momentos`: the drops ranked by salience with their light response (the report's `drops`),
+  the arrivals and the moments (the first section of a cue or handover that names one), with the
+  intents.
+- `ritmo`: the longest static runs, the variety strip per minute (the report's `variety`), the
+  light's changes per minute (the sum of `X(b)` over the minute's leg bars), and what each rare
+  resource spent against its budget: every `rules.budget` key, then the effect keys and gestures
+  the show uses with no budget, then the total-dark sections.
+- `musicas`: a card per track: when it enters, its leg's minutes, tempo and owner energy, its
+  story and budget prose, its arrival, its peak (its best-ranked drop), its bridge in and its
+  handover (and echo) out, and its strips, `E_music` at track scope and `E_light` per leg bar.
+- `limites`: what the tool cannot know: the autoscript's share, the pending aims and their
+  stand-ins, `room.yml` assumed or measured, UV not compiled, the maps without `mix`, the
+  measures being indices with formulas, and how many things the compiler decided on its own.
+- `avisos`: the advice still open (`show-advice` lines) and the latest run's "Para depois".
+
+The owner reviews the book; their notes become backlog items.
+
+### The ledger
+
+`lightshows/shows/<id>/ledger.md` is the team's record, committed. The loaders read only `*.yml`
+in a show folder, so the compiler ignores it. Its format:
+
+```markdown
+# Diário do time — hi-ibiza-pulso
+
+## 2026-11-08 — Pontes de até 16 compassos sem perder a história
+Pedido: ...
+Rodadas: 2 · versões: v1, v2 (escolhida: v2)
+
+### Decisões
+- A ponte da Rapture para a Akan termina no compasso 72: ... (custo se errado: ...)
+
+### Para depois
+- ...
+```
+
+Each run is a `## ` heading, the latest last. The book reads the latest run only: the list
+items (`- ` or `* ` at the start of a line; an indented line continues the item) under its
+`### Decisões`, printed in `conceito`, and under its `### Para depois`, printed in `avisos` (the
+headings are matched without case or accents). Without a ledger both are left out.
+
 ## UV (designed, not compiled)
 
 UV makes people and the room glow (white clothes, UV-reactive decorations); it barely shows in

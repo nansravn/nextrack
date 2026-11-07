@@ -76,20 +76,21 @@ def _energy_char(value: float) -> str:
     return "X" if n >= 10 else str(max(n, 0))
 
 
+def target_at(points: list[tuple[float, int]], t: float) -> float:
+    """The owner's energy at `t` seconds on the set clock: `points` (`(clock_s, energy)` at the
+    legs' starts, in clock order, at least one) joined by straight lines, flat before the first
+    and after the last (module docstring, `target`)."""
+    for (t0, e0), (t1, e1) in zip(points, points[1:]):
+        if t0 < t <= t1:
+            return e0 + (e1 - e0) * (t - t0) / (t1 - t0) if t1 > t0 else float(e1)
+    return float(points[0][1]) if t <= points[0][0] else float(points[-1][1])
+
+
 def _target_strip(points: list[tuple[float, int]], total_s: float) -> str:
-    """One character per minute (module docstring, `target`)."""
+    """One character per minute (module docstring, `target`), read at the minute's middle."""
     if not points or total_s <= 0:
         return ""
-    out = []
-    for m in range(int(-(-total_s // 60))):
-        t = 60 * m + 30
-        value = float(points[0][1]) if t <= points[0][0] else float(points[-1][1])
-        for (t0, e0), (t1, e1) in zip(points, points[1:]):
-            if t0 < t <= t1:
-                value = e0 + (e1 - e0) * (t - t0) / (t1 - t0) if t1 > t0 else float(e1)
-                break
-        out.append(_energy_char(value))
-    return "".join(out)
+    return "".join(_energy_char(target_at(points, 60 * m + 30)) for m in range(int(-(-total_s // 60))))
 
 
 def _set_rows(repo: check_repo.Repo, text: str) -> tuple[list[dict], list[str], list[str]]:
