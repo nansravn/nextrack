@@ -1,6 +1,8 @@
 """The show rules: occurrences, the rules, their parameter checks, advice and `evaluate_show`."""
+import dataclasses
+
 from show_rules import ADVICE, EFFECT_KEYS, RULES, evaluate_show, occurrences, run_rules
-from showdata import FILE_1, FILE_2, TRACK_1, TRACK_2, two_track_show
+from showdata import FILE_1, FILE_2, TRACK_1, TRACK_2, show_map, two_track_show
 
 FOLDER = "lightshows/shows/teste"
 PATH_1, PATH_2, SHOW_PATH = f"{FOLDER}/{FILE_1}", f"{FOLDER}/{FILE_2}", f"{FOLDER}/show.yml"
@@ -106,6 +108,61 @@ def test_bridges_never_count():
     assert table(compiled, "pulso") == [(TRACK_1, 25, "handover")]
     assert rule_findings(*show({"budget": {"pulso": {"max": 0}}}, edit=edit)) == [
         (PATH_1, 90, "budget: pulso is used 1 time, max 0: Dançarina 25")]
+
+
+def echo_show(rules=None, edit=None):
+    """`show` with `bridge.bars: 4` and Dançarina on a 48-bar map (B 5, G 25): the handover
+    entrega is 25-28 and the echo 29-48 copies Voa Voa's chegada, subida and final (9-28)."""
+    src, inp = show(rules, edit=edit)
+    src.show["bridge"]["bars"] = 4
+    inp.maps[FILE_1[:-4]] = show_map(48, sections=[(1, 8, "intro"), (9, 16, "drop"), (17, 20, "break"),
+                                                   (21, 32, "drop"), (33, 48, "outro")])
+    return src, inp
+
+
+def without_echoes(compiled):
+    return dataclasses.replace(compiled, tracks=[
+        dataclasses.replace(t, sections=[s for s in t.sections if s.origin.kind != "echo"]) for t in compiled.tracks])
+
+
+def test_echo_sections_are_not_occurrences():
+    def edit(first, second):
+        second["cues"][1]["with"].update({"white": {"flash": "1/4"}, "uv": "on"})
+
+    compiled, _, _, _ = evaluate_show(*echo_show(edit=edit))
+    echo = [s for s in compiled.tracks[0].sections if s.origin.kind == "echo"]
+    assert [(s.bars, s.origin.look) for s in echo] == [((29, 36), "pulso"), ((37, 40), "respiracao"),
+                                                       ((41, 48), "pulso")]
+    assert echo[1].layers["white"] == {"flash": "1/4"} and echo[1].layers["uv"] == "on"
+    for key in ("pulso", "respiracao", "spiral", *EFFECT_KEYS):
+        assert table(compiled, key) == table(without_echoes(compiled), key), key
+    assert table(compiled, "pulso") == [(TRACK_1, 25, "handover"), (TRACK_2, 9, "cue"), (TRACK_2, 21, "cue")]
+    assert table(compiled, "uv") == [(TRACK_2, 17, "cue")]
+    budget = {"pulso": {"max": 3}, "respiracao": {"max": 2}, "white-flash": {"max": 1}, "uv": {"max": 1}}
+    assert rule_findings(*echo_show({"budget": budget}, edit=edit)) == []
+
+
+def test_rules_that_read_sections_skip_the_echo():
+    def edit(first, second):
+        second["cues"][1] = {"at": "break.1", "name": "subida", "look": dict(BREU)}   # inline: not in only
+        second["cues"][2]["look"] = {"movers": {"move": "sweep", "every": "2bar"},   # no aim, a cloned matrix
+                                     "matrix": {"draw": "solid", "rate": "1/8"}, "hue": "pulse"}
+
+    rules = {"total-dark": {"only": ["spiral"]}, "movers-aim": True, "matrix-not-cloned": True}
+    compiled, _, _, _ = evaluate_show(*echo_show(edit=edit))
+    echo = [s for s in compiled.tracks[0].sections if s.origin.kind == "echo"]
+    assert [(s.bars, s.name) for s in echo] == [((29, 36), "chegada"), ((37, 40), "subida"), ((41, 48), "final")]
+    assert echo[1].layers == BREU and echo[2].layers["matrix"] == {"draw": "solid", "rate": "1/8"}
+    found = rule_findings(*echo_show(rules, edit=edit))
+    assert [(path, line, message.split(":")[0]) for path, line, message in found] == [
+        (PATH_2, 20, "total-dark"),
+        (PATH_2, 30, "matrix-not-cloned"),
+        (PATH_2, 30, "movers-aim"),
+        (PATH_1, 30, "matrix-not-cloned"),                             # virada, Dançarina 21-24
+    ]
+    named = ["Voa Voa (Ao Vivo) 17-20 (subida)", "Voa Voa (Ao Vivo) 21-32 (final)", "Voa Voa (Ao Vivo) 21-32 (final)",
+             "Dançarina 21-24 (virada)"]
+    assert all(where in message for where, (_, _, message) in zip(named, found, strict=True))
 
 
 # ------------------------------------------------------------------ budget --

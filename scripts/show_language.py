@@ -20,7 +20,7 @@ import copy
 import difflib
 import re
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import PurePosixPath, PureWindowsPath
 
 import yaml
@@ -561,7 +561,8 @@ SOURCE = "show-source"
 MAPS_DIR = "lightshows/maps"
 _SECTION_RE = re.compile(r"section (?P<i>[0-9]+)(?: \([^)]*\))?: (?P<rest>.*)", re.S)
 _ACCENT_LAYER = {"white": "white", "strobe": "strobe", "strobe-roll": "strobe"}
-_BAR_VALUES = (("movers", "faster_from"), ("white", "accent"), ("strobe", "hit"), ("strobe", "roll"))
+_EVENTS = (("white", "accent"), ("strobe", "hit"), ("strobe", "roll"))   # the bar values that are events
+_BAR_VALUES = (("movers", "faster_from"),) + _EVENTS
 # A gesture names a bad parameter value first: `<gesture>: <param>[<i>] <value> is not ...`. A
 # problem of the cue's span (`bars add up to ...`) or of several parameters does not match.
 _VALUE_PROBLEM_RE = re.compile(r"(?P<gesture>[a-z0-9-]+): (?P<param>[a-z_]+)(?:\[[0-9]+\])? .+? is not ", re.S)
@@ -583,13 +584,13 @@ def _names_a_colour_of(problem: str, params: dict) -> bool:
 @dataclass
 class Provenance:
     """Where a compiled section came from. Rules read it; their findings point at `path:line`."""
-    kind: str                 # "cue" | "bridge" | "handover"
+    kind: str                 # "cue" | "bridge" | "handover" | "echo"
     track: str                # Artist — Title of the choreography that holds the section
     look: str | None
     gesture: str | None
     role: str | None          # "arrival" only on the first section of its cue
     moment: str | None
-    path: str                 # file a finding points at (for a bridge: the outgoing track's file)
+    path: str                 # file a finding points at (a bridge: the outgoing track's; an echo: its original's)
     line: int                 # the cue's or handover's line there
     aims: tuple[str, ...] = ()   # aim ids the section's movers named (room.yml), in order
 
@@ -619,7 +620,7 @@ class CompiledShow:
     folder: str                # e.g. "lightshows/shows/hi-ibiza-pulso"
     data: dict                 # clean(show.yml)
     tracks: list[CompiledTrack]  # set order
-    decisions: list[str]       # what the compiler inferred, one line each (bridges, default ends)
+    decisions: list[str]       # what the compiler inferred, one line each (bridges, default ends, echoes)
     tempos: dict[str, tuple[float, float]] = field(default_factory=dict)  # track -> played tempo (t0, t1)
     energies: dict[str, int] = field(default_factory=dict)   # track -> the owner's energy label, 1-10
     rig: object | None = None  # the valid lightshows/rig.yml, if any
@@ -719,7 +720,7 @@ def _ordered(layers: dict) -> dict:
     return out
 
 
-def _section_dict(part: _Part) -> dict:
+def _section_dict(part: _Part | CompiledSection) -> dict:
     out = {"bars": list(part.bars), "name": part.name}
     if part.intent is not None:
         out["intent"] = part.intent
@@ -1296,6 +1297,84 @@ def _missing_handovers(show: _Show, entries: list) -> list[ShowFinding]:
     return out
 
 
+def _echo_layers(layers: dict, offset: int) -> dict:
+    """An incoming section's layers as its echo shows them: deep-copied, with `movers.faster_from`
+    shifted by `offset` (at least bar 1, which still means fast from the section's start) and the
+    events left out (`white.accent`, `strobe.hit`, `strobe.roll`, raw or from `accents:`); a layer
+    they leave empty is dropped, so it reads `auto`."""
+    out = copy.deepcopy(layers)
+    movers = out.get("movers")
+    if isinstance(movers, dict) and isinstance(movers.get("faster_from"), int):
+        movers["faster_from"] = max(movers["faster_from"] + offset, 1)
+    for layer, key in _EVENTS:
+        value = out.get(layer)
+        if isinstance(value, dict) and key in value:
+            del value[key]
+            if not value:
+                del out[layer]
+    return out
+
+
+def _echo(out: CompiledTrack, inc: CompiledTrack) -> tuple[list[CompiledSection], int]:
+    """The echo sections of `out` copied from `inc`, the track after it, and the offset
+    `G_out - B_inc`; no sections when there is no echo (see `_echoes`)."""
+    handover = next((s for s in out.sections if s.origin.kind == "handover"), None)
+    bridge = inc.sections[0] if inc.sections else None
+    if handover is None or bridge is None or bridge.origin.kind != "bridge" or bridge.origin.path != out.path:
+        return [], 0                     # inc does not open with the bridge that copies this handover
+    (g, no_g), (b, no_b) = resolve_anchor("G", out.map), resolve_anchor("B", inc.map)
+    first, last = handover.bars[1] + 1, out.map["bars"]
+    if no_g or no_b or first > last:
+        return [], 0
+    offset = g - b
+    echo = []
+    for s in inc.sections:
+        lo, hi = max(s.bars[0], first - offset), min(s.bars[1], last - offset)
+        if lo <= hi:
+            echo.append(CompiledSection((lo + offset, hi + offset), s.name, s.intent, _echo_layers(s.layers, offset),
+                                        replace(s.origin, kind="echo", track=out.track, role=None)))
+    return echo, offset
+
+
+def _echoes(show: _Show, tracks: list[CompiledTrack]) -> tuple[list[str], list[ShowFinding]]:
+    """The echo (spec A11): with `bridge.bars`, the incoming track's light on the rest of the
+    outgoing one, so whichever script SoundSwitch plays during a long mix, the room sees one light.
+
+    For consecutive tracks A then B, when A's handover ends before A's map's last bar, B opens
+    with the bridge that copies it, and A's `G` and B's `B` resolve: the clock puts B's `B` on
+    A's `G`, so A's bar k is B's bar k - offset, with offset = G_A - B_B. A's bars `h_end + 1 ..
+    A.bars` copy B's sections over `[h_end + 1 - offset, A.bars - offset]`, clipped and shifted
+    by `+offset`; a bar no section of B holds there stays a gap (the autoscript). A copy keeps
+    B's name and intent, takes `_echo_layers`, and B's provenance with `kind: echo`, A's track
+    and no role. The copies go after A's sections, A's choreography is rebuilt and checked
+    again; a problem of an echo section points at the cue it copies. Returns one decision line
+    per echo, `<A title>: echo <a>-<b> copies <B title> <a - offset>-<b - offset>`, and the
+    findings."""
+    if show.bridge is None or show.bridge.get("bars") is None:
+        return [], []
+    decisions, findings = [], []
+    for out, inc in zip(tracks, tracks[1:]):
+        echo, offset = _echo(out, inc)
+        if not echo:
+            continue
+        out.sections += echo
+        out.choreography["sections"] = [_section_dict(s) for s in out.sections]
+        a, b = echo[0].bars[0], echo[-1].bars[1]
+        title = _title(out.track)
+        decisions.append(f"{title}: echo {a}-{b} copies {_title(inc.track)} {a - offset}-{b - offset}")
+        for message in problems_choreography(out.choreography, None):
+            m = _SECTION_RE.fullmatch(message)
+            index = int(m["i"]) - 1 if m is not None else -1
+            s = out.sections[index] if 0 <= index < len(out.sections) else None
+            if s is not None and s.origin.kind == "echo":
+                findings.append(ShowFinding(s.origin.path, s.origin.line, SOURCE,
+                                            f"echo {s.bars[0]}-{s.bars[1]} in {title} (section {s.name!r}): "
+                                            f"{m['rest']}"))
+            else:                        # the rest was checked when A compiled
+                findings.append(ShowFinding(out.path, 0, SOURCE, message))
+    return decisions, findings
+
+
 def compile_show(source: ShowSource, inputs: ShowInputs) -> tuple[CompiledShow | None, list[ShowFinding]]:
     """Compile a show into one choreography per set track (spec, "Compiling"). Returns
     `(show, [])`, or `(None, findings)` (all `show-source`) when anything is wrong. Pure: the
@@ -1328,6 +1407,9 @@ def compile_show(source: ShowSource, inputs: ShowInputs) -> tuple[CompiledShow |
     findings += found
     if linked:
         findings += _missing_handovers(show, entries)
+        echoed, found = _echoes(show, tracks)
+        decisions += echoed
+        findings += found
     if findings:
         return None, findings
     compiled = CompiledShow(source.show_id, folder, clean(source.show), tracks, decisions,

@@ -475,7 +475,8 @@ def _event_seconds(key: str, section: CompiledSection, clock: TrackClock) -> flo
 def night_summary(show: CompiledShow, clock: ShowClock, room: show_room.Room | None) -> dict:
     """The night summary (spec section 3), all times in seconds. States are summed over legs,
     a section's share being the seconds of its bars inside its track's leg
-    (`TrackClock.span_s`); events are counted over sounding windows.
+    (`TrackClock.span_s`), so an echo, past its track's G, adds none; events are counted over
+    sounding windows.
 
     - `total_s`: the sum of the legs (`ShowClock.total_s`).
     - `looks`: seconds per look (`origin.look`; a gesture's sections by gesture name; an
@@ -491,9 +492,9 @@ def night_summary(show: CompiledShow, clock: ShowClock, room: show_room.Room | N
     - `total_dark`: `{s, count}`, the seconds and the number of total-dark sections (movers
       off, matrix off, hue dark, no lit white, strobe or uv: the `total-dark` rule's test).
     - `events`: `{key: {count, s}}` for each effect key (`show_rules.EFFECT_KEYS`). The count is
-      the budget's occurrences (`show_rules.occurrences`, never a bridge) whose bar is inside
-      its track's sounding window, so it equals the budget's count unless a cue starts before
-      its track's B; the seconds are `_event_seconds`."""
+      the budget's occurrences (`show_rules.occurrences`, never a bridge or an echo) whose bar
+      is inside its track's sounding window, so it equals the budget's count unless a cue starts
+      before its track's B; the seconds are `_event_seconds` of the same sections."""
     names = _palette_names(show)
     looks: dict[str, float] = {}
     colours: dict[str, dict[str, float]] = {g: {} for g in COLOUR_GROUPS}
@@ -562,7 +563,7 @@ def _events(show: CompiledShow, clock: ShowClock) -> dict[str, dict]:
                     if o.track in index and clock.tracks[index[o.track]].sounds(o.bar))
         seconds = sum(_event_seconds(key, section, tc)
                       for track, tc in zip(show.tracks, clock.tracks)
-                      for section in track.sections if section.origin.kind != "bridge")
+                      for section in track.sections if section.origin.kind not in ("bridge", "echo"))
         out[key] = {"count": count, "s": seconds}
     return out
 
@@ -578,9 +579,10 @@ def peaks(show: CompiledShow, clock: ShowClock) -> list[dict]:
     (`music_level`), `before` and `at` (`light_level` of the section that plays just before
     the bar and of the one holding it; None for `auto` or the autoscript), `accents`
     (`_accents` at the bar) and `moment` (of the section holding the bar; None for a bridge,
-    whose moment is the copied handover's). The section before is the one holding bar - 1,
-    except on the track's first leg bar (its B): there it is the previous track's section at
-    the last bar of its leg (`_section_before`)."""
+    whose moment is the copied handover's, and for an echo, whose moment is the incoming
+    cue's). The section before is the one holding bar - 1, except on the track's first leg bar
+    (its B): there it is the previous track's section at the last bar of its leg
+    (`_section_before`)."""
     rows = []
     for track, tc in zip(show.tracks, clock.tracks):
         for drop in track.map.get("drops") or []:
@@ -589,7 +591,7 @@ def peaks(show: CompiledShow, clock: ShowClock) -> list[dict]:
                 continue
             at = _section_at(track, bar)
             before, _ = _section_before(show, clock, tc.index, bar)
-            moment = at.origin.moment if at is not None and at.origin.kind != "bridge" else None
+            moment = at.origin.moment if at is not None and at.origin.kind not in ("bridge", "echo") else None
             rows.append({"clock_s": tc.at(bar), "index": tc.index, "track": track.track, "bar": bar,
                          "db": drop.get("db"), "music": music_level(track.map, bar),
                          "before": _level(before), "at": _level(at),
@@ -600,10 +602,11 @@ def peaks(show: CompiledShow, clock: ShowClock) -> list[dict]:
 def hit_checks(show: CompiledShow, clock: ShowClock) -> list[dict]:
     """The hit checks (spec section 6): one row per arrival (`role: arrival`) and per moment
     (the first section of a cue or handover with a `moment`; a bridge's copied moment is not
-    one), inside the sounding window, in set order. A row: `clock_s`, `index`, `track`, `bar`
-    (the section's first), `arrival` (bool), `moment` (or None), `kick` (the kick onset
-    strength on the hit's first 1/16 step, `onsets.kick`, `.` = none), `before` and `at`
-    (`light_level` of the section that plays just before the hit and of the hit's section),
+    one, and an echo makes no row: its original does), inside the sounding window, in set
+    order. A row: `clock_s`, `index`, `track`, `bar` (the section's first), `arrival` (bool),
+    `moment` (or None), `kick` (the kick onset strength on the hit's first 1/16 step,
+    `onsets.kick`, `.` = none), `before` and `at` (`light_level` of the section that plays just
+    before the hit and of the hit's section),
     `accents` (`_accents` on the hit's first beat) and `dark`: when the section just before is
     total dark, `{track, bars, voices}`, the track that holds it, its bars and the voices'
     levels over them in that track's map (`voices`), else None. The section before is the one
@@ -616,7 +619,7 @@ def hit_checks(show: CompiledShow, clock: ShowClock) -> list[dict]:
         for section in track.sections:
             o, first = section.origin, _first_of_cue(previous, section)
             previous = section
-            if o.kind == "bridge":
+            if o.kind in ("bridge", "echo"):
                 continue
             arrival = o.role == "arrival"
             moment = o.moment if first else None

@@ -244,7 +244,7 @@ def _layer_text(name: str, value: object, names: dict[str, str]) -> str:
 
 
 def _source_text(origin) -> str:
-    if origin.kind in ("bridge", "handover"):
+    if origin.kind in ("bridge", "handover", "echo"):
         return origin.kind + (f" {origin.look}" if origin.look else "")
     if origin.gesture:
         return f"gesture {origin.gesture}"

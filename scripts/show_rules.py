@@ -7,8 +7,9 @@ The `advice:` mapping takes the same rule ids and parameters as design goals: th
 carry the rule id `show-advice` and never fail a check. Each rule also checks its own
 parameters; a bad parameter or an unknown rule id is a `show-source` finding at `rules:` (or
 `advice:`) in `show.yml`. The budget and `exclusive` count **occurrences** (`occurrences`),
-which never come from bridges. See docs/superpowers/specs/2026-11-06-show-language-design.md
-("Show rules") and docs/superpowers/specs/2026-11-06-show-critic-design.md ("Advice").
+which never come from bridges or echoes. See
+docs/superpowers/specs/2026-11-06-show-language-design.md ("Show rules") and
+docs/superpowers/specs/2026-11-06-show-critic-design.md ("Advice").
 
 Python API: `RULES`, `EFFECT_KEYS`, `ADVICE`, `show_rule`, `ShowRule`, `Occurrence`, `occurrences`,
 `rule_param_findings`, `run_rules`, `evaluate_show`.
@@ -151,7 +152,8 @@ def _effect_bars(key: str, section: CompiledSection) -> list[int]:
 
 
 def occurrences(show: CompiledShow, key: str) -> list[Occurrence]:
-    """What the budget and `exclusive` count for `key`, in show order; never a bridge.
+    """What the budget and `exclusive` count for `key`, in show order; never a bridge or an
+    echo (each copies light already counted where it was written).
 
     An effect key (`EFFECT_KEYS`) counts beats and sections as the spec's table says; a gesture
     name counts the cues that invoke it (distinct path and line), at their first bar; any
@@ -161,7 +163,7 @@ def occurrences(show: CompiledShow, key: str) -> list[Occurrence]:
     for track in show.tracks:
         for section in track.sections:
             origin = section.origin
-            if origin.kind == "bridge":
+            if origin.kind in ("bridge", "echo"):
                 continue
             if key in EFFECT_KEYS:
                 out += [Occurrence(key, track.track, bar, origin) for bar in _effect_bars(key, section)]
@@ -382,14 +384,16 @@ def _source(origin: Provenance) -> str:
 def total_dark(show: CompiledShow, params: dict) -> list[ShowFinding]:
     """Total dark is rare and named.
 
-    A compiled section (a bridge too) with movers `off`, matrix `off`, hue `dark` (or `off`)
-    and no lit white, strobe or uv has neither its `look` nor its `gesture` in `only`."""
+    A compiled section (a bridge too, not an echo: its original is checked where it is written)
+    with movers `off`, matrix `off`, hue `dark` (or `off`) and no lit white, strobe or uv has
+    neither its `look` nor its `gesture` in `only`."""
     only = params["only"]
     out = []
     for track in show.tracks:
         for section in track.sections:
             origin = section.origin
-            if not _total_dark(section.layers) or origin.look in only or origin.gesture in only:
+            if (origin.kind == "echo" or not _total_dark(section.layers) or origin.look in only
+                    or origin.gesture in only):
                 continue
             out.append(_finding(origin, f"total-dark: {_where(track, section)} leaves every fixture dark (movers "
                                         f"off, matrix off, hue dark) with {_source(origin)}, which is not in only "
@@ -437,12 +441,13 @@ def movers_aim(show: CompiledShow, params: object) -> list[ShowFinding]:
     """Every written movers layer aims.
 
     A compiled section's movers is a mapping without `position` or `positions` (the autoscript
-    would pick a random preset every two bars)."""
+    would pick a random preset every two bars). An echo is not checked: its original is."""
     out = []
     for track in show.tracks:
         for section in track.sections:
             movers = section.layers.get("movers")
-            if isinstance(movers, dict) and "position" not in movers and "positions" not in movers:
+            if (section.origin.kind != "echo" and isinstance(movers, dict) and "position" not in movers
+                    and "positions" not in movers):
                 out.append(_finding(section.origin, f"movers-aim: {_where(track, section)} moves the movers "
                                                     f"({movers.get('move')}) without position or positions, so the "
                                                     "autoscript picks a random preset every two bars: aim them"))
@@ -455,13 +460,14 @@ def matrix_not_cloned(show: CompiledShow, params: object) -> list[ShowFinding]:
 
     A compiled section's matrix is a mapping with neither `mirror` nor `pingpong`, and its
     cue's moment is not in `except_moments`. A bridge carries the moment of the handover it
-    copies, so the exception reaches the copy too."""
+    copies, so the exception reaches the copy too. An echo is not checked: its original is."""
     excepted = params.get("except_moments", []) if isinstance(params, dict) else []
     out = []
     for track in show.tracks:
         for section in track.sections:
             matrix, moment = section.layers.get("matrix"), section.origin.moment
-            if not isinstance(matrix, dict) or matrix.get("mirror") or matrix.get("pingpong") or moment in excepted:
+            if (section.origin.kind == "echo" or not isinstance(matrix, dict) or matrix.get("mirror")
+                    or matrix.get("pingpong") or moment in excepted):
                 continue
             fix = f", or add its moment {moment!r} to except_moments" if moment else ""
             out.append(_finding(section.origin, f"matrix-not-cloned: {_where(track, section)} draws the matrix "

@@ -369,21 +369,21 @@ def _row(label: str, cells: list[str]) -> str:
 
 def moment_names(show: CompiledShow) -> list[str]:
     """The show's moments, each once, in set order: the `moment` of a cue or a handover (a
-    bridge's copied moment is not one)."""
+    bridge's or an echo's copied moment is not one)."""
     out: list[str] = []
     for track in show.tracks:
         for s in track.sections:
-            if s.origin.kind != "bridge" and s.origin.moment and s.origin.moment not in out:
+            if s.origin.kind not in ("bridge", "echo") and s.origin.moment and s.origin.moment not in out:
                 out.append(s.origin.moment)
     return out
 
 
 def moment_target(show: CompiledShow, name: str) -> tuple[int, int] | None:
     """`(track index, bar)` of the first cue or handover with that `moment` (its first bar), or
-    None."""
+    None; never a bridge or an echo, which copy another's moment."""
     for i, track in enumerate(show.tracks):
         for s in track.sections:
-            if s.origin.kind != "bridge" and s.origin.moment == name:
+            if s.origin.kind not in ("bridge", "echo") and s.origin.moment == name:
                 return i, s.bars[0]
     return None
 

@@ -317,6 +317,34 @@ def test_peaks_include_drops_during_the_mix():
     assert [r["track"] for r in rows] == [TRACK_1, TRACK_1, TRACK_1, TRACK_2, TRACK_2]
 
 
+def test_echo_sections_add_no_events_and_no_hit_rows():
+    # bridge.bars 4 on a 48-bar Dançarina (drops 9, 21, 41): the handover is 25-28 and the echo
+    # 29-48 copies Voa Voa's chegada, subida (with a white flash and UV) and final (moment final)
+    import dataclasses
+
+    src, inp = two_track_show()
+    src.show["bridge"]["bars"] = 4
+    src.track_files[FILE_2]["cues"][1]["with"].update({"white": {"flash": "1/4"}, "uv": "on"})
+    inp.maps[KEY_1] = show_map(48, sections=[(1, 8, "intro"), (9, 16, "drop"), (17, 20, "break"),
+                                             (21, 32, "drop"), (33, 40, "break"), (41, 48, "drop")])
+    show = compiled(src, inp)
+    echo = [s for s in show.tracks[0].sections if s.origin.kind == "echo"]
+    assert [(s.bars, s.origin.moment) for s in echo] == [((29, 36), None), ((37, 40), None), ((41, 48), "final")]
+    bare = dataclasses.replace(show, tracks=[
+        dataclasses.replace(t, sections=[s for s in t.sections if s.origin.kind != "echo"]) for t in show.tracks])
+    clock = sv.build_clock(show, {})
+    assert clock.tracks[0].sounding == (1, 48)                       # the echo sounds: the outgoing music plays
+    assert sv.night_summary(show, clock, None) == sv.night_summary(bare, clock, None)
+    assert sv.night_summary(show, clock, None)["events"]["uv"]["count"] == 1     # Voa Voa's subida alone
+    assert sv.hit_checks(show, clock) == sv.hit_checks(bare, clock)
+    assert [(r["track"], r["bar"], r["moment"]) for r in sv.hit_checks(show, clock)] == [
+        (TRACK_1, 9, None), (TRACK_1, 21, "virada"), (TRACK_1, 25, "passagem"), (TRACK_2, 9, None),
+        (TRACK_2, 21, "final")]
+    # a drop under the echo is a peak of the outgoing track, with the copy's light and no moment
+    peak = next(r for r in sv.peaks(show, clock) if (r["track"], r["bar"]) == (TRACK_1, 41))
+    assert peak["moment"] is None and peak["at"] == sv.light_level(echo[2].layers)
+
+
 def test_hit_checks_report_voices_in_a_dark_bar_before():
     src, inp = two_track_show()
     src.track_files[FILE_1]["cues"][1] = {"at": "break.1", "name": "breu", "look": BREU}    # 17-20, total dark

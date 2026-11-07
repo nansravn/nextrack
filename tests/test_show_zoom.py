@@ -18,7 +18,7 @@ import show_room
 import show_zoom as sz
 import soundswitch_format as ssf
 from show_language import CompiledSection, CompiledShow, CompiledTrack, Provenance, compile_show
-from showdata import FILE_1, two_track_show
+from showdata import FILE_1, show_map, two_track_show
 
 BAR = 16
 
@@ -257,6 +257,17 @@ def test_zoom_moment_targets():
     assert sz.moment_target(show, "passagem") == (0, 25)
     assert sz.moment_target(show, "final") == (1, 21)
     assert sz.moment_target(show, "nada") is None
+    # an echo's copied moment is not one: with bridge.bars 4 and a 48-bar Dançarina, its echo
+    # 41-48 copies Voa Voa's final, and the target stays the cue that wrote it
+    src, inp = two_track_show()
+    src.show["bridge"]["bars"] = 4
+    inp.maps[FILE_1[:-4]] = show_map(48, sections=[(1, 8, "intro"), (9, 16, "drop"), (17, 20, "break"),
+                                                   (21, 32, "drop"), (33, 48, "outro")])
+    show = compiled(src, inp)
+    assert [(s.bars, s.origin.kind, s.origin.moment) for s in show.tracks[0].sections[-1:]] == [
+        ((41, 48), "echo", "final")]
+    assert sz.moment_names(show) == ["virada", "passagem", "final"]
+    assert sz.moment_target(show, "final") == (1, 21)
 
 
 def test_zoom_odd_input_never_raises():
