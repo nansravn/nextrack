@@ -42,6 +42,10 @@ parameters, and the show's palette and looks, always in step with the code.
 that is not built, or whose rules fail, never gets merged. `build` writes the files even when
 only rules fail, so a draft can be rendered and critiqued; it then exits 1.
 
+**The team.** The `show-team` skill (`.claude/skills/show-team/`) runs this loop with a team
+of agents for a whole night. A show with a `ledger.md` in its folder is the team's; the
+ledger records each run, and the run stops at a branch for the owner.
+
 **Variants.** To try an alternative without touching the committed show, copy the folder
 outside the repo, change it, and build with `--out`:
 

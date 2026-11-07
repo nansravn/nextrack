@@ -85,6 +85,9 @@ Show tool (`build`, `report`, `zoom`, `brief`, `compare`, `book`, `vocab`; see
 - It needs no audio, rekordbox or SoundSwitch, and writes only
   `lightshows/tracks/` of `--repo` or the `--out` folder, plus the `-o` file of `book`
   (keep it outside the repo).
+- The `show-team` skill (`.claude/skills/show-team/`) runs the agent team on a whole night.
+  Its runs are recorded in `lightshows/shows/<id>/ledger.md`, and they stop at a branch: no
+  push, PR, merge or `--apply`.
 - A `PreToolUse` hook (`.claude/hooks/guard_soundswitch.py`) asks the owner before any
   `nextrack_lights.py ... --apply`.
 

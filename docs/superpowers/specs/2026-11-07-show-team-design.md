@@ -63,9 +63,12 @@ noise. The senses come first.
 | **2b** | the team: a project skill, role agents, the run and its ledger, the guard on SoundSwitch writes, a rehearsal | agent workflow | second, after 2a is merged |
 
 Each delivery gets its own plan and PR. The owner approves the design once, for both. The
-team's first real run (Hï Ibiza's bridges) comes after 2b is merged. Claude Code loads
-project skills, agents and hooks when a session starts, so the session that writes them
-cannot run them. The run is its own branch and PR, like any content work.
+team's first real run (Hï Ibiza's bridges) comes after 2b is merged. Claude Code picks up
+new files in `.claude/agents/` and `.claude/skills/` during a session, except when the folder
+did not exist when the session started; this repo had no `.claude/agents/`, so the session
+that writes the team needs a restart to dispatch it. The team's worktree also branches from
+`origin/main`, which has the skill only after the merge. The run is its own branch and PR,
+like any content work.
 
 ## Goals
 
@@ -791,9 +794,10 @@ práticas dos benchmarks"). Each says why, and what it costs if wrong.
     goes to the owner's backlog as a proposal, never into the run. Otherwise the first rework
     would grow into a redesign of the night and break "sem perder a história".
 22. **The first real run comes after the merge, in a fresh session** (from the builder
-    check). Project agents, skills and hooks load at session start, and a new worktree
-    branches from `origin/main`. The 2b PR carries a rehearsal with general-purpose stand-ins
-    instead.
+    check). A session sees a new `.claude/agents/` folder only after a restart (Claude Code
+    watches existing folders, not ones created mid-session), and a new worktree branches from
+    `origin/main`, which has the skill only after the merge. The 2b PR carries a rehearsal
+    with general-purpose stand-ins instead.
 23. **The budget is the round caps, plus an optional cap from the owner, and runs resume from
     the ledger** (from the builder check). A run that hits a usage limit loses nothing.
 
