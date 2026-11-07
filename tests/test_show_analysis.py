@@ -303,6 +303,20 @@ def test_identical_tracks_have_similarity_1():
     assert all(0.0 <= c <= 1.0 for _, c in sa.variety(show, clock).similarity)
 
 
+def test_similarity_leaves_the_bridge_out():
+    show, clock = night()
+    bars = sa._leg_bars(show, clock)
+    assert [(b.index, b.bar) for b in bars if b.bridge] == [(1, 5), (1, 6), (1, 7), (1, 8)]
+
+    def vector(i, keep):
+        mine = [b for b in bars if b.index == i and b.values is not None and keep(b)]
+        return sa._shares(mine, sum(b.seconds for b in mine))
+    without = sa._cosine(vector(0, lambda b: not b.bridge), vector(1, lambda b: not b.bridge))
+    with_bridge = sa._cosine(vector(0, lambda b: True), vector(1, lambda b: True))
+    assert without != pytest.approx(with_bridge)
+    assert sa.variety(show, clock).similarity == [(0, pytest.approx(without))]
+
+
 def test_phrase_share_counts_changes_on_4_bar_lines():
     show, clock = night()
     changes = show.cache["energy"][0].changes
