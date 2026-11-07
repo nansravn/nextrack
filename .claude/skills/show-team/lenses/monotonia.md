@@ -47,24 +47,27 @@ Numbers are evidence, not taste: cite the line that made you answer.
 
 ## Severity
 
-- `grave`: a static run of 60 s or more (or the show's `static-run` `max_seconds`, when its
-  advice declares one) whose music changes section kind under it (for example `drop+break`),
-  or a run that covers one of the night's top drops.
-- `moderado`: a static run of 60 s or more under one section kind; or two neighbours whose
+Let T be the static-run threshold: the show's `static-run` `max_seconds` when its `advice:` or
+`rules:` declares one, otherwise 60 s (a replacement, not an alternative). On a show that
+declares 120, a 1:20 run is not a finding at all.
+
+- `grave`: a static run of T or more whose music changes section kind under it (for example
+  `drop+break`), or a run that covers one of the night's top drops.
+- `moderado`: a static run of T or more under one section kind; or two neighbours whose
   `similarity` is above the show's `neighbours-differ` `max_similarity` (else 0.85).
 - `menor`: polish, such as a single repeated colour pair or an entropy dip of one minute.
 
 ## Finding format
 
 Write each finding in pt-BR with `lente`, `severidade`, `unidade`, `evidência`, `problema` and
-`direção`, as the critic agent file defines. Example (illustrative; the numbers are from a real report):
+`direção`, as the critic agent file defines. Example (illustrative: the track and numbers are invented, for a show with T = 60 s):
 
 ```
 - lente: monotonia
 - severidade: grave
-- unidade: PICK UP THE PHONE (feat. Nate Dogg) (Extended)
-- evidência: "36:05 · PICK UP THE PHONE (feat. Nate Dogg) (Extended) 27-68 · 1:18 · drop+break" (variety, static runs)
-- problema: a mesma luz fica 1:18 parada enquanto a música passa de drop para break: a luz
+- unidade: <Faixa X>
+- evidência: "<clock> · <Faixa X> 27-68 · 1:30 · drop+break" (variety, static runs)
+- problema: a mesma luz fica 1:30 parada enquanto a música passa de drop para break: a luz
   não acompanha a mudança de seção.
 - direção: olhar onde o break começa e que dimensão da luz poderia trocar ali, sem sair da
   identidade.
