@@ -12,6 +12,10 @@ The match is on the raw command text, so wrapped or glued forms (`bash -c "..."`
 `--apply;`, `--apply&& ...`) are caught too. A command that merely mentions both
 `nextrack_lights.py` and `--apply` also asks: that false positive is accepted.
 
+`--ap`, `--app` and `--appl` count as `--apply` because argparse accepts unique prefixes
+of an option. Shell-level obfuscation (quotes inside the word, `$'...'`) is a known limit
+of a text match.
+
 In auto mode the "ask" goes to the permission prompt. What it does under
 bypass-permissions is not documented by Claude Code. Either way the rule stays: writing
 SoundSwitch needs the owner's explicit go.
@@ -25,7 +29,7 @@ from typing import TextIO
 REASON = "Gravar no SoundSwitch é decisão do dono: confirme este comando."
 
 
-_APPLY = re.compile(r"(?<![\w-])--apply(?![\w-])")
+_APPLY = re.compile(r"(?<![\w-])--ap(?:p(?:l(?:y)?)?)?(?![\w-])")
 
 
 def decision(payload: object) -> dict | None:

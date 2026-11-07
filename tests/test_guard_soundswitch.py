@@ -87,7 +87,15 @@ def test_wrapped_and_glued_forms_ask():
     assert not asks("uv run scripts/nextrack_lights.py apply x --applyfoo")
 
 
-def test_unsplittable_command_falls_back_to_substrings():
+def test_abbreviated_apply_asks():
+    base = "uv run scripts/nextrack_lights.py apply x.yml "
+    for flag in ("--ap", "--app", "--appl"):
+        assert asks(base + flag)
+    assert not asks(base + "--accept-resize")
+    assert not asks(base + "--adopt-current")
+
+
+def test_unbalanced_quote_still_asks():
     assert asks("uv run scripts/nextrack_lights.py apply x.yml --apply 'unbalanced")
     assert not asks("echo 'unbalanced")
 
