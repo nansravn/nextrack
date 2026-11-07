@@ -8,24 +8,24 @@ tools, dry runs, `render`, `status`, `nextrack_tags.py --apply`, malformed input
 with no output and leaves the normal permission flow alone. The hook never exits 2, so it
 never blocks.
 
+The match is on the raw command text, so wrapped or glued forms (`bash -c "..."`,
+`--apply;`, `--apply&& ...`) are caught too. A command that merely mentions both
+`nextrack_lights.py` and `--apply` also asks: that false positive is accepted.
+
 In auto mode the "ask" goes to the permission prompt. What it does under
 bypass-permissions is not documented by Claude Code. Either way the rule stays: writing
 SoundSwitch needs the owner's explicit go.
 """
 
 import json
-import shlex
+import re
 import sys
 from typing import TextIO
 
 REASON = "Gravar no SoundSwitch é decisão do dono: confirme este comando."
 
 
-def _tokens(command: str) -> list[str]:
-    try:
-        return shlex.split(command)
-    except ValueError:
-        return command.split()
+_APPLY = re.compile(r"(?<![\w-])--apply(?![\w-])")
 
 
 def decision(payload: object) -> dict | None:
@@ -36,8 +36,7 @@ def decision(payload: object) -> dict | None:
     command = tool_input.get("command") if isinstance(tool_input, dict) else None
     if not isinstance(command, str):
         return None
-    tokens = _tokens(command)
-    if "--apply" in tokens and any(t.endswith("nextrack_lights.py") for t in tokens):
+    if "nextrack_lights.py" in command and _APPLY.search(command):
         return {
             "hookEventName": "PreToolUse",
             "permissionDecision": "ask",

@@ -80,6 +80,13 @@ def test_main_prints_the_decision():
     assert answer["hookSpecificOutput"]["permissionDecision"] == "ask"
 
 
+def test_wrapped_and_glued_forms_ask():
+    assert asks('bash -c "uv run scripts/nextrack_lights.py apply x --apply"')
+    assert asks("uv run scripts/nextrack_lights.py apply x --apply;")
+    assert asks("uv run scripts/nextrack_lights.py apply x --apply&& echo ok")
+    assert not asks("uv run scripts/nextrack_lights.py apply x --applyfoo")
+
+
 def test_unsplittable_command_falls_back_to_substrings():
     assert asks("uv run scripts/nextrack_lights.py apply x.yml --apply 'unbalanced")
     assert not asks("echo 'unbalanced")
