@@ -14,7 +14,9 @@ The text has six parts, in this order, each under its header line:
               the vocal presence (the share of leg bars whose vocals digit is 6 or more)
     drops     the night's drops ranked by the salience of `show_analysis.map_drops` (the maps
               alone), the biggest first (a tie goes to the earlier on the clock), with bar and
-              clock
+              clock. A track sounds from its leg's first bar to its map's last bar
+              (`set_timeline.last_bar`), so a drop at or after its `G`, played during the mix,
+              counts, as in the report
     target    the owner's energy as one character per minute of the night. A track's target is
               its tracklist `eN`, else its pool `energy`, else the block's `energy: [a, b]`
               interpolated linearly by the track's position among the block's tracks (first
@@ -137,7 +139,9 @@ def render_brief(repo: check_repo.Repo, set_rel: str) -> str:
             why = "no map" if r["path"] is None else f"invalid map {r['path']}: {problem}"
             missing.append(f"{r['name']}: {why}; the clock leaves it out")
     have = [r for r in rows if r["map"] is not None]
-    clock = show_views.set_clock([r["map"] for r in have], [r["tempo"] for r in have])
+    # each sounding window runs to the map's last bar, so the drops of a mix window count
+    clock = show_views.set_clock([r["map"] for r in have], [r["tempo"] for r in have],
+                                 [set_timeline.last_bar(r["map"]) for r in have])
     for r, tc in zip(have, clock.tracks):
         r["tc"] = tc
     night = [b for r in have

@@ -1,11 +1,14 @@
 """The set brief (show_brief.py) on the mini repo's set: two tracks, two maps, no show needed."""
 from pathlib import Path
 
+import check_repo
 import musical_map
 import show_analysis
 import show_brief
+import show_language
 import show_views
 from check_repo import load_repo
+from conftest import REPO_ROOT
 from showdata import FILE_1, FILE_2, TRACK_2, put_show, show_map
 
 SET = "sets/teste.md"
@@ -44,6 +47,36 @@ def test_brief_ranks_the_drops(mini_repo):
     salience = [float(r.rsplit("S ", 1)[1].split()[0]) for r in rows]
     assert salience == sorted(salience, reverse=True)
     assert rows[0].lstrip().startswith("1. ")
+
+
+def test_brief_counts_a_drop_in_the_mix_window(mini_repo):
+    put_show(mini_repo)
+    # Dançarina's second drop moves to its G (25): the set plays it during the mix, under Voa Voa
+    data = show_map(sections=[(1, 8, "intro"), (9, 16, "drop"), (17, 24, "break"), (25, 32, "drop")])
+    mini_repo.write(f"lightshows/maps/{FILE_1}", musical_map.dump_map(data))
+    rows = part(brief(mini_repo), "drops")
+    assert len(rows) == 4
+    assert [r for r in rows if "Dançarina bar 25" in r] and [r for r in rows if "Dançarina bar 9" in r]
+
+
+def _title_bar(row: str) -> tuple[str, int]:
+    """`(title, bar)` of a brief drop row `  N. m:ss · <title> bar <d> · S x.xx`."""
+    head = row.split(" · ", 1)[1].rsplit(" · S ", 1)[0]
+    title, bar = head.rsplit(" bar ", 1)
+    return title, int(bar)
+
+
+def test_hi_ibiza_brief_ranks_the_drops_the_report_ranks():
+    repo = load_repo(REPO_ROOT)
+    rows = part(show_brief.render_brief(repo, "sets/hi-ibiza-pulso.md"), "drops")
+    errors: list = []
+    source = check_repo.load_show_folder(REPO_ROOT, REPO_ROOT / check_repo.SHOWS_DIR / "hi-ibiza-pulso", errors)
+    show, found = show_language.compile_show(source, check_repo.show_inputs(repo, source))
+    assert show is not None and not errors, found
+    drops = show_analysis.analyse(show).drops
+    assert len(rows) == len(drops) == 35
+    assert [_title_bar(r) for r in rows] == [(d.track.split(" — ", 1)[-1], d.bar) for d in drops]
+    assert ("PICK UP THE PHONE (feat. Nate Dogg) (Extended)", 137) in [_title_bar(r) for r in rows]
 
 
 def test_map_drops_gives_every_sounding_drop_a_salience():

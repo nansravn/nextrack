@@ -29,7 +29,9 @@ drops (`drops`): every map drop `d` inside a track's sounding window.
     bass_return   `max(0, bass digit at d - min bass digit over d-8..d-1) / 9`
     density_rise  the same difference on `BarMusic.density` (steps with a kick or perc onset,
                   over 16)
-    main          the track's drop with the largest `loud_rise`, or its last drop in the window
+    main          exactly one per track: the drop with the largest `loud_rise` (a tie goes to the
+                  later drop); the track's last drop in the window when no drop's `loud_rise` is
+                  above 0
     salience      `S = 0.4 L + 0.3 bass_return + 0.2 D + 0.1 main`, with `x^ = max(0, x) /
                   max over the night's drops of max(0, x)` for L (loud_rise) and D
                   (density_rise), 0 when that max is <= 0. `rank` 1 is the biggest S (a tie
@@ -43,7 +45,9 @@ drops (`drops`): every map drop `d` inside a track's sounding window.
     response      `0.5 clip01(contrast / 4) + 0.25 change / 9 + 0.25 freshness`; None when the
                   contrast or the freshness is
     template      `(signature at d - 1, signature at d)`, the section before as
-                  `show_views._section_before` finds it
+                  `show_views._section_before` finds it; None (unknown) when no section holds
+                  the drop or the bar before it, or when the light at d is unknown (the
+                  autoscript)
     holder        the section that holds the drop
 `top` takes the first n (an int) or the first fraction (a float, at least 1) of the ranked drops.
 `drop_agreement` is the Spearman of salience and response over the drops above the median
@@ -83,12 +87,13 @@ variety (`variety`):
     similarity    `(i, cosine)` of track i's and track i + 1's vectors of time shares over every
                   `(dimension, value)` pair (each track's shares of its own signed time, the bars of a bridge section left
                   out); skipped when a track has no such bar
-    templates     `(distinct drop templates, number of drops)` of `drops`
+    templates     `(distinct drop templates, number of drops)` over the `drops` whose template
+                  is known
     phrase_share  among the leg bars with `X(b) > 0`, the share that start a map section or have
                   `(b - section start) % 4 == 0`; None without such bars
     usage         per track, the looks, colours (movers, matrix, hue; palette names), aims and
                   gestures its leg sections use (not `auto`, `off` or `none`), and the number of
-                  distinct drop templates of its drops
+                  distinct known drop templates of its drops
 
 arc (`arc`), the night against the owner's energy plan (`CompiledShow.energies`, 1-10):
     mean, p90     the mean and the 90th percentile (`numpy.percentile`, linear) of the night's
@@ -300,7 +305,7 @@ class Drop:
     change: int
     freshness: float | None
     response: float | None
-    template: tuple
+    template: tuple | None        # None: the autoscript at d or d - 1, or an unknown light at d
     holder: CompiledSection | None
 
 
@@ -352,10 +357,12 @@ def _bass(map_data: dict, bars: int) -> list[int]:
 def map_drops(maps: list[dict], clock: ShowClock) -> list[dict]:
     """The map-only part of `drops` (module docstring): for every map drop inside a track's
     sounding window, in set order, `{"index", "d", "loud", "bass", "density", "main", "salience"}`
-    with `loud_rise`, `bass_return`, `density_rise`, `main` and `S = 0.4 L^ + 0.3 bass_return +
-    0.2 D^ + 0.1 main` (`L^`, `D^`: divided by the night's largest, 0 when that is <= 0). A track
-    with no `mix` takes `loud_rise` from its track-scope E_music (the interim formula). `maps` are
-    the maps of the tracks in set order; no show is needed."""
+    with `loud_rise`, `bass_return`, `density_rise`, `main` (one per track: the drop with the
+    largest `loud_rise`, a tie to the later; the last drop when none rises above 0) and
+    `S = 0.4 L^ + 0.3 bass_return + 0.2 D^ + 0.1 main` (`L^`, `D^`: divided by the night's
+    largest, 0 when that is <= 0). A track with no `mix` takes `loud_rise` from its track-scope
+    E_music (the interim formula). `maps` are the maps of the tracks in set order; no show is
+    needed."""
     raw = []
     for i, (data, tc) in enumerate(zip(maps, clock.tracks)):
         mb = show_energy.music_bars(data)
@@ -377,9 +384,12 @@ def map_drops(maps: list[dict], clock: ShowClock) -> list[dict]:
             ret = max(0, bass[d - 1] - min(before)) / 9 if before else 0.0
             found.append({"index": i, "d": d, "loud": loud, "bass": ret,
                           "density": _rise(lambda b: mb[b - 1].density, d, len(mb))})
-        best = max((f["loud"] for f in found), default=0.0)
+        main = None
+        if found:
+            rising = [f for f in found if f["loud"] > 0]
+            main = max(rising, key=lambda f: (f["loud"], f["d"])) if rising else max(found, key=lambda f: f["d"])
         for f in found:
-            f["main"] = f["loud"] == best or f is found[-1]
+            f["main"] = f is main
             raw.append(f)
 
     def biggest(key: str) -> float:
@@ -415,9 +425,11 @@ def drops(show: CompiledShow, clock: ShowClock) -> list[Drop]:
         response = None
         if contrast is not None and fresh is not None:
             response = 0.5 * min(1.0, max(0.0, contrast / 4)) + 0.25 * change / 9 + 0.25 * fresh
+        template = None
+        if holder is not None and previous is not None and te.at("light", d) is not None:
+            template = (signature(previous, show.room, names), signature(holder, show.room, names))
         rows.append(Drop(t, i, track.track, d, f["loud"], f["bass"], f["density"], bool(f["main"]), s, 0,
-                         contrast, change, fresh, response,
-                         (signature(previous, show.room, names), signature(holder, show.room, names)), holder))
+                         contrast, change, fresh, response, template, holder))
     rows.sort(key=lambda r: (-r.salience, r.clock_s))
     for rank, row in enumerate(rows, 1):
         row.rank = rank
@@ -710,7 +722,7 @@ def variety(show: CompiledShow, clock: ShowClock) -> Variety:
         secs = sum(lb.seconds for lb in mine)
         vectors.append(_shares(mine, secs) if secs > 0 else {})
     similarity = [(i, c) for i in range(len(vectors) - 1) if (c := _cosine(vectors[i], vectors[i + 1])) is not None]
-    rows = drops(show, clock)
+    known = [r for r in drops(show, clock) if r.template is not None]
     usage = []
     for i, track in enumerate(show.tracks):
         used: dict[str, set[str]] = {d: set() for d in IDENTITY_DIMENSIONS}
@@ -721,9 +733,9 @@ def variety(show: CompiledShow, clock: ShowClock) -> Variety:
                            {"movers": sorted(used["movers.colour"]), "matrix": sorted(used["matrix.colour"]),
                             "hue": sorted(used["hue.colour"])},
                            sorted(used["aim"]), sorted(used["gesture"]),
-                           len({r.template for r in rows if r.index == i})))
+                           len({r.template for r in known if r.index == i})))
     return Variety(_static_runs(show, bars), _window(bars, total), dominance, similarity,
-                   (len({r.template for r in rows}), len(rows)), _phrase_share(show, clock, energy), usage)
+                   (len({r.template for r in known}), len(known)), _phrase_share(show, clock, energy), usage)
 
 
 # -------------------------------------------------------------------- arc --

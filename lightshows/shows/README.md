@@ -465,10 +465,10 @@ rules:
 | `signatures` | `true` | a signature declared under `identity:` has a measured time share below its `share.min` or above its `share.max` (the message gives the share and the bound). Points at the signature's line in `show.yml`. "cannot check" without a declared signature or a known light |
 | `static-run` | `{max_seconds: 30-600}` | one of the five longest runs of consecutive leg bars with the same light signature (it may cross a bridge or a leg) lasts more than `max_seconds`; the message gives the bars, the time and the map's section kinds under the run. Points at the run's first section. "cannot check" without a known light |
 | `neighbours-differ` | `{max_similarity: 0-1}` | the cosine similarity of two consecutive tracks' vectors of time shares over every (identity dimension, value) pair is above `max_similarity`; bridge sections are left out of the vectors. Points at the second track's arrival section, else its first. "cannot check" when no pair has a known light, and one finding names each pair skipped because a track has no signed bar |
-| `distinct-drops` | `{top: int >= 1, or 0 < float <= 1}` | among the `top` drops by salience (a count, or a fraction of the night's drops), ordered by the set clock, two consecutive ones have the same template (the signatures just before and at the drop). Points at the later drop's section. "cannot check" without drops |
+| `distinct-drops` | `{top: int >= 1, or 0 < float <= 1}` | among the `top` drops by salience (a count, or a fraction of the night's drops), ordered by the set clock, two consecutive ones have the same template (the signatures just before and at the drop). A pair with a drop whose template is unknown (the autoscript at the drop or the bar before it, or an unknown light at the drop) is skipped. Points at the later drop's section. "cannot check" without drops, with fewer than two top drops, or when no pair has two known templates |
 | `phrase-aligned` | `{min_share: 0-1}` | among the leg bars where the light changes (`X(b) > 0`), the share on a phrase line (a map section's start, or a multiple of 4 bars after it) is below `min_share`; the message lists the first five bars off the lines. Points at the rule's line in `show.yml`. "cannot check" when the light never changes |
 | `drop-contrast` | `{top: int >= 1, or 0 < float <= 1, min_change: 1-9}` | among the `top` drops by salience, a drop has a `contrast` (mean light energy over the drop's 4 bars minus the 2 bars before) that is not positive or unknown, or a `change` (`X(d)`, how many of the nine dimensions change at the drop) below `min_change`. Points at the drop's section. "cannot check" without drops |
-| `main-drop` | `true` | a track's main drop (its biggest loudness rise, else its last drop) has a lower `response` (`0.5 clip01(contrast / 4) + 0.25 change / 9 + 0.25 freshness`) than the best earlier drop of the same track; the message names that drop. Points at the main drop's section. "cannot check" without drops or without a main drop that has a response |
+| `main-drop` | `true` | a track's main drop (one per track: the drop with the biggest loudness rise, a tie to the later; its last drop when none rises above 0) has a lower `response` (`0.5 clip01(contrast / 4) + 0.25 change / 9 + 0.25 freshness`) than the best earlier drop of the same track; the message names that drop. Points at the main drop's section. "cannot check" without drops or without a main drop that has a response |
 | `follows-track` | `{min_rho?: -1..1, max_lag?: 0-8}`, at least one | per track, `rho` (Spearman of the music energy and the light energy over the leg's known bars) is below `min_rho`, or `abs(lag)` (the shift of the light in bars, positive is late, that best matches the music) is above `max_lag`; the message lists the missed boundaries (music change of 2 or more the light does not answer). Points at the section of the first missed boundary, else the track's first section. "cannot check" for a track whose asked measure is unknown (no known light; the lag needs 16 known bars) |
 | `follows-set` | `{min_rho?: -1..1, max_headroom?: 0-1}`, at least one | the night's `rho` (Spearman of the owner's energy digit and the light's mean energy per track) is below `min_rho`, or the `headroom` (the max p90 before the first track at the night's top energy, over the night's max p90) is above `max_headroom`. Points at the rule's line in `show.yml`. "cannot check" for a `rho` over fewer than 3 tracks, or an unknown headroom |
 
@@ -769,7 +769,8 @@ and, when the section before is total dark, the voices over those dark bars:
 - `loud`: the mean `mix.loudness` over `d..d+3` minus over `d-8..d-1` (a version 1 map: E_music);
 - `bass`: the bass's return, `max(0, bass digit at d - lowest bass digit over d-8..d-1) / 9`;
 - `density`: the same rise as `loud` on the onset density;
-- `main`: the track's drop with the largest loudness rise, or its last drop;
+- `main`: one drop per track, the one with the largest `loud` (a tie goes to the later drop);
+  the track's last drop when no drop's `loud` is above 0;
 - `L^` and `D^` divide by the night's largest rise (0 when none rises).
 
 Its light **response** is `0.5 clip01(contrast / 4) + 0.25 changes / 9 + 0.25 fresh`:
@@ -813,7 +814,8 @@ when the autoscript plays a bar the test needs.
 - **similarity**: the cosine of two neighbouring tracks' shares of every dimension value; the bars
   of a bridge section (the copy of a handover) are left out of both vectors.
 - **drop templates**: the distinct pairs (signature before the drop, signature at it) against
-  the number of drops.
+  the number of drops, both over the drops whose template is known: a drop has none when the
+  autoscript plays it or the bar before it, or when its light is unknown.
 - **phrase lines**: the share of the bars with a change event that start a map section or fall
   on a 4-bar line from one.
 - **uses**: per track, the looks, colours per zone, aims and gestures its legs use, and its
@@ -961,7 +963,9 @@ in order:
   (`i` intro, `g` groove, `b` break, `u` build, `d` drop, `o` outro).
 - `drops`: every drop in a sounding window, ranked by the salience of `drops` in the report
   (`S = 0.4 L^ + 0.3 bass_return + 0.2 D^ + 0.1 main`, from the maps alone; a tie goes to the
-  earlier on the clock), with its clock, bar and `main` mark.
+  earlier on the clock), with its clock, bar and `main` mark. A track sounds from its leg's
+  first bar to its map's last bar, so a drop at or after its `G`, played during the mix, is
+  listed, as in the report.
 - `target`: the owner's energy per minute, one character each (1-9, `X` is 10). A track's
   energy is its tracklist `eN`, else its pool `energy`, else its block's `energy: [a, b]`
   interpolated linearly by the track's position among the block's tracks (first track `a`, last

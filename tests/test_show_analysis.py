@@ -136,12 +136,22 @@ def test_drops_rank_by_salience():
     assert nine.loud_rise == pytest.approx(3) and nine.bass_return == 0 and nine.salience < best.salience
 
 
-def test_the_last_drop_of_a_track_is_main():
-    def tweak(data):
-        data["mix"]["loudness"] = "2" * 8 + "9" * 12 + "5" * 12          # the biggest rise is the first drop
-    show, clock = night(tweak=tweak)
-    rows = {(r.index, r.bar): r for r in sa.drops(show, clock)}
-    assert rows[(0, 9)].main and rows[(0, 21)].main                           # biggest, and last
+@pytest.mark.parametrize("loudness, main", [
+    ("2" * 8 + "9" * 12 + "5" * 12, 9),       # drop 9 rises by 7, drop 21 falls: the biggest, not the last
+    ("1" * 8 + "4" * 12 + "7" * 12, 21),      # both rise by 3: a tie goes to the later
+    ("9" * 8 + "7" * 12 + "2" * 12, 21),      # none rises (-2, -5): the last, not the largest
+    ("5" * 32, 21),                           # flat: the last
+])
+def test_a_track_has_one_main_drop(loudness, main):
+    src, inp = two_track_show()
+    for data in inp.maps.values():
+        v2(data, loudness=loudness)
+    show = compiled(src, inp)
+    rows = sa.analyse(show).drops
+    assert sorted((r.index, r.bar) for r in rows) == [(0, 9), (0, 21), (1, 9), (1, 21)]
+    assert sorted((r.index, r.bar) for r in rows if r.main) == [(0, main), (1, main)]
+    assert [f["main"] for f in sa.map_drops([t.map for t in show.tracks], sa.analyse(show).clock)] == \
+        [main == 9, main == 21] * 2
 
 
 def test_only_the_biggest_or_last_drop_is_main():
@@ -186,7 +196,37 @@ def test_freshness_is_low_for_a_repeated_look():
     rows = {(r.index, r.bar): r for r in sa.drops(show, clock)}
     assert rows[(0, 9)].freshness == 1.0                                        # nothing came before it
     assert rows[(1, 21)].freshness < 0.5                                        # `pulso` again, ten minutes at most
-    assert rows[(1, 21)].holder is not None and rows[(0, 9)].template[1] != rows[(0, 9)].template[0]
+    assert rows[(1, 21)].holder is not None and rows[(0, 21)].template[1] != rows[(0, 21)].template[0]
+
+
+def test_a_drop_on_the_autoscript_has_no_template():
+    # Dançarina's bar 8 is the autoscript (no section): its drop 9 has no template
+    show = compiled(*two_track_show())
+    analysis = sa.analyse(show)
+    rows = {(r.index, r.bar): r for r in analysis.drops}
+    assert rows[(0, 9)].template is None and rows[(0, 9)].holder is not None
+    assert all(rows[k].template is not None for k in ((0, 21), (1, 9), (1, 21)))
+    assert analysis.variety.templates == (3, 3)
+    assert [u.templates for u in analysis.variety.usage] == [1, 2]
+
+    def hue_auto(src):                  # Dançarina's virada leaves the lustre to the autoscript
+        src.track_files[FILE_1]["cues"][2]["look"]["hue"] = "auto"
+    src, inp = two_track_show()
+    hue_auto(src)
+    show = compiled(src, inp)
+    rows = {(r.index, r.bar): r for r in sa.analyse(show).drops}
+    assert rows[(0, 21)].holder is not None and sa.analyse(show).energy[0].at("light", 21) is None
+    assert rows[(0, 21)].template is None and rows[(1, 21)].template is not None
+
+    src, inp = two_track_show()
+    for entry in src.track_files.values():
+        entry["cues"] = []
+        entry.pop("handover", None)
+    src.show.pop("handover", None)
+    src.show.pop("bridge", None)
+    analysis = sa.analyse(compiled(src, inp))
+    assert len(analysis.drops) == 4 and all(r.template is None for r in analysis.drops)
+    assert analysis.variety.templates == (0, 0)
 
 
 def test_response_adds_contrast_change_and_freshness():
