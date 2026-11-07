@@ -449,7 +449,8 @@ def test_advice_runs_rules_without_failing():
 def test_advice_parameters_are_checked():
     assert source_findings(*show(advice={"bridgez": {}})) == [
         (SHOW_PATH, 51, "show-source",
-         "advice.bridgez: unknown rule 'bridgez'; rules: arrivals, bridges, budget, distinct-drops, exclusive, matrix-not-cloned, "
+         "advice.bridgez: unknown rule 'bridgez'; rules: arrivals, bridges, budget, distinct-drops, drop-contrast, exclusive, follows-set, "
+         "follows-track, main-drop, matrix-not-cloned, "
          "movers-aim, neighbours-differ, phrase-aligned, signatures, static-run, total-dark; did you mean 'bridges'?")]
     found = source_findings(*show({"bridges": {"max": 16}}, advice={"bridges": {"max": 40}, "budget": {"nada": {}}}))
     assert found == [
@@ -474,7 +475,8 @@ def test_advice_parameters_are_checked():
 def test_unknown_rule_id_and_bad_params():
     assert source_findings(*show({"budjet": True})) == [
         (SHOW_PATH, 40, "show-source",
-         "rules.budjet: unknown rule 'budjet'; rules: arrivals, bridges, budget, distinct-drops, exclusive, matrix-not-cloned, "
+         "rules.budjet: unknown rule 'budjet'; rules: arrivals, bridges, budget, distinct-drops, drop-contrast, exclusive, follows-set, "
+         "follows-track, main-drop, matrix-not-cloned, "
          "movers-aim, neighbours-differ, phrase-aligned, signatures, static-run, total-dark; did you mean 'budget'?")]
     found = source_findings(*show({
         "total-dark": {"only": ["breu"]},
@@ -509,9 +511,9 @@ def test_unknown_rule_id_and_bad_params():
 
 
 def test_every_rule_documents_itself():
-    assert sorted(RULES) == ["arrivals", "bridges", "budget", "distinct-drops", "exclusive", "matrix-not-cloned",
-                             "movers-aim", "neighbours-differ", "phrase-aligned", "signatures", "static-run",
-                             "total-dark"]
+    assert sorted(RULES) == ["arrivals", "bridges", "budget", "distinct-drops", "drop-contrast", "exclusive",
+                             "follows-set", "follows-track", "main-drop", "matrix-not-cloned", "movers-aim",
+                             "neighbours-differ", "phrase-aligned", "signatures", "static-run", "total-dark"]
     for name, rule in RULES.items():
         assert rule.name == name and rule.doc and rule.params and "\n" not in rule.params
         assert callable(rule.check) and callable(rule.fn)
@@ -697,6 +699,166 @@ def test_identity_and_monotony_parameters():
         assert evaluate_show(*show({"distinct-drops": {"top": ok}}))[0] is not None
     assert evaluate_show(*show({"static-run": {"max_seconds": 30}, "neighbours-differ": {"max_similarity": 1},
                                 "phrase-aligned": {"min_share": 0}}))[0] is not None
+
+
+# ---------------------------------------------------- drops and energy --
+
+
+def drop_rows(**changes):
+    """A patch that sets `field=[values per drop, in rank order]` on the four drops of the base show
+    (Dançarina 9 and 21, Voa Voa 9 and 21)."""
+    def patch(a, compiled):
+        for field, values in changes.items():
+            for d, value in zip(a.drops, values):
+                setattr(d, field, value)
+    return patch
+
+
+def test_drop_contrast_reports_a_drop_without_contrast_or_change():
+    patch = drop_rows(contrast=[None, 3.0, 0.0, 4.5], change=[9, 8, 1, 7])
+    compiled, found = analysed({"drop-contrast": {"top": 3, "min_change": 2}}, patch=patch)
+    first = compiled.tracks[0].sections[0].origin
+    second = next(s for s in compiled.tracks[1].sections if s.bars == (9, 16)).origin
+    assert found == [
+        (first.path, first.line, "drop-contrast: Dançarina 9 (top drop 1) has no known contrast and 9 changes, "
+                                 "min 2"),
+        (second.path, second.line, "drop-contrast: Voa Voa (Ao Vivo) 9 (top drop 3) has contrast 0.0 and 1 change, "
+                                   "min 2")]
+    assert analysed({"drop-contrast": {"top": 0.5, "min_change": 8}}, patch=patch)[1] == [
+        (first.path, first.line, "drop-contrast: Dançarina 9 (top drop 1) has no known contrast and 9 changes, "
+                                 "min 8")]
+
+
+def test_drop_contrast_passes_and_cannot_check_without_drops():
+    patch = drop_rows(contrast=[1.0, 3.0, 0.5, 4.5], change=[9, 8, 2, 7])
+    assert analysed({"drop-contrast": {"top": 4, "min_change": 2}}, patch=patch)[1] == []
+
+    def none(a, compiled):
+        a.drops = []
+    assert analysed({"drop-contrast": {"top": 4, "min_change": 2}}, patch=none)[1] == [
+        (SHOW_PATH, RULES_LINE + 1, "drop-contrast: cannot check: the night has no drops")]
+
+
+def test_main_drop_must_answer_at_least_as_well_as_an_earlier_drop():
+    # Voa Voa: drop 9 answers 0.52, its main drop 21 answers 0.31
+    patch = drop_rows(main=[False, True, False, True], response=[0.1, 0.8, 0.52, 0.31])
+    compiled, found = analysed({"main-drop": True}, patch=patch)
+    holder = compiled.tracks[1].sections[-1].origin
+    assert found == [(holder.path, holder.line,
+                      "main-drop: Voa Voa (Ao Vivo)'s main drop 21 answers 0.31, below its drop 9 (0.52)")]
+    equal = drop_rows(main=[False, True, False, True], response=[0.1, 0.8, 0.31, 0.31])
+    assert analysed({"main-drop": True}, patch=equal)[1] == []
+    first_is_main = drop_rows(main=[True, False, True, False], response=[0.1, 0.9, 0.1, 0.9])
+    assert analysed({"main-drop": True}, patch=first_is_main)[1] == []        # nothing earlier
+
+
+def test_main_drop_cannot_check_without_a_response():
+    def none(a, compiled):
+        a.drops = []
+    assert analysed({"main-drop": True}, patch=none)[1] == [
+        (SHOW_PATH, RULES_LINE, "main-drop: cannot check: the night has no drops")]
+    unknown = drop_rows(main=[True, True, True, True], response=[None, None, None, None])
+    assert analysed({"main-drop": True}, patch=unknown)[1] == [
+        (SHOW_PATH, RULES_LINE, "main-drop: cannot check: no main drop has a known response")]
+
+
+def set_follows(first=None, second=None):
+    def patch(a, compiled):
+        for f, given in zip(a.follows, (first, second)):
+            for key, value in (given or {}).items():
+                setattr(f, key, value)
+    return patch
+
+
+def test_follows_track_points_at_the_first_missed_boundary():
+    patch = set_follows({"rho": 0.12, "lag": 3, "missed": [sa.Boundary(19, 3.0, 0.0), sa.Boundary(21, 4.0, 0.0)]},
+                        {"rho": 0.8, "lag": 0})
+    compiled, found = analysed({"follows-track": {"min_rho": 0.3, "max_lag": 1}}, patch=patch)
+    section = compiled.tracks[0].sections[2].origin
+    assert found == [(section.path, section.line,
+                      "follows-track: Dançarina: rho 0.12, min 0.30; lag 3 bars, max 1; missed boundaries 19, 21")]
+    assert analysed({"follows-track": {"min_rho": 0.1}}, patch=patch)[1] == []
+    only_lag = analysed({"follows-track": {"max_lag": 2}}, patch=patch)[1]
+    assert [m for _, _, m in only_lag] == ["follows-track: Dançarina: lag 3 bars, max 2; missed boundaries 19, 21"]
+
+
+def test_follows_track_falls_back_to_the_first_section_and_checks_a_negative_lag():
+    patch = set_follows({"rho": 0.1, "lag": 0}, {"rho": 0.9, "lag": -2})
+    compiled, found = analysed({"follows-track": {"min_rho": 0.3, "max_lag": 1}}, patch=patch)
+    first = compiled.tracks[0].sections[0].origin
+    second = compiled.tracks[1].sections[0].origin
+    assert [(p, ln) for p, ln, _ in found][0] == (first.path, first.line)
+    assert found[0][2].startswith("follows-track: Dançarina: rho 0.10, min 0.30")
+    assert found[-1] == (second.path, second.line, "follows-track: Voa Voa (Ao Vivo): lag -2 bars, max 1")
+
+
+def test_follows_track_cannot_check_a_track_without_the_measure():
+    found = analysed({"follows-track": {"min_rho": 0.3, "max_lag": 1}})[1]
+    assert found == [
+        (SHOW_PATH, RULES_LINE + 1, "follows-track: cannot check Dançarina: no known rho or lag "
+                                    "(the light is unknown or too short)"),
+        (SHOW_PATH, RULES_LINE + 1, "follows-track: cannot check Voa Voa (Ao Vivo): no known rho or lag "
+                                    "(the light is unknown or too short)")]
+    partial = set_follows({"rho": 0.9, "lag": None}, {"rho": 0.9, "lag": 0})
+    assert analysed({"follows-track": {"min_rho": 0.3, "max_lag": 1}}, patch=partial)[1] == [
+        (SHOW_PATH, RULES_LINE + 1, "follows-track: cannot check Dançarina: no known lag "
+                                    "(the light is unknown or too short)")]
+
+
+def set_arc(**values):
+    def patch(a, compiled):
+        for key, value in values.items():
+            setattr(a.arc, key, value)
+    return patch
+
+
+def test_follows_set_reports_rho_and_headroom():
+    found = analysed({"follows-set": {"min_rho": 0.5, "max_headroom": 0.8}}, patch=set_arc(rho=0.21, headroom=0.95))[1]
+    assert found == [(SHOW_PATH, RULES_LINE + 1,
+                      "follows-set: rho 0.21 between the owner's energy and the light per track, min 0.50; "
+                      "headroom 0.95, max 0.80")]
+    only = analysed({"follows-set": {"max_headroom": 0.8}}, patch=set_arc(rho=0.21, headroom=0.95))[1]
+    assert [m for _, _, m in only] == ["follows-set: headroom 0.95, max 0.80"]
+    assert analysed({"follows-set": {"min_rho": 0.2, "max_headroom": 0.95}},
+                    patch=set_arc(rho=0.21, headroom=0.95))[1] == []
+
+
+def test_follows_set_cannot_check_without_the_measure():
+    found = analysed({"follows-set": {"min_rho": 0.5, "max_headroom": 0.8}}, patch=set_arc(rho=None, headroom=None))[1]
+    assert found == [
+        (SHOW_PATH, RULES_LINE + 1, "follows-set: cannot check rho: fewer than 3 tracks have an owner's energy "
+                                    "and a known light"),
+        (SHOW_PATH, RULES_LINE + 1, "follows-set: cannot check headroom: no track has an owner's energy and a "
+                                    "known p90")]
+
+
+def test_drop_and_follows_parameters():
+    for bad in (0, -1, 1.5, True, "3"):
+        assert source_findings(*show({"drop-contrast": {"top": bad, "min_change": 2}}))[0][3].startswith(
+            "rules.drop-contrast: top")
+    for bad in (0, 10, 2.0, True):
+        assert source_findings(*show({"drop-contrast": {"top": 3, "min_change": bad}}))[0][3].startswith(
+            "rules.drop-contrast: min_change")
+    assert source_findings(*show({"drop-contrast": {"top": 3}}))[0][3] == "rules.drop-contrast: missing key min_change"
+    assert source_findings(*show({"main-drop": {"a": 1}}))[0][3].startswith("rules.main-drop: {'a': 1} is not true")
+    assert source_findings(*show({"follows-track": {}}))[0][3] == (
+        "rules.follows-track: give at least one of min_rho, max_lag")
+    assert source_findings(*show({"follows-set": {}}))[0][3] == (
+        "rules.follows-set: give at least one of min_rho, max_headroom")
+    for bad in (-1.1, 1.1, True, "0.5"):
+        assert source_findings(*show({"follows-track": {"min_rho": bad}}))[0][3].startswith(
+            "rules.follows-track: min_rho")
+        assert source_findings(*show({"follows-set": {"min_rho": bad}}))[0][3].startswith("rules.follows-set: min_rho")
+    for bad in (-1, 9, 1.5, True):
+        assert source_findings(*show({"follows-track": {"max_lag": bad}}))[0][3].startswith(
+            "rules.follows-track: max_lag")
+    for bad in (-0.1, 1.1, True):
+        assert source_findings(*show({"follows-set": {"max_headroom": bad}}))[0][3].startswith(
+            "rules.follows-set: max_headroom")
+    assert source_findings(*show({"follows-set": 3}))[0][3].startswith("rules.follows-set: 3 is not a mapping")
+    assert evaluate_show(*show({"drop-contrast": {"top": 0.5, "min_change": 1}, "main-drop": True,
+                                "follows-track": {"min_rho": -1, "max_lag": 8},
+                                "follows-set": {"min_rho": 1, "max_headroom": 0}}))[0] is not None
 
 
 # ---------------------------------------------------------------- evaluate --
