@@ -342,6 +342,10 @@ uv run scripts/nextrack_map.py analyze "Artist — Title"
 uv run scripts/nextrack_map.py analyze --playlist 1-hi-ibiza-lightshow
 uv run scripts/nextrack_map.py analyze F41EB9E9 --force --device cpu --keep-stems /tmp/stems
 
+# add the version 2 mix block to existing maps, from their audio (no separation)
+uv run scripts/nextrack_map.py upgrade "Artist — Title"
+uv run scripts/nextrack_map.py upgrade --all
+
 # reread the hot cues from rekordbox into existing maps (no audio)
 uv run scripts/nextrack_map.py cues --playlist 1-hi-ibiza-lightshow
 
@@ -365,6 +369,14 @@ uv run scripts/nextrack_map.py timeline --playlist 1-hi-ibiza-lightshow --block 
   [Known limits](#known-limits)). `--keep-stems DIR` also writes the four stems (FLAC) under
   `DIR/<slug>/`; without it they live in memory only. A refused track makes the exit status 1,
   and the playlist run goes on.
+- **`upgrade <track>`, `upgrade --playlist NAME` or `upgrade --all`** (exactly one; needs
+  `--root`): brings version 1 maps to version 2 without the stem separation. It reads the map
+  and the audio file, adds `mix` (computed on the map's own bar grid) and sets
+  `map_version: 2`; every other line is written as it was. A version 2 map is `kept`. It is
+  refused when there is no map (`no map: run analyze`) or when the audio's hash is not the
+  map's (`the audio changed since the map was made: re-analyse with analyze --force`). `--all`
+  takes every map under `lightshows/maps/` and finds its track by the map's `soundswitch`
+  GUID. It needs only `--root`, not the separator, so it runs without the `analysis` group.
 - **`cues <track>` or `cues --playlist NAME`**: rewrites only the `hot_cues` lines of existing
   maps from rekordbox, leaving the rest of the file untouched. A map that does not parse or
   breaks the schema is refused (`unreadable map …`: rebuild it with `analyze --force`), and so
