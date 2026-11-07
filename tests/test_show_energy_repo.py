@@ -43,7 +43,6 @@ def test_hi_ibiza_drops_after_a_break_rise_in_music_energy(night):
     rising = []
     for track, te in zip(show.tracks, energies):
         sections = track.map["sections"]
-        kinds = {s["bars"][0]: s["kind"] for s in sections}
         for i, section in enumerate(sections):
             if section["kind"] != "drop" or i == 0 or sections[i - 1]["kind"] not in ("break", "build"):
                 continue
@@ -53,6 +52,5 @@ def test_hi_ibiza_drops_after_a_break_rise_in_music_energy(night):
             if None in before or None in after:
                 continue
             rising.append(mean(after) > mean(before))
-        assert kinds
     assert rising, "no drop follows a break or build"
     assert sum(rising) / len(rising) >= 0.80

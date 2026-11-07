@@ -10,7 +10,7 @@ import show_energy as se
 import show_views as sv
 import show_zoom as sz
 from show_language import compile_show
-from showdata import FILE_1, FILE_2, show_map, two_track_show
+from showdata import FILE_1, two_track_show
 
 STEPS = 16
 
@@ -50,7 +50,7 @@ def _two_level_map():
     data = good_map(16, version=2)
     data["mix"] = {"loudness": "2" * 8 + "9" * 8, "brightness": "5" * 16}
     for voice, entry in data["voices"].items():
-        entry["bars"] = ("6" + "0" * 0) * 0 + ("6" if voice == "kick" else "0") * 8 + ("7" if voice != "bass" else "0") * 8
+        entry["bars"] = ("6" if voice == "kick" else "0") * 8 + ("7" if voice != "bass" else "0") * 8
     data["voices"]["bass"]["bars"] = "0" * 8 + "7" * 8
     data["voices"]["perc"]["bars"] = "0" * 8 + "7" * 8
     return data
@@ -125,6 +125,17 @@ def test_an_unknown_before_counts_no_rise():
     assert se.light_bars(lit, before=auto)[0].activity == se.light_bars(lit)[0].activity == 0.0
 
 
+def test_a_bar_after_an_autoscript_bar_counts_no_rise_on_its_first_step():
+    auto = [sz.StepLight(0, (None, None), (None, None), (None, None), None, False, None)] * STEPS
+    lit = bar_of(*[step(movers=(1.0, 1.0), units=(1.0, 1.0), hue=1.0)] * 4)
+    bars = se.light_bars(auto + lit)
+    assert bars[0] == se.BarLight(None, None)
+    # movers, Vorlanes and lustre light up on the first step, after an unknown sample: no rise
+    assert bars[1].activity == 0.0
+    assert bars[1].brightness == pytest.approx((0.35 + 0.35 + 0.15) * 4 / 16)
+    assert se.light_bars(auto + lit, before=step())[1].activity == 0.0
+
+
 def test_an_auto_layer_makes_the_bar_unknown():
     auto = bar_of(step(), step(hue=None))
     assert se.light_bars(auto)[0] == se.BarLight(None, None)
@@ -189,11 +200,14 @@ def test_a_leg_first_bar_is_not_a_rise_from_the_autoscript():
     src, inp = two_track_show()
     show = compiled(src, inp)
     clock = sv.build_clock(show)
-    second = se.night_energy(show, clock)[1]
+    first, second = se.night_energy(show, clock)
     b = clock.tracks[1].leg[0]
-    assert b == 5 and second.at("activity", b) is not None
-    # the bridge carries the previous track's look on, so B lights less than it did from the autoscript
-    assert second.at("activity", b) < second.at("activity", b + 1)
+    # the bridge carries the previous track's look on: B reads Dançarina's last leg sample, not
+    # Voa Voa's autoscript bar 4, so it rises a little less than the bar after it
+    assert b == 5 and [second.at("activity", x) for x in (b, b + 1)] == [8, 9]
+    # Dançarina's bar 9 follows its autoscript bar 8: its first step is no rise
+    assert [first.at("activity", x) for x in (8, 9, 10)] == [None, 0, 1]
+    assert [first.at("light", x) for x in (8, 9, 10)] == [None, 1, 2]
 
 
 def test_a_v2_map_is_not_interim():
@@ -203,4 +217,3 @@ def test_a_v2_map_is_not_interim():
         data["mix"] = {"loudness": "5" * 32, "brightness": "5" * 32}
     show = compiled(src, inp)
     assert [t.interim for t in se.night_energy(show, sv.build_clock(show))] == [False, False]
-    assert show_map(32)["bars"] == 32 and FILE_2
