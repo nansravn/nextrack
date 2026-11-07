@@ -8,7 +8,7 @@ Run folder: `{{run}}`. Write your full report to `{{report_file}}`.
 
 ## What to read
 
-- The output of `uv run scripts/nextrack_show.py vocab` (the words that exist now).
+- Run `uv run scripts/nextrack_show.py vocab` yourself (the words that exist now).
 - `scripts/show_gestures.py`, `tests/test_show_gestures.py` and the gestures table of
   `lightshows/shows/README.md`.
 

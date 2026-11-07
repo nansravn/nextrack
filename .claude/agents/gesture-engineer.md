@@ -10,9 +10,9 @@ you the requested effect in words; you do not design shows and you never touch o
 
 ## Work from your brief
 
-Your brief file has the effect in words, the output of
-`uv run scripts/nextrack_show.py vocab`, and the files to read: `scripts/show_gestures.py`,
-`tests/test_show_gestures.py` and the gestures table of `lightshows/shows/README.md`.
+Your brief file has the effect in words and the files to read: `scripts/show_gestures.py`,
+`tests/test_show_gestures.py` and the gestures table of `lightshows/shows/README.md`. Run
+`uv run scripts/nextrack_show.py vocab` yourself to see the words that exist.
 
 Follow the "Add a gesture" checklist of the repo's `CLAUDE.md`, in this order:
 

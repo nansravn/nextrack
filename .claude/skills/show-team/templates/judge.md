@@ -7,8 +7,8 @@ Write your full report to `{{report_file}}`.
 - A: `{{variant_a}}`
 - B: `{{variant_b}}`
 
-Do not open `ledger.md` or the run folder's designer reports; you judge what the versions
-do, not why they were made. Never run `book`.
+Do not open `ledger.md`, the run folder's designer reports or other critics' reports; you judge what the versions
+do, not why they were made. Never run `book`. Build only with `--out` into a scratch folder made with `mktemp -d`.
 
 ## Against what
 

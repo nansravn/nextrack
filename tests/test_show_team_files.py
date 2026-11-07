@@ -173,3 +173,15 @@ def test_the_reader_and_engineer_templates_name_their_inputs():
     assert "## Cartões" in template_text("reader")
     engineer = template_text("engineer")
     assert "{{effect}}" in engineer and "Add a gesture" in engineer
+
+
+def test_templates_match_their_agents():
+    assert "{{request}}" in template_text("designer")
+    assert "owner's request" in load("show-designer")[1]
+    assert "3 design rounds" in template_text("designer")
+    judge = template_text("judge")
+    assert "--out" in judge and "other critics' reports" in judge
+    assert "critic-out" not in template_text("critic")
+    assert "mktemp -d" in template_text("critic")
+    assert "yourself" in template_text("engineer")
+    assert "yourself" in load("gesture-engineer")[1]

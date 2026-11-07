@@ -20,7 +20,7 @@ tested.
 The show at `{{show}}`, the light plan `lightshows/sets/{{show_id}}.md` with its cards, and
 the views your lens lists: `uv run scripts/nextrack_show.py report {{show}} [--track T]
 [--section a,b]`, `zoom`, `brief {{set}}`, `compare`, `vocab`. Build only with `--out` into
-`{{run}}/critic-out/{{lens}}`.
+a scratch folder outside the run folder, made with `mktemp -d`.
 
 ## What not to read
 
