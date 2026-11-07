@@ -547,6 +547,200 @@ def bridges(show: CompiledShow, params: dict) -> list[ShowFinding]:
     return out
 
 
+# ------------------------------------------- identity and monotony rules --
+# These read `show_analysis.analyse` (the energy series and the measures on them), imported inside
+# each rule: show_analysis imports show_views, which imports this module.
+
+
+def _is_number(value: object) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def _check_signatures(params: object, show: dict) -> list[str]:
+    if params is True:
+        return []
+    return [f"{_shown(params)} is not true: signatures has no parameters; remove it from rules to not run it"]
+
+
+def _check_one_key(key: str, ok: Callable[[object], bool], shape: str, wanted: str) -> Callable[[object, dict], list[str]]:
+    """A `check` for a rule whose only parameter is `key`: a mapping `{key: value}`, `ok(value)`."""
+    def check(params: object, show: dict) -> list[str]:
+        if not isinstance(params, dict):
+            return [f"{_shown(params)} is not a mapping {shape}"]
+        out = [] if key in params else [f"missing key {key}"]
+        if key in params and not ok(params[key]):
+            out.append(f"{key} {_shown(params[key])} is not {wanted}")
+        return out + _unexpected(params, (key,))
+    return check
+
+
+_check_static_run = _check_one_key("max_seconds", lambda v: _is_int(v) and 30 <= v <= 600,
+                                   "{max_seconds: 30-600}", "a whole number of seconds from 30 to 600")
+_check_neighbours = _check_one_key("max_similarity", lambda v: _is_number(v) and 0 <= v <= 1,
+                                   "{max_similarity: 0-1}", "a number from 0 to 1")
+_check_phrase = _check_one_key("min_share", lambda v: _is_number(v) and 0 <= v <= 1,
+                               "{min_share: 0-1}", "a number from 0 to 1")
+_check_distinct = _check_one_key("top", lambda v: (_is_int(v) and v >= 1) or (isinstance(v, float) and 0 < v <= 1),
+                                 "{top: count or fraction}", "a whole number from 1 or a fraction above 0 up to 1")
+
+
+def _rule_origin(show: CompiledShow, name: str) -> tuple[str, int]:
+    """Where a finding about the rule itself points: its line in show.yml (`rules`, else `advice`)."""
+    line = show.rule_lines.get(("rules", name)) or show.rule_lines.get(("advice", name)) or 0
+    return f"{show.folder.rstrip('/')}/show.yml", line
+
+
+def _at_rule(show: CompiledShow, name: str, message: str) -> ShowFinding:
+    path, line = _rule_origin(show, name)
+    return ShowFinding(path, line, RULE_ID, f"{name}: {message}")
+
+
+def _unknown_light(analysis) -> bool:
+    """True when no leg bar of the night has a known light (the autoscript plays everywhere)."""
+    return not any(te.at("light", b) is not None
+                   for te, tc in zip(analysis.energy, analysis.clock.tracks) for b in range(tc.leg[0], tc.leg[1] + 1))
+
+
+def _percent(share: float) -> str:
+    return f"{round(share * 100)}%"
+
+
+def _clock(seconds: float) -> str:
+    whole = round(seconds)
+    return f"{whole // 60}:{whole % 60:02d}"
+
+
+@show_rule("signatures", params="true", check=_check_signatures)
+def signatures(show: CompiledShow, params: object) -> list[ShowFinding]:
+    """The night keeps the identity it declared.
+
+    A signature of `identity:` whose measured time share (`show_analysis.identity`) is below its
+    `share.min` or above its `share.max`. The finding points at the signature's line in
+    show.yml. With no declared signature, or no known light on any bar, it says it cannot check."""
+    from show_analysis import analyse
+
+    analysis = analyse(show)
+    if not analysis.identity.signatures:
+        return [_at_rule(show, "signatures", "cannot check: the show declares no identity signatures")]
+    if _unknown_light(analysis):
+        return [_at_rule(show, "signatures", "cannot check: no light is known on any bar of the night")]
+    path = f"{show.folder.rstrip('/')}/show.yml"
+    out = []
+    for check in analysis.identity.signatures:
+        if check.ok:
+            continue
+        low = check.min is not None and check.share < check.min
+        bound = f"min {_percent(check.min)}" if low else f"max {_percent(check.max)}"
+        out.append(ShowFinding(path, show.rule_lines.get(("identity", check.name), 0), RULE_ID,
+                               f"signatures: {check.name} holds {_percent(check.share)} of the night, {bound}"))
+    return out
+
+
+@show_rule("static-run", params="{max_seconds: 30-600}", check=_check_static_run)
+def static_run(show: CompiledShow, params: dict) -> list[ShowFinding]:
+    """No run of one identical light lasts longer than `max_seconds`.
+
+    A run of consecutive leg bars with the same light signature (`show_analysis.variety`'s
+    `static_runs`, the five longest; a run may cross a leg) lasts more than `max_seconds`. The
+    finding points at the run's first section, and names the map's section kinds under it. With
+    no known light it says it cannot check."""
+    from show_analysis import analyse
+    from show_energy import _section_at
+
+    analysis = analyse(show)
+    if _unknown_light(analysis):
+        return [_at_rule(show, "static-run", "cannot check: no light is known on any bar of the night")]
+    out = []
+    for run in analysis.variety.static_runs:
+        if run.seconds <= params["max_seconds"]:
+            continue
+        track = show.tracks[run.index]
+        section = _section_at(track, run.bars[0])
+        origin = section.origin if section is not None else None
+        music = f" (music: {run.music.replace('+', ', ')})" if run.music else ""
+        message = (f"static-run: {_title(run.track)} {run.bars[0]}-{run.bars[1]} holds one light for "
+                   f"{_clock(run.seconds)}, max {_clock(params['max_seconds'])}{music}")
+        out.append(_finding(origin, message) if origin is not None else _at_rule(show, "static-run", message[11:]))
+    return out
+
+
+@show_rule("neighbours-differ", params="{max_similarity: 0-1}", check=_check_neighbours)
+def neighbours_differ(show: CompiledShow, params: dict) -> list[ShowFinding]:
+    """Two consecutive tracks do not look alike.
+
+    The cosine similarity of two consecutive tracks' vectors of time shares over every
+    `(dimension, value)` pair (`show_analysis.variety`'s `similarity`) is above `max_similarity`.
+    The finding points at the second track's arrival section, else its first section. With no
+    pair of tracks that both have a known light it says it cannot check."""
+    from show_analysis import analyse
+
+    pairs = analyse(show).variety.similarity
+    if not pairs:
+        return [_at_rule(show, "neighbours-differ",
+                         "cannot check: fewer than two consecutive tracks have a known light")]
+    out = []
+    for i, cosine in pairs:
+        if cosine <= params["max_similarity"]:
+            continue
+        first, second = show.tracks[i], show.tracks[i + 1]
+        sections = [s for s in second.sections if s.origin.kind != "echo"]
+        section = next((s for s in sections if s.origin.role == "arrival"), sections[0] if sections else None)
+        message = (f"neighbours-differ: {_title(second.track)} looks like {_title(first.track)} "
+                   f"(similarity {cosine:.2f}, max {params['max_similarity']:g})")
+        out.append(_finding(section.origin, message) if section is not None
+                   else _at_rule(show, "neighbours-differ", message[19:]))
+    return out
+
+
+@show_rule("distinct-drops", params="{top: count or fraction}", check=_check_distinct)
+def distinct_drops(show: CompiledShow, params: dict) -> list[ShowFinding]:
+    """The top drops do not repeat the same light.
+
+    Take the `top` drops by salience (`show_analysis.top`: a count, or a fraction of the night's
+    drops), order them by the set clock, and compare each with the next: two with the same
+    template (the signatures just before and at the drop) are a finding at the later drop's
+    holder section. A drop whose light is unknown (no template) is skipped. With no drops it
+    says it cannot check."""
+    from show_analysis import analyse, top
+
+    rows = analyse(show).drops
+    if not rows:
+        return [_at_rule(show, "distinct-drops", "cannot check: the night has no drops")]
+    chosen = sorted(top(rows, params["top"]), key=lambda d: d.clock_s)
+    out = []
+    for before, after in zip(chosen, chosen[1:]):
+        if None in before.template or None in after.template or before.template != after.template:
+            continue
+        message = (f"distinct-drops: {_title(after.track)} {after.bar} (top drop {after.rank}) repeats the light "
+                   f"of {_title(before.track)} {before.bar} (top drop {before.rank})")
+        out.append(_finding(after.holder.origin, message) if after.holder is not None
+                   else _at_rule(show, "distinct-drops", message[16:]))
+    return out
+
+
+@show_rule("phrase-aligned", params="{min_share: 0-1}", check=_check_phrase)
+def phrase_aligned(show: CompiledShow, params: dict) -> list[ShowFinding]:
+    """The light changes on the phrase lines.
+
+    Among the leg bars where the light changes (`X(b) > 0`), the share on a phrase line (the
+    start of a map section, or a multiple of 4 bars after it; `show_analysis.off_phrase_bars`)
+    is below `min_share`. The finding points at the rule's line in show.yml and lists the first
+    five bars off the lines. With no change at all it says it cannot check."""
+    from show_analysis import analyse, off_phrase_bars
+
+    analysis = analyse(show)
+    changed, off = off_phrase_bars(show, analysis.clock, analysis.energy)
+    if not changed:
+        return [_at_rule(show, "phrase-aligned", "cannot check: the light never changes on a known bar")]
+    share = (changed - len(off)) / changed
+    if share >= params["min_share"] - 1e-9:
+        return []
+    listed = ", ".join(f"{_title(show.tracks[i].track)} {b}" for i, b in off[:5])
+    more = f", and {len(off) - 5} more" if len(off) > 5 else ""
+    return [_at_rule(show, "phrase-aligned", f"{_percent(share)} of the light's changes are on phrase lines, "
+                                             f"min {_percent(params['min_share'])}; off the lines: {listed}{more}")]
+
+
 # --------------------------------------------------------------- the entry --
 
 

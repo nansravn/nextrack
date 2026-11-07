@@ -651,17 +651,26 @@ def _cosine(a: dict, b: dict) -> float | None:
     return sum(v * b.get(k, 0.0) for k, v in a.items()) / (na * nb)
 
 
-def _phrase_share(show: CompiledShow, clock: ShowClock, energy: list[TrackEnergy]) -> float | None:
-    changed = on_line = 0
-    for track, tc, te in zip(show.tracks, clock.tracks, energy):
+def off_phrase_bars(show: CompiledShow, clock: ShowClock, energy: list[TrackEnergy]) -> tuple[int, list[tuple[int, int]]]:
+    """The leg bars with `X(b) > 0`: how many there are, and the `(track index, bar)` of those
+    off a phrase line (that neither start a map section nor sit a multiple of 4 bars after its
+    start), in set order."""
+    changed = 0
+    off: list[tuple[int, int]] = []
+    for i, (track, tc, te) in enumerate(zip(show.tracks, clock.tracks, energy)):
         spans = [s["bars"] for s in _sections(track)]
         for b in range(tc.leg[0], tc.leg[1] + 1):
             if (te.at("changes", b) or 0) <= 0:
                 continue
             changed += 1
-            if any(a <= b <= z and (b - a) % 4 == 0 for a, z in spans):
-                on_line += 1
-    return on_line / changed if changed else None
+            if not any(a <= b <= z and (b - a) % 4 == 0 for a, z in spans):
+                off.append((i, b))
+    return changed, off
+
+
+def _phrase_share(show: CompiledShow, clock: ShowClock, energy: list[TrackEnergy]) -> float | None:
+    changed, off = off_phrase_bars(show, clock, energy)
+    return (changed - len(off)) / changed if changed else None
 
 
 def variety(show: CompiledShow, clock: ShowClock) -> Variety:
