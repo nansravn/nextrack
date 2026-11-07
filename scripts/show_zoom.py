@@ -571,13 +571,14 @@ class StepLight:
     white: float | None                   # the white strip's level
     strobe: bool | None                   # a strobe window lit at t
     hue: float | None                     # the lustre's level
+    cells: tuple[tuple[bool, ...], ...] = ()   # each Vorlane's colour cells lit at t, in `COLOUR_CELLS` order; () where auto
 
 
 def sample_light(track: CompiledTrack, first: int, last: int, rig: lightshow.Rig | None,
                  room: show_room.Room | None) -> list[StepLight]:
     """One `StepLight` per 1/16 step of bars `first`..`last` (16 per bar), at `sample_times`,
     from the same lanes `render_zoom` draws. A Vorlane's `coverage` is the share of its
-    `COLOUR_CELLS` lit (level above 0) at `t`; `strobe` is True when a window writes a level
+    `COLOUR_CELLS` lit (level above 0) at `t` (`cells` holds each cell's flag); `strobe` is True when a window writes a level
     above 0, False for a strobe that is `off`. A step no section holds is all None. `rig` None
     takes the house rig, as `render_zoom` does. [] when the map has no tempo anchors."""
     grid = _grid(track.map)
@@ -597,10 +598,11 @@ def sample_light(track: CompiledTrack, first: int, last: int, rig: lightshow.Rig
                 out.append(StepLight(t, (None,) * ctx.movers, (None,) * ctx.units, (None,) * ctx.units,
                                      None, None, None))
                 continue
-            cover = []
+            cover, cells = [], []
             for u in range(ctx.units):
                 lit = [lt.cell(u, cell, t) for cell in COLOUR_CELLS]
                 cover.append(None if None in lit else sum(lit) / len(lit))
+                cells.append(None if None in lit else tuple(lit))
             window = lt.strobe_at(t)
             out.append(StepLight(
                 t,
@@ -609,7 +611,8 @@ def sample_light(track: CompiledTrack, first: int, last: int, rig: lightshow.Rig
                 tuple(cover),
                 lt.white.at(t) if lt.white is not None else None,
                 None if lt.strobe is None else window is not None and window.at(t) > 0,
-                lt.hue.at(t) if lt.hue is not None else None))
+                lt.hue.at(t) if lt.hue is not None else None,
+                () if None in cells else tuple(cells)))
     return out
 
 
