@@ -1,5 +1,5 @@
 """The set brief (show_brief.py) on the mini repo's set: two tracks, two maps, no show needed."""
-from pathlib import Path
+import pytest
 
 import check_repo
 import musical_map
@@ -66,14 +66,21 @@ def _title_bar(row: str) -> tuple[str, int]:
     return title, int(bar)
 
 
-def test_hi_ibiza_brief_ranks_the_drops_the_report_ranks():
+@pytest.fixture(scope="module")
+def hi_ibiza():
+    """The real Hï Ibiza set's brief and its show's analysis."""
     repo = load_repo(REPO_ROOT)
-    rows = part(show_brief.render_brief(repo, "sets/hi-ibiza-pulso.md"), "drops")
     errors: list = []
     source = check_repo.load_show_folder(REPO_ROOT, REPO_ROOT / check_repo.SHOWS_DIR / "hi-ibiza-pulso", errors)
     show, found = show_language.compile_show(source, check_repo.show_inputs(repo, source))
     assert show is not None and not errors, found
-    drops = show_analysis.analyse(show).drops
+    return show_brief.render_brief(repo, "sets/hi-ibiza-pulso.md"), show_analysis.analyse(show)
+
+
+def test_hi_ibiza_brief_ranks_the_drops_the_report_ranks(hi_ibiza):
+    text, analysis = hi_ibiza
+    rows = part(text, "drops")
+    drops = analysis.drops
     assert len(rows) == len(drops) == 35
     assert [_title_bar(r) for r in rows] == [(d.track.split(" — ", 1)[-1], d.bar) for d in drops]
     assert ("PICK UP THE PHONE (feat. Nate Dogg) (Extended)", 137) in [_title_bar(r) for r in rows]
@@ -146,9 +153,12 @@ def test_brief_track_without_energy_takes_the_block_range(mini_repo):
     assert set(strip_energy(mini_repo)) <= set("78")
 
 
-def test_brief_labels_section_lists_the_questions(mini_repo):
+def test_brief_labels_section_lists_the_questions(mini_repo, hi_ibiza):
     put_show(mini_repo)
     assert part(brief(mini_repo), "labels") == ["  none"]      # two tracks cannot differ by three places
-    real = show_brief.render_brief(load_repo(Path(__file__).resolve().parents[1]), "sets/hi-ibiza-pulso.md")
-    questions = part(real, "labels")
-    assert questions and all("check the label" in q and "owner energy e" in q for q in questions)
+    text, analysis = hi_ibiza
+    questions = part(text, "labels")
+    assert questions == [f"  {q}" for q in analysis.arc.labels]      # the report asks the same questions
+    assert all(", measured music ranks " in q and ", BPM ranks " in q and q.endswith(": check the label")
+               for q in questions)
+    assert "  The Akan: owner energy e6 ranks 13.5, measured music ranks 1, BPM ranks 14: check the label" in questions

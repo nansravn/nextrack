@@ -28,7 +28,8 @@ The text has six parts, in this order, each under its header line:
               and after the last, read at the middle of each minute and rounded half up; 1-9
               are digits, 10 is `X`
     labels    the label check's questions (`show_analysis._label_questions`: owner energy rank
-              against measured `E_music` rank, three places apart or more); never a fix
+              against measured `E_music` rank, three places apart or more, with the BPM rank,
+              the mean played tempo of the leg, beside them); never a fix
     missing   a track with no map (or an invalid one), a v1 map (its `E_music` uses the
               interim formula), a hot cue `B` (not the first track) or `G` (not the last)
               that the clock needs, and a track the clock leaves out
@@ -168,7 +169,7 @@ def render_brief(repo: check_repo.Repo, set_rel: str) -> str:
         e_music = show_energy.music_energy(leg, night) if leg else []
         mean = sum(e_music) / len(e_music) if e_music else None
         p90 = float(np.percentile(e_music, 90)) if e_music else None
-        music.append((r["name"], r["owner"], mean))
+        music.append((r["name"], r["owner"], mean, sum(tc.tempo) / 2))
         b, g = show_views._cue_bar(data, "B"), show_views._cue_bar(data, "G")
         mix = f"{set_timeline.last_bar(data) - g + 1} bars" if g is not None else "-"
         letters = ["."] * data["bars"]

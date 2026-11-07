@@ -86,6 +86,14 @@ def test_variety_prints_a_static_run_across_a_leg_with_both_tracks():
     assert any(l.startswith(f"  uses {TITLE_2}: looks ") for l in lines)
 
 
+def test_variety_and_identity_leave_none_out():
+    a, show = analysed()
+    assert any(l.startswith("  dominant look: ") for l in sr.variety_lines(a, show))
+    assert not any(l.startswith("  dominant ") and ": none " in l for l in sr.variety_lines(a, show))
+    assert any(l.startswith("  undeclared look: ") for l in sr.identity_lines(a, show))
+    assert not any(l.startswith("  undeclared gesture") for l in sr.identity_lines(a, show))
+
+
 def test_arc_prints_a_line_per_track_and_the_checks():
     a, show = analysed()
     lines = sr.arc_lines(a, show)

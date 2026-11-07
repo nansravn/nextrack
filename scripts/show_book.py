@@ -466,7 +466,7 @@ def _assinaturas(b: _Book) -> str:
                    f'<svg class="ribbon thin" viewBox="0 0 {_x(max(b.total, 1))} 10" preserveAspectRatio="none" '
                    f'role="img" aria-label="{_e(sig.name)}"><rect class="bg" x="0" y="0" width="{_x(b.total)}" '
                    f'height="10"/>{rects}</svg>{_track_labels(b)}</div>')
-    ranked = sorted(((dim, top) for dim, top in ident.undeclared.items() if top[0] != "none"),
+    ranked = sorted(((dim, top) for dim, top in ident.undeclared.items()),
                     key=lambda kv: -kv[1][1])
     if ranked:
         out.append("<h3>O mais repetido sem declarar</h3>")
