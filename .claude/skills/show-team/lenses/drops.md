@@ -14,9 +14,8 @@ drop of each track gets the bigger answer; builds grow into the drop.
 ## Run
 
 `<show>` stands for the show folder named in your brief; `<track>` is `Artist — Title` as the
-file names it: take it in full from the track's header line in the `tracks` section, without the leading
-`N. ` index (the
-`drops` lines print the title only).
+file names it: take it in full from the track's header line in the `tracks` section, without
+the leading `N. ` index (the `drops` lines print the title only).
 
 ```
 uv run scripts/nextrack_show.py report <show> --section drops,builds,peaks,hits

@@ -51,8 +51,9 @@ Let T be the static-run threshold: the show's `static-run` `max_seconds` when it
 `rules:` declares one, otherwise 60 s (a replacement, not an alternative). On a show that
 declares 120, a 1:20 run is not a finding at all.
 
-- `grave`: a static run of T or more whose music changes section kind under it (for example
-  `drop+break`), or a run that covers one of the night's top drops.
+- `grave`: a static run of T or more that either has music changing section kind under it (for
+  example `drop+break`) or covers one of the night's top drops. A light that sits still through
+  a top drop without reaching T is the `drops` lens's business.
 - `moderado`: a static run of T or more under one section kind; or two neighbours whose
   `similarity` is above the show's `neighbours-differ` `max_similarity` (else 0.85).
 - `menor`: polish, such as a single repeated colour pair or an entropy dip of one minute.
