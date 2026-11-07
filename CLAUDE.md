@@ -41,7 +41,7 @@ Install uv once if it is missing: `curl -LsSf https://astral.sh/uv/install.sh | 
 | Library tool | `uv run scripts/nextrack_tags.py <cmd>` |
 | Set up the musical map tools (optional, heavy, not in CI) | `uv sync --group analysis` |
 | Musical maps and set timeline | `uv run scripts/nextrack_map.py <cmd>` |
-| Shows: build the choreographies, report the night, list the vocabulary | `uv run scripts/nextrack_show.py <cmd>` |
+| Shows: build the choreographies, report the night, zoom into a moment, list the vocabulary | `uv run scripts/nextrack_show.py <cmd>` |
 
 `pyproject.toml` exists, so setup is `uv sync`. Do not use poetry or pip; the
 system Python is externally managed.
