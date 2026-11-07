@@ -710,18 +710,21 @@ def distinct_drops(show: CompiledShow, params: dict) -> list[ShowFinding]:
     Take the `top` drops by salience (`show_analysis.top`: a count, or a fraction of the night's
     drops), order them by the set clock, and compare each with the next: two with the same
     template (the signatures just before and at the drop) are a finding at the later drop's
-    holder section. A drop whose light is unknown (no template) is skipped; with no drops, or no
-    pair left to compare, it says it cannot check."""
+    holder section. A pair with a drop whose template is unknown (the autoscript at the drop or
+    the bar before it, or an unknown light at the drop) is skipped. With no drops, fewer than
+    two top drops, or no pair left to compare, it says it cannot check."""
     from show_analysis import analyse, top
 
     rows = analyse(show).drops
     if not rows:
         return [_at_rule(show, "distinct-drops", "cannot check: the night has no drops")]
     chosen = sorted(top(rows, params["top"]), key=lambda d: d.clock_s)
+    if len(chosen) < 2:
+        return [_at_rule(show, "distinct-drops", "cannot check: fewer than two top drops")]
     out = []
     compared = 0
     for before, after in zip(chosen, chosen[1:]):
-        if None in before.template or None in after.template:
+        if before.template is None or after.template is None:
             continue
         compared += 1
         if before.template != after.template:
@@ -832,10 +835,11 @@ def drop_contrast(show: CompiledShow, params: dict) -> list[ShowFinding]:
 def main_drop(show: CompiledShow, params: object) -> list[ShowFinding]:
     """A track's main drop is answered at least as well as its earlier drops.
 
-    A main drop (`Drop.main`) whose `response` is lower than the best `response` of the earlier
-    drops of the same track (bars before it; a drop with no response is left out). The finding
-    points at the main drop's section and names the best earlier one. With no drops, or no main
-    drop with a response, it says it cannot check."""
+    A track's main drop (`Drop.main`, one per track: the drop with the largest loudness rise, a
+    tie to the later; its last drop when none rises) whose `response` is lower than the best
+    `response` of the earlier drops of the same track (bars before it; a drop with no response
+    is left out). The finding points at the main drop's section and names the best earlier one.
+    With no drops, or no main drop with a response, it says it cannot check."""
     from show_analysis import analyse
 
     rows = analyse(show).drops

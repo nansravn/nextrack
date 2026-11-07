@@ -1,4 +1,5 @@
 """The show rules: occurrences, the rules, their parameter checks, advice and `evaluate_show`."""
+import copy
 import dataclasses
 
 import show_analysis as sa
@@ -613,16 +614,28 @@ def test_neighbours_differ_falls_back_to_the_first_section_and_cannot_check_with
                                                  "Dançarina / Voa Voa (Ao Vivo)")]
 
 
+def same_last_drop(first, second):
+    """Voa Voa plays Dançarina's espiral and virada: both tracks' drop 21 has one template."""
+    second["cues"][1] = copy.deepcopy(first["cues"][1])
+    second["cues"][2] = {**copy.deepcopy(first["cues"][2]), "name": "final", "moment": "final",
+                         "accents": ["strobe-roll"]}
+
+
 def test_distinct_drops_compares_the_top_drops_in_clock_order():
-    def patch(a, compiled):
-        a.drops[3].template = a.drops[2].template        # Voa Voa 21 (rank 4) and Voa Voa 9 (rank 3)
-    compiled, found = analysed({"distinct-drops": {"top": 4}}, patch=patch)
-    final = compiled.tracks[1].sections[-1].origin
-    assert found == [(final.path, final.line, "distinct-drops: Voa Voa (Ao Vivo) 21 (top drop 4) repeats the light "
-                                              "of Voa Voa (Ao Vivo) 9 (top drop 3)")]
-    assert analysed({"distinct-drops": {"top": 2}}, patch=patch)[1] == []          # ranks 1 and 2 differ
-    assert analysed({"distinct-drops": {"top": 0.5}}, patch=patch)[1] == []        # ceil(0.5 x 4) = 2
-    assert len(analysed({"distinct-drops": {"top": 1.0}}, patch=patch)[1]) == 1
+    # no drop rises, so each track's main drop is its last: Dançarina 21 is top drop 1, Voa Voa 21
+    # top drop 2 (the same salience, later on the clock), then Dançarina 9 and Voa Voa 9
+    src, inp = show({"distinct-drops": {"top": 2}}, edit=same_last_drop)
+    compiled = evaluate_show(src, inp)[0]
+    assert [(d.track, d.bar, d.rank) for d in sa.analyse(compiled).drops] == [
+        (TRACK_1, 21, 1), (TRACK_2, 21, 2), (TRACK_1, 9, 3), (TRACK_2, 9, 4)]
+    assert rule_findings(src, inp) == [(PATH_2, 30, "distinct-drops: Voa Voa (Ao Vivo) 21 (top drop 2) repeats the "
+                                                    "light of Dançarina 21 (top drop 1)")]
+    assert rule_findings(*show({"distinct-drops": {"top": 0.5}}, edit=same_last_drop)) == [
+        (PATH_2, 30, "distinct-drops: Voa Voa (Ao Vivo) 21 (top drop 2) repeats the light of Dançarina 21 "
+                     "(top drop 1)")]                                                 # ceil(0.5 x 4) = 2
+    assert rule_findings(*show({"distinct-drops": {"top": 2}})) == []                 # their own lights differ
+    assert rule_findings(*show({"distinct-drops": {"top": 1}}, edit=same_last_drop)) == [
+        (SHOW_PATH, RULES_LINE + 1, "distinct-drops: cannot check: fewer than two top drops")]
 
 
 def test_static_run_without_a_section_at_its_first_bar_points_at_the_rule():
@@ -632,13 +645,19 @@ def test_static_run_without_a_section_at_its_first_bar_points_at_the_rule():
     assert found == [(SHOW_PATH, RULES_LINE + 1, "static-run: Dançarina 1-5 holds one light for 2:10, max 2:00")]
 
 
-def test_distinct_drops_cannot_check_when_every_pair_is_skipped():
-    def patch(a, compiled):
-        for d in a.drops:
-            d.template = (None, d.template[1])
-    found = analysed({"distinct-drops": {"top": 4}}, patch=patch)[1]
-    assert found == [(SHOW_PATH, RULES_LINE + 1,
-                      "distinct-drops: cannot check: no two of the top drops have a known light")]
+def test_distinct_drops_cannot_check_when_every_drop_is_on_the_autoscript():
+    def bare(first, second):
+        for entry in (first, second):
+            entry["cues"] = []
+            entry.pop("handover", None)
+    src, inp = show({"distinct-drops": {"top": 4}}, edit=bare)
+    src.show.pop("handover")
+    src.show.pop("bridge")
+    compiled = evaluate_show(src, inp)[0]
+    assert compiled.tracks[0].sections == compiled.tracks[1].sections == []
+    assert len(sa.analyse(compiled).drops) == 4
+    assert rule_findings(src, inp) == [
+        (SHOW_PATH, RULES_LINE + 1, "distinct-drops: cannot check: no two of the top drops have a known light")]
 
 
 def test_distinct_drops_cannot_check_without_drops():
@@ -705,27 +724,29 @@ def test_identity_and_monotony_parameters():
 
 
 def drop_rows(**changes):
-    """A patch that sets `field=[values per drop, in rank order]` on the four drops of the base show
-    (Dançarina 9 and 21, Voa Voa 9 and 21)."""
+    """A patch that sets `field=[values per drop, in clock order]` on the four drops of the base
+    show (Dançarina 9 and 21, Voa Voa 9 and 21). Their ranks: Dançarina 21 is 1, Voa Voa 21 is 2,
+    Dançarina 9 is 3 and Voa Voa 9 is 4 (each track's main drop is its last)."""
     def patch(a, compiled):
         for field, values in changes.items():
-            for d, value in zip(a.drops, values):
+            for d, value in zip(sorted(a.drops, key=lambda d: d.clock_s), values):
                 setattr(d, field, value)
     return patch
 
 
 def test_drop_contrast_reports_a_drop_without_contrast_or_change():
     patch = drop_rows(contrast=[None, 3.0, 0.0, 4.5], change=[9, 8, 1, 7])
-    compiled, found = analysed({"drop-contrast": {"top": 3, "min_change": 2}}, patch=patch)
+    compiled, found = analysed({"drop-contrast": {"top": 4, "min_change": 2}}, patch=patch)
     first = compiled.tracks[0].sections[0].origin
     second = next(s for s in compiled.tracks[1].sections if s.bars == (9, 16)).origin
+    final = compiled.tracks[1].sections[-1].origin
     assert found == [
-        (first.path, first.line, "drop-contrast: Dançarina 9 (top drop 1) has no known contrast and 9 changes, "
+        (first.path, first.line, "drop-contrast: Dançarina 9 (top drop 3) has no known contrast and 9 changes, "
                                  "min 2"),
-        (second.path, second.line, "drop-contrast: Voa Voa (Ao Vivo) 9 (top drop 3) has contrast 0.0 and 1 change, "
+        (second.path, second.line, "drop-contrast: Voa Voa (Ao Vivo) 9 (top drop 4) has contrast 0.0 and 1 change, "
                                    "min 2")]
     assert analysed({"drop-contrast": {"top": 0.5, "min_change": 8}}, patch=patch)[1] == [
-        (first.path, first.line, "drop-contrast: Dançarina 9 (top drop 1) has no known contrast and 9 changes, "
+        (final.path, final.line, "drop-contrast: Voa Voa (Ao Vivo) 21 (top drop 2) has contrast 4.5 and 7 changes, "
                                  "min 8")]
 
 
