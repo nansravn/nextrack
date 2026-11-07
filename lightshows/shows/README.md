@@ -762,7 +762,7 @@ and, when the section before is total dark, the voices over those dark bars:
   information). `unknown`: the share of the leg whose light is unknown.
 
 ```
-  The Akan · rho 0.50 · agree 50% · lag 0 · missed 105 (music +4.5, light +0.8) · unmotivated - · unknown 0%
+  The Akan · rho 0.48 · agree 50% · lag -1 · missed 105 (music +4.5, light +0.8) · unmotivated - · unknown 0%
 ```
 
 **drops**, every sounding map drop `d` in rank order of its **salience**
@@ -788,7 +788,7 @@ Its light **response** is `0.5 clip01(contrast / 4) + 0.25 changes / 9 + 0.25 fr
 ```
   rank 1 · 39:30 · PICK UP THE PHONE (feat. Nate Dogg) (Extended) 137 · salience 0.90 (loud +5.0, bass 1.00, density +0.70, main) · response 0.64 (contrast +5.5, changes 5, fresh 0.00)
   rank 2 · 7:12 · The Akan 105 · salience 0.84 (loud +6.0, bass 1.00, density +0.18, main) · response 0.22 (contrast +0.0, changes 7, fresh 0.11)
-  agreement: rho -0.05 of salience and response over the drops above the median salience
+  agreement: rho 0.17 of salience and response over the drops above the median salience
 ```
 
 **builds**, each map `build` of 4 bars or more and the last 4-16 bars of a `break` that a `drop`
