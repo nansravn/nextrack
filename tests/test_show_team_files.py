@@ -1,8 +1,10 @@
 """Pins the contract of the show team's role agents (.claude/agents/*.md)."""
 
+import re
 from pathlib import Path
 
 import pytest
+import show_report
 import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -65,3 +67,47 @@ def test_the_critic_never_runs_the_book():
     # `book` appears only inside that prohibition, never as an allowed view
     assert body.count("`book`") == 1
     assert "book`," not in body
+
+
+# --- the critic lenses (.claude/skills/show-team/lenses/*.md) ---
+
+LENSES = ROOT / ".claude" / "skills" / "show-team" / "lenses"
+LENS_NAMES = ["monotonia", "drops", "energia-da-musica", "arco-do-set", "briefing"]
+LENS_SECTIONS = ["## Judges", "## Run", "## Questions", "## Severity", "## Finding format"]
+
+
+def lens_text(name):
+    return (LENSES / f"{name}.md").read_text(encoding="utf-8")
+
+
+def test_the_lens_folder_holds_exactly_these_lenses():
+    assert sorted(p.stem for p in LENSES.glob("*.md")) == sorted(LENS_NAMES)
+
+
+@pytest.mark.parametrize("name", LENS_NAMES)
+def test_every_lens_has_its_sections(name):
+    headings = [line for line in lens_text(name).splitlines() if line.startswith("## ")]
+    assert headings == LENS_SECTIONS
+
+
+@pytest.mark.parametrize("name", LENS_NAMES)
+def test_every_lens_runs_existing_report_sections(name):
+    used = re.findall(r"--section ([a-z,-]+)", lens_text(name))
+    assert used, f"{name}: runs no report section"
+    for group in used:
+        for section in group.split(","):
+            assert section in show_report.REPORT_SECTIONS, f"{name}: unknown section {section}"
+
+
+@pytest.mark.parametrize("name", LENS_NAMES)
+def test_every_lens_defines_the_three_severities(name):
+    severity = lens_text(name).split("## Severity", 1)[1].split("## Finding format", 1)[0]
+    for level in ("grave", "moderado", "menor"):
+        assert f"`{level}`" in severity, f"{name}: no {level}"
+
+
+@pytest.mark.parametrize("name", LENS_NAMES)
+def test_no_lens_runs_the_book_or_opens_the_ledger(name):
+    text = lens_text(name)
+    assert "show.py book" not in text
+    assert "ledger.md" not in text
