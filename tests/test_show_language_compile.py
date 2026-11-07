@@ -814,3 +814,29 @@ def test_a_pending_aim_with_no_configured_end_is_a_finding():
     room = show_room.Room(ROOM.size, True, ROOM.fixtures, ROOM.booth, aims)
     _, findings = compile_show(*with_room(one_track(movers_cue(position="apice")), room))
     assert len(findings) == 1 and "no configured aim" in findings[0].message
+
+
+def test_a_compiled_show_carries_tempos_energies_and_rule_lines():
+    import dataclasses
+
+    src, inp = two_track_show()
+    src.show["advice"] = load_yaml("bridges:\n  max: 16\n", first_line=40)
+    src.show["identity"] = load_yaml(
+        "signatures:\n  - name: azul-espaco\n    intent: y\n    is: {movers.colour: azul}\n", first_line=50)
+    compiled, found = compile_show(src, dataclasses.replace(
+        inp, tempos={TRACK_1: (120.0, 121.0)}, energies={TRACK_1: 6}))
+    assert found == [], found
+    assert compiled.tempos[TRACK_1] == (120.0, 121.0) and compiled.energies[TRACK_1] == 6
+    assert compiled.rig is None and compiled.room is None
+    assert compiled.rule_lines[("advice", "bridges")] == 41
+    assert compiled.rule_lines[("identity", "azul-espaco")] == 51
+    assert compiled.data["identity"]["signatures"][0]["name"] == "azul-espaco"   # clean(): no __line__
+
+
+def test_identity_problems_are_show_source_findings():
+    src, inp = two_track_show()
+    src.show["identity"] = {"signatures": [{"name": "x", "intent": "y", "is": {"movers.colour": "verde"}}]}
+    compiled, found = compile_show(src, inp)
+    assert compiled is None
+    assert [(f.path, f.rule) for f in found] == [(SHOW_PATH, "show-source")]
+    assert "identity.signatures[0].is.movers.colour: colour 'verde' is not in the palette" in found[0].message
