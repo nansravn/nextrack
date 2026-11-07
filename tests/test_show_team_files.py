@@ -1,9 +1,11 @@
-"""Pins the contract of the show team's role agents (.claude/agents/*.md)."""
+"""Pins the contract of the show team's files: the role agents (.claude/agents/*.md), the
+critic lenses, the dispatch templates and the director's rite (.claude/skills/show-team/)."""
 
 import re
 from pathlib import Path
 
 import pytest
+import show_compare
 import show_report
 import yaml
 
@@ -185,3 +187,93 @@ def test_templates_match_their_agents():
     assert "mktemp -d" in template_text("critic")
     assert "yourself" in template_text("engineer")
     assert "yourself" in load("gesture-engineer")[1]
+
+
+# --- the director's rite (.claude/skills/show-team/SKILL.md) ---
+
+SKILL = ROOT / ".claude" / "skills" / "show-team" / "SKILL.md"
+SKILL_SECTIONS = [
+    "## When to use", "## What the owner gives and keeps", "## The run folder and the ledger",
+    "## Checklist", "## The phases", "## Stopping and self-healing", "## Delivery",
+    "## Placeholders", "## Measuring the team",
+]
+# backticked `show-*` words that are not agents: the skill itself and the finding rule ids
+NOT_AGENTS = {"show-team", "show-source", "show-rules", "show-advice", "show-compiled"}
+
+
+def skill():
+    """Return (frontmatter dict, body) of the skill."""
+    text = SKILL.read_text(encoding="utf-8")
+    assert text.startswith("---\n"), "SKILL.md: frontmatter must start on line 1"
+    _, front, body = text.split("---\n", 2)
+    return yaml.safe_load(front), body
+
+
+def skill_section(heading):
+    body = skill()[1]
+    assert heading + "\n" in body, f"SKILL.md: no {heading}"
+    return body.split(heading + "\n", 1)[1].split("\n## ", 1)[0]
+
+
+def test_skill_frontmatter_names_its_triggers():
+    front, _ = skill()
+    assert front["name"] == "show-team"
+    description = front["description"]
+    assert description.startswith("Use when the owner asks the light team for a show, a rework of "
+                                  "a show, or a backlog item about a set's lights")
+    for words in ("time de luz", "rodar o time", "show novo", "retrabalhar o show", "branch"):
+        assert words in description, f"description lacks {words!r}"
+
+
+def test_skill_sections_come_in_order():
+    headings = [line for line in skill()[1].splitlines() if line.startswith("## ")]
+    assert [h for h in headings if h in SKILL_SECTIONS] == SKILL_SECTIONS
+
+
+def test_skill_names_every_agent_lens_and_template():
+    body = skill()[1]
+    for path in sorted(LENSES.glob("*.md")):
+        assert f"lenses/{path.name}" in body, f"SKILL.md never names lenses/{path.name}"
+    for path in sorted(TEMPLATES.glob("*.md")):
+        assert f"templates/{path.name}" in body, f"SKILL.md never names templates/{path.name}"
+    for path in sorted(AGENTS.glob("*.md")):
+        assert f"`{path.stem}`" in body, f"SKILL.md never names the agent `{path.stem}`"
+    for stem in re.findall(r"lenses/([a-z0-9-]+)\.md", body):
+        assert (LENSES / f"{stem}.md").exists(), f"SKILL.md names a missing lens: {stem}"
+    for stem in re.findall(r"templates/([a-z0-9-]+)\.md", body):
+        assert (TEMPLATES / f"{stem}.md").exists(), f"SKILL.md names a missing template: {stem}"
+    for name in set(re.findall(r"`((?:show|gesture)-[a-z-]+)`", body)) - NOT_AGENTS:
+        assert (AGENTS / f"{name}.md").exists(), f"SKILL.md names a missing agent: {name}"
+
+
+def test_skill_documents_every_placeholder():
+    used = set()
+    for name in TEMPLATE_NAMES:
+        used |= set(re.findall(r"\{\{(.*?)\}\}", template_text(name)))
+    rows = [line for line in skill_section("## Placeholders").splitlines() if line.startswith("|")]
+    documented = {m for line in rows for m in re.findall(r"`\{\{(.*?)\}\}`", line)}
+    assert documented == used, f"undocumented {used - documented}, unused {documented - used}"
+    unknown = set(re.findall(r"\{\{(.*?)\}\}", skill()[1])) - PLACEHOLDERS
+    assert not unknown, f"SKILL.md names unknown placeholders {unknown}"
+
+
+def test_skill_states_the_limits():
+    body = skill()[1]
+    for words in ("--keep", "Estado:", "Para depois", "never push", "--apply",
+                  "3 design rounds", "2 full critique passes"):
+        assert words in body, f"SKILL.md lacks {words!r}"
+    assert "`Estado: fase <n> (<name>) concluída — <YYYY-MM-DD HH:MM>`" in body
+    assert "<scratch>/show-team/<show-id>/<YYYY-MM-DD-HHMM>/" in body
+    assert "## Cartões" in body
+
+
+def test_skill_runs_existing_report_sections_and_compare_facts():
+    body = skill()[1]
+    for group in re.findall(r"--section ([a-z,-]+)", body):
+        for section in group.split(","):
+            assert section in show_report.REPORT_SECTIONS, f"SKILL.md: unknown section {section}"
+    kept = re.findall(r"--keep ([a-z,]+)", body)
+    assert kept, "SKILL.md never shows a --keep list"
+    for group in kept:
+        for fact in group.split(","):
+            assert fact in show_compare.FACTS, f"SKILL.md: unknown compare fact {fact}"
