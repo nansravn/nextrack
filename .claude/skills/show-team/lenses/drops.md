@@ -14,7 +14,8 @@ drop of each track gets the bigger answer; builds grow into the drop.
 ## Run
 
 `<show>` stands for the show folder named in your brief; `<track>` is `Artist — Title` as the
-file names it: take it in full from the track's header line in the `tracks` section (the
+file names it: take it in full from the track's header line in the `tracks` section, without the leading
+`N. ` index (the
 `drops` lines print the title only).
 
 ```
@@ -48,7 +49,8 @@ drop's bar from its line. Add `--before 3 --after 2` to see the build and the af
 
 ## Severity
 
-- `grave`: a top-quartile drop with contrast 0 or less (or unknown) and fewer than 3 changes;
+- `grave`: a top-quartile drop (the top 25% of the night's drops by salience rank, as
+  `drop-contrast` `top: 0.25`) with contrast 0 or less (or unknown) and fewer than 3 changes;
   or a track's main drop answered below an earlier drop of the same track.
 - `moderado`: a top drop with contrast 0 or less but 3 or more changes; or freshness 0 at a
   top drop; or a flat build, spent accents or a late hit that does not reach `grave`.
