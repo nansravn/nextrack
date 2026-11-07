@@ -31,7 +31,7 @@ The zoom needs no SoundSwitch project, so it assumes every rig fixture is in the
 every preset is in the script's palette. Where the compiler would leave a manual cue instead,
 the zoom still draws the light. Nothing here reads a file or raises on bad content.
 
-Python API: `render_zoom`, `step_times`, `sample_times`, `colour_letters`, `moment_names`, `moment_target`.
+Python API: `render_zoom`, `sample_light` (`StepLight`), `step_times`, `sample_times`, `colour_letters`, `moment_names`, `moment_target`.
 """
 from __future__ import annotations
 
@@ -403,6 +403,18 @@ def _fixtures(rig: lightshow.Rig | None) -> tuple[list[str], list[str], float]:
     return ([c for k, c in pairs if k == "mover"], [c for k, c in pairs if k == "matrix"], white_max)
 
 
+def _context(grid: ssf.Grid, rig: lightshow.Rig | None, room: show_room.Room | None, palette: dict) -> _Context:
+    """The `_Context` of a zoom or a sample: the rig's movers and Vorlanes (the house rig
+    without one), its white ceiling, and the palette's hex -> name legend keys."""
+    mover_corners, unit_corners, white_max = _fixtures(rig)
+    hex_names = {str(h).upper(): str(n) for n, h in palette.items()}
+
+    def colour_key(value: object) -> str:
+        return hex_names.get(str(value).upper(), str(value).upper()) if isinstance(value, str) else AUTOSCRIPT_COLOUR
+
+    return _Context(grid, len(mover_corners), len(unit_corners), white_max, colour_key, room)
+
+
 def _section_at(track: CompiledTrack, bar: int) -> int | None:
     return next((i for i, s in enumerate(track.sections) if s.bars[0] <= bar <= s.bars[1]), None)
 
@@ -454,15 +466,10 @@ def render_zoom(show: CompiledShow, track_index: int, bar: int, before: int, aft
         out.append(f"  nothing to zoom: {why}")
         return "\n".join(out) + "\n"
 
-    mover_corners, unit_corners, white_max = _fixtures(rig)
+    mover_corners, unit_corners, _ = _fixtures(rig)
     palette = show.data.get("palette") if isinstance(show.data, dict) else None
     palette = palette if isinstance(palette, dict) else {}
-    hex_names = {str(h).upper(): str(n) for n, h in palette.items()}
-
-    def colour_key(value: object) -> str:
-        return hex_names.get(str(value).upper(), str(value).upper()) if isinstance(value, str) else AUTOSCRIPT_COLOUR
-
-    ctx = _Context(grid, len(mover_corners), len(unit_corners), white_max, colour_key, room)
+    ctx = _context(grid, rig, room, palette)
     lights: dict[int, _Light] = {}
 
     def light_of(b: int) -> _Light | None:
@@ -551,6 +558,59 @@ def render_zoom(show: CompiledShow, track_index: int, bar: int, before: int, aft
     if frames:
         out += _frames(frames, total, grid, light_of, unit_corners)
     return "\n".join(out) + "\n"
+
+
+@dataclass(frozen=True)
+class StepLight:
+    """The light the compiler writes at one 1/16 step, as the zoom reads it. Every field is
+    None where the autoscript plays (an `auto` layer, or no section)."""
+    t: int                                # ms on the track's grid: step start + SAMPLE_OFFSET_MS
+    movers: tuple[float | None, ...]      # each mover's level 0-1 (a strobe window wins)
+    units: tuple[float | None, ...]       # each Vorlane's highest colour-cell level
+    coverage: tuple[float | None, ...]    # each Vorlane's lit share of its colour cells, 0-1
+    white: float | None                   # the white strip's level
+    strobe: bool | None                   # a strobe window lit at t
+    hue: float | None                     # the lustre's level
+
+
+def sample_light(track: CompiledTrack, first: int, last: int, rig: lightshow.Rig | None,
+                 room: show_room.Room | None) -> list[StepLight]:
+    """One `StepLight` per 1/16 step of bars `first`..`last` (16 per bar), at `sample_times`,
+    from the same lanes `render_zoom` draws. A Vorlane's `coverage` is the share of its
+    `COLOUR_CELLS` lit (level above 0) at `t`; `strobe` is True when a window writes a level
+    above 0, False for a strobe that is `off`. A step no section holds is all None. `rig` None
+    takes the house rig, as `render_zoom` does. [] when the map has no tempo anchors."""
+    grid = _grid(track.map)
+    if grid is None:
+        return []
+    ctx = _context(grid, rig, room, {})
+    lights: dict[int, _Light] = {}
+    out = []
+    for bar in range(first, last + 1):
+        i = _section_at(track, bar)
+        if i is not None and i not in lights:
+            lights[i] = _light(track.sections[i], ctx)
+        lt = lights.get(i) if i is not None else None
+        for j in range(STEPS_PER_BAR):
+            t = grid.ms(bar, 1 + j / 4) + SAMPLE_OFFSET_MS
+            if lt is None:
+                out.append(StepLight(t, (None,) * ctx.movers, (None,) * ctx.units, (None,) * ctx.units,
+                                     None, None, None))
+                continue
+            cover = []
+            for u in range(ctx.units):
+                lit = [lt.cell(u, cell, t) for cell in COLOUR_CELLS]
+                cover.append(None if None in lit else sum(lit) / len(lit))
+            window = lt.strobe_at(t)
+            out.append(StepLight(
+                t,
+                tuple(lt.mover(i, t)[0] for i in range(ctx.movers)),
+                tuple(lt.unit(u, t)[0] for u in range(ctx.units)),
+                tuple(cover),
+                lt.white.at(t) if lt.white is not None else None,
+                None if lt.strobe is None else window is not None and window.at(t) > 0,
+                lt.hue.at(t) if lt.hue is not None else None))
+    return out
 
 
 def _ranges(bars: list[tuple[int, str]]) -> str:
