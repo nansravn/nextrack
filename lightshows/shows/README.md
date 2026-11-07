@@ -1020,7 +1020,10 @@ identity's intents, each track's `story` and `budget`, each cue's `intent`) and 
 below; every number comes from the report's measures. The same inputs give the same bytes.
 Without `-o` it is a usage error (exit 2); it prints `wrote <file>`, and on stderr the count of
 the show's rule findings, which `report` lists (the book prints the advice only). It writes only
-that file.
+that file; a file it cannot write prints `cannot write <file>: <reason>` and exits 1. The footer
+names the show by its id, and by its folder when the folder lies in the repo: a folder outside
+the repo is a machine path, never printed (the advice lines of such a show name their file
+within the show's folder).
 
 The page is self-contained, so the team can publish it as a private Artifact: inline CSS and
 inline SVG, no script and no external reference; a `<title>` made of the show's id in words (at
