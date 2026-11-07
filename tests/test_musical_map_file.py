@@ -184,3 +184,32 @@ def test_find_audio_nfd_folder_still_matches(tmp_path):
 def test_find_audio_empty_path(tmp_path, path):
     with pytest.raises(LookupError):
         mm.find_audio(tmp_path, path)
+
+
+def test_a_v2_map_needs_a_mix_block():
+    data = good_map(4, version=2)
+    assert mm.problems_map(data) == []
+    del data["mix"]
+    assert any("mix" in p for p in mm.problems_map(data))
+
+
+def test_a_v1_map_has_no_mix_block():
+    data = good_map(4)
+    data["mix"] = {"loudness": "5555", "brightness": "5555"}
+    assert any("mix needs map_version 2" in p for p in mm.problems_map(data))
+
+
+def test_mix_digits_cover_every_bar():
+    data = good_map(4, version=2)
+    data["mix"]["loudness"] = "555"
+    assert any("mix.loudness" in p for p in mm.problems_map(data))
+    data = good_map(4, version=2)
+    data["mix"]["brightness"] = "55x5"
+    assert any("mix.brightness" in p for p in mm.problems_map(data))
+
+
+def test_a_v2_map_dumps_and_loads_back(tmp_path):
+    data = good_map(4, version=2)
+    path = tmp_path / "m.yml"
+    path.write_text(mm.dump_map(data), encoding="utf-8")
+    assert mm.load_map(path) == data

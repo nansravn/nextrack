@@ -265,7 +265,7 @@ def analyze_one(sess: Session, ref: ssf.TrackRef, known: RbTrack | None, out: li
     grid = ssf.Grid(anchors)
     data = mm.build_map(
         track=track, guid=ref.guid.upper(), audio_sha=sha, audio_ms=round(len(x) / sr * 1000),
-        anchors=anchors, stems=stems, sr=stem_sr,
+        anchors=anchors, stems=stems, sr=stem_sr, audio=x, audio_sr=sr,
         hot_cues=None if rb_track is None else hot_cues_for(rb_track, grid),
         hot_cues_note=note, separator=SEPARATOR_NAME)
     problems = mm.problems_map(data)

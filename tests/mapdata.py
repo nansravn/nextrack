@@ -9,9 +9,9 @@ def chunks(text: str, size: int = 128) -> list[str]:
     return [text[i:i + size] for i in range(0, len(text), size)]
 
 
-def good_map(bars: int = 4, **overrides) -> dict:
+def good_map(bars: int = 4, version: int = 1, **overrides) -> dict:
     """A valid map of `bars` bars for the pool track `Pedro Sampaio — Dançarina`.
-    `overrides` replace top-level keys."""
+    `version=2` adds the `mix` block. `overrides` replace top-level keys."""
     n = bars * 16
     voices = {}
     for voice in VOICES:
@@ -43,6 +43,9 @@ def good_map(bars: int = 4, **overrides) -> dict:
         "drops": [{"bar": bars, "db": 12.5}],
         "silences": [[1, 1]],
     }
+    if version == 2:
+        data["map_version"] = 2
+        data["mix"] = {"loudness": "5" * bars, "brightness": "5" * bars}
     data.update(copy.deepcopy(overrides))
     return data
 
