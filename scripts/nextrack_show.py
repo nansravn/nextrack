@@ -878,8 +878,12 @@ def _book(args) -> int:
         ledger = path.read_text(encoding="utf-8") if path.is_file() else None
     except (OSError, UnicodeDecodeError) as e:
         return _usage(f"cannot read {path}: {e}")
-    _write_atomic(Path(args.output), show_book.render_book(compiled, advice, ledger,
-                                                           set_arc=_set_arc(repo.root, compiled)))
+    try:
+        _write_atomic(Path(args.output), show_book.render_book(compiled, advice, ledger,
+                                                               set_arc=_set_arc(repo.root, compiled)))
+    except OSError as e:
+        print(f"cannot write {args.output}: {e.strerror or e}", file=sys.stderr)
+        return 1
     print(f"wrote {args.output}")
     if rule_found:                     # the report lists them; the book prints the advice only
         print(f"{len(rule_found)} rule finding(s): see nextrack_show.py report", file=sys.stderr)

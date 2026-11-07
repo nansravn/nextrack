@@ -517,7 +517,9 @@ uv run scripts/nextrack_show.py vocab [<show>]                # anchors, layer w
   `limites` and `avisos` ([the manual's `book` section](../lightshows/shows/README.md#book)). It
   reads `<show folder>/ledger.md` when there is one and prints its latest run's decisions and
   what is left for later. The Hï Ibiza book is about 180 kB. It exits 0 once written, 1 on a
-  show that does not compile; rule findings are counted on stderr.
+  show that does not compile or a file it cannot write (`cannot write FILE: <reason>`); rule
+  findings are counted on stderr. It names the show by its id, and by its folder only inside the
+  repo.
 - `zoom` prints one column per 1/16 step around a moment (a name from the show) or around a bar of
   a track (`"Artist — Title"` plus an anchor): the map's music lanes over the light lanes as
   `compile` would write them, each step sampled 2 ms after its start. `--before` (default 3) and

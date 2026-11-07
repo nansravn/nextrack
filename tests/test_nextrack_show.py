@@ -720,6 +720,35 @@ def test_book_writes_the_file(mini_repo, tmp_path, capsys):
     assert run(mini_repo, capsys, "build", "teste", "--check")[0] == 0      # the ledger is not a track file
 
 
+def test_book_prints_no_folder_outside_the_repo(mini_repo, tmp_path, capsys):
+    put_show(mini_repo)
+    out = tmp_path / "book.html"
+    assert run(mini_repo, capsys, "book", "teste", "-o", str(out))[0] == 0
+    inside = out.read_text(encoding="utf-8")
+    assert "a partir do show <code>teste</code> (<code>lightshows/shows/teste/</code>)" in inside
+    folder = tmp_path / "fora" / "variante"
+    shutil.copytree(mini_repo.path(SHOW), folder)
+    show = yaml.safe_load((folder / "show.yml").read_text())
+    show["advice"] = {"bridges": {"max": 1}}                  # an advice line names its file
+    (folder / "show.yml").write_text(yaml.safe_dump(show, allow_unicode=True, sort_keys=False))
+    assert run(mini_repo, capsys, "book", str(folder), "-o", str(out))[0] == 0
+    page = out.read_text(encoding="utf-8")
+    assert "a partir do show <code>variante</code>. Não edite" in page
+    assert str(tmp_path) not in page and "fora/" not in page
+    assert f"<code>{FILE_1}:" in page                          # the advice's file, by its name
+
+
+def test_book_to_an_unwritable_path_is_an_error_not_a_traceback(mini_repo, tmp_path, capsys):
+    put_show(mini_repo)
+    (tmp_path / "ficheiro").write_text("not a folder")
+    target = tmp_path / "ficheiro" / "book.html"
+    code = nextrack_show.main(["book", "teste", "-o", str(target), "--repo", str(mini_repo.root)])
+    captured = capsys.readouterr()
+    assert code == 1 and captured.out == ""
+    assert captured.err.startswith(f"cannot write {target}: ") and "Traceback" not in captured.err
+    assert not target.exists()
+
+
 def test_book_needs_an_output(mini_repo, capsys):
     put_show(mini_repo)
     code = nextrack_show.main(["book", "teste", "--repo", str(mini_repo.root)])

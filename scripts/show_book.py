@@ -58,6 +58,10 @@ Sections (`BOOK_SECTIONS`, the `id` of each `<section>`, in order):
     avisos       the advice still open (`show-advice` findings) and the latest run's
                  "Para depois"
 
+The footer names the show by its id, and by its repo-relative folder when the folder is inside
+the repo. A folder outside the repo is a machine path: the book never prints it, and an
+advice line of such a show names its file relative to the show's folder.
+
 Per minute (the arc, the variety strip's x, the changes): minute m (0 .. ceil(total / 60) - 1)
 holds the leg bars that start in `[60 m, 60 m + 60)` on the set clock. Its `music` is the mean
 E_music of those bars at night scope (`TrackEnergy.music_night`), `light` the mean of their
@@ -80,6 +84,7 @@ import math
 import re
 import unicodedata
 from dataclasses import dataclass
+from pathlib import PurePosixPath, PureWindowsPath
 
 import lightshow
 import show_analysis
@@ -838,9 +843,26 @@ def _limites(b: _Book) -> str:
 # ------------------------------------------------------------------ avisos --
 
 
+def _repo_folder(show: CompiledShow) -> str | None:
+    """The show's folder when it is repo-relative (inside the repo); None for a folder outside
+    it, whose label is a machine path the book never prints."""
+    folder = show.folder.rstrip("/")
+    if PurePosixPath(folder).is_absolute() or PureWindowsPath(folder).is_absolute() \
+            or folder.split("/", 1)[0] == "..":
+        return None
+    return folder
+
+
+def _file_of(show: CompiledShow, path: str) -> str:
+    """A finding's path as the book prints it: as given inside the repo; relative to the show's
+    folder for a show outside it."""
+    folder = show.folder.rstrip("/") + "/"
+    return path[len(folder):] if _repo_folder(show) is None and path.startswith(folder) else path
+
+
 def _avisos(b: _Book) -> str:
-    out = [_list([f"{_e(f.message)}<p class=\"small muted\"><code>{_e(f'{f.path}:{f.line}')}</code></p>"
-                  for f in b.advice]) if b.advice else '<p class="muted">Nenhum aviso em aberto.</p>']
+    out = [_list([f"{_e(f.message)}<p class=\"small muted\"><code>{_e(f'{_file_of(b.show, f.path)}:{f.line}')}"
+                  "</code></p>" for f in b.advice]) if b.advice else '<p class="muted">Nenhum aviso em aberto.</p>']
     if b.run is not None:
         out.append(f'<h3>Para depois</h3><p class="small muted">Da última rodada: {_e(b.run.title)}</p>')
         out.append(_list([_e(x) for x in b.run.later]) if b.run.later else '<p class="muted">Nada.</p>')
@@ -998,8 +1020,10 @@ def render_book(show: CompiledShow, advice: list[ShowFinding], ledger: str | Non
               list(advice), set_arc)
     sections = [_capa, _conceito, _paleta, _assinaturas, _vocabulario, _arco, _momentos, _ritmo, _musicas,
                 _limites, _avisos]
-    footer = (f"<footer>Gerado por nextrack_show.py book a partir de <code>{_e(show.folder)}/</code>. Não edite: "
-              "mude o show e gere de novo.</footer>")
+    folder = _repo_folder(show)
+    footer = (f"<footer>Gerado por nextrack_show.py book a partir do show <code>{_e(show.show_id)}</code>"
+              + (f" (<code>{_e(folder)}/</code>)" if folder is not None else "")
+              + ". Não edite: mude o show e gere de novo.</footer>")
     return ("<!doctype html>\n<html lang=\"pt-BR\">\n<head>\n<meta charset=\"utf-8\">\n"
             '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
             '<meta name="color-scheme" content="light dark">\n'
