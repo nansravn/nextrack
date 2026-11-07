@@ -4,9 +4,11 @@ critic lenses, the dispatch templates and the director's rite (.claude/skills/sh
 import re
 from pathlib import Path
 
+import check_repo
 import pytest
 import show_compare
 import show_report
+import show_rules
 import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -197,8 +199,9 @@ SKILL_SECTIONS = [
     "## Checklist", "## The phases", "## Stopping and self-healing", "## Delivery",
     "## Placeholders", "## Measuring the team",
 ]
-# backticked `show-*` words that are not agents: the skill itself and the finding rule ids
-NOT_AGENTS = {"show-team", "show-source", "show-rules", "show-advice", "show-compiled"}
+# backticked `show-*` words that are not agents: the skill itself, the advice id and the
+# validator's rule ids (`show-source`, `show-rules`, `show-compiled`, ...)
+NOT_AGENTS = {"show-team", show_rules.ADVICE} | {fn.rule_id for fn in check_repo.RULES}
 
 
 def skill():
@@ -257,6 +260,14 @@ def test_skill_documents_every_placeholder():
     assert not unknown, f"SKILL.md names unknown placeholders {unknown}"
 
 
+def test_skill_lens_placeholder_lists_the_lens_files():
+    rows = [line for line in skill_section("## Placeholders").splitlines()
+            if line.startswith("| `{{lens}}`")]
+    assert len(rows) == 1, "no {{lens}} row"
+    ids = set(re.findall(r"`([a-z-]+)`", rows[0]))
+    assert ids == {p.stem for p in LENSES.glob("*.md")}
+
+
 def test_skill_states_the_limits():
     body = skill()[1]
     for words in ("--keep", "Estado:", "Para depois", "never push", "--apply",
@@ -265,6 +276,24 @@ def test_skill_states_the_limits():
     assert "`Estado: fase <n> (<name>) concluída — <YYYY-MM-DD HH:MM>`" in body
     assert "<scratch>/show-team/<show-id>/<YYYY-MM-DD-HHMM>/" in body
     assert "## Cartões" in body
+
+
+def test_skill_makes_a_run_resumable_and_its_rounds_countable():
+    flat = " ".join(skill()[1].split())  # wrapping never breaks a phrase
+    for words in (
+        "designer-<unit>-r<r>-gate.md",            # a gate bounce has its own brief
+        "At most one bounce per unit per round",
+        "a bounce is not a design round",
+        "Unidades: mix-02 2/3",                    # the round count survives a resume
+        "git log -1 --grep 'Record round' --format=%B",
+        "`leitura a frio, rodada <r>`",
+        "the round its name carries",
+        "A rerun does not count as a full pass",
+        "git merge-base HEAD origin/main",         # the contract's starting show is stable
+        "git diff <commit> HEAD -- <its files>",   # the restore rule
+        "critic-<lens>-r<r>.md",
+    ):
+        assert words in flat, f"SKILL.md lacks {words!r}"
 
 
 def test_skill_runs_existing_report_sections_and_compare_facts():

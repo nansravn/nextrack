@@ -56,7 +56,7 @@ skill and the owner's go.
 
 - **Gives:** the request in their words (one sentence is enough), optionally a cap on
   dispatches; the set (`sets/<set>.md`) with its tracks and the hot cues `B` (enters) and `G`
-  (the next track starts) set in rekordbox and read into the maps.
+  (the next track starts) set in rekordbox.
 - **Keeps:** the set, the mix and the hot cues; creating the pending presets in SoundSwitch;
   measuring the room (`lightshows/room.yml`, `assumed: true`); X11 (UV); the verdict in the room.
 - **The team never pushes, never opens a PR, never merges, and never runs
@@ -73,10 +73,11 @@ skill and the owner's go.
 <scratch>/show-team/<show-id>/<YYYY-MM-DD-HHMM>/
   brief.txt      what brief printed
   briefs/        one filled template per dispatch: reader.md, designer-<unit>-r<r>.md,
-                 critic-<lens>-p<pass>.md, judge-<unit>.md, engineer-<gesture>.md
+                 designer-<unit>-r<r>-gate.md, critic-<lens>-r<r>.md, judge-<unit>.md,
+                 engineer-<gesture>.md
   reports/       the agents' full reports, named like their briefs
   work/<unit>/   each designer's copy of the show
-  main/          a rework's starting show, from origin/main
+  main/          a rework's starting show
   blind/a, b/    two versions under a blind comparison
   book.html
 ```
@@ -95,9 +96,9 @@ Pedido: "Hï Ibiza: pontes de até 16 compassos, sem perder a história."
 Tipo: retrabalho de unidades (13 mixagens) · ramo: feat/show-hi-ibiza-pulso-pontes · execução: 2026-11-08-1405
 Estimativa: 1 leitura + 13 unidades × até 3 rodadas + 5 críticos × até 2 passadas + 4 comparações = até 54 despachos
 Diagnóstico: ...
-Unidades: ...
 Contrato: `compare --keep arrivals,moments`; o aviso `signatures` não piora.
-Rodadas: 1 · versões: v1
+Unidades: mix-02 2/3, mix-03 1/3, mix-04 1/3, ...
+Rodadas: 2 · versões: v1, v2
 
 ### Decisões
 - <o que foi decidido>: <por quê> (custo se errado: <o que custa>)
@@ -113,19 +114,22 @@ Rodadas: 1 · versões: v1
   `Estado: fase <n> (<name>) concluída — <YYYY-MM-DD HH:MM>` (`date '+%Y-%m-%d %H:%M'`), with
   the name below. Write it as soon as the phase ends: it is where a resumed run starts. A
   skipped phase gets its line too, with `dispensada` in the name.
+- **`Unidades:`** lists every unit with the design rounds it has used (`mix-03 2/3`); the
+  redesign after an upstream revision is written `3/3+1`. Update it with phase 4's state line,
+  so the cap survives a resume (the `Record round` commits can rebuild it too).
 - **One commit per round** (phase 7), plus one when the plan is ready (phase 3) and one at
   delivery. Version `v<r>` is round r's commit. Write the state line before the commit, so the
   commit carries it.
 - Before every commit, `git diff --cached | grep -iE "/(home|mnt)/|C:\\\\Users"` must print
-  nothing: no machine path, user name or local config. Subjects are imperative English; end the message with the attribution lines your
-  session asks for.
+  nothing: no machine path, user name or local config. Subjects are imperative English; end
+  the message with the attribution lines your session asks for.
 
 | n | phase | `<name>` in the state line | next phase |
 |---|---|---|---|
 | 0 | intake | `entrada` | 1 |
 | 1 | inputs | `insumos` | 2 |
 | 2 | concept or diagnosis | `conceito` or `diagnóstico` | 3 |
-| 3 | cold read | `leitura a frio` | 4, round 1 |
+| 3 | cold read | `leitura a frio`, or after an upstream revision `leitura a frio, rodada <r>` | 4, round 1, or the round its name carries |
 | 4 | design | `design, rodada <r>` | 5 |
 | 5 | gates | `portões, rodada <r>` | 6 |
 | 6 | critique | `crítica, rodada <r>: passada completa <p>` or `crítica, rodada <r>: revisão` | 7 |
@@ -138,14 +142,14 @@ Rodadas: 1 · versões: v1
 Copy this into your reply and keep it current:
 
 ```
-- [ ] 0. Intake: resume check; kind; worktree + branch + uv sync; run folder; ledger entry + estimate
+- [ ] 0. Intake: fetch; resume check; kind; worktree + branch + uv sync; run folder; ledger entry + estimate
 - [ ] 1. Inputs: every track has a valid v2 map and the hot cues its bridges need; brief read whole
-- [ ] 2. Concept (three, one chosen) or diagnosis (problem, units, contract); show.yml; plan + cards
+- [ ] 2. Concept (3, with likelihoods) or diagnosis (problem, units, contract); show.yml; plan + cards
 - [ ] 3. Cold read: every reader question answered in the plan, the cards or show.yml; commit
-- [ ] 4. Design, round r: batches of <= 5 units with disjoint files; merged; built
-- [ ] 5. Gates: build with no show-source or show-rules finding
+- [ ] 4. Design, round r: batches of <= 5 units with disjoint files; merged; built; Unidades updated
+- [ ] 5. Gates: build with no show-source or show-rules finding; at most one bounce per unit
 - [ ] 6. Critique: five lenses (full pass p of 2, or a re-review); scope discipline
-- [ ] 7. Consolidation: each finding fix / decision / later; the round committed
+- [ ] 7. Consolidation: each finding fix / decision / later; the round committed with its fixes
 - [ ] 8. Selection: blind judge where a unit or the night has 2+ acceptable versions
 - [ ] 9. Delivery: gates, check_repo, pytest, compare --keep, book, ledger, commit, report
 After each phase: its state line in the ledger.
@@ -155,7 +159,8 @@ After each phase: its state line in the ledger.
 
 ### 0. Intake
 
-1. **Resume check.** List the runs of this show: `git worktree list` and
+1. `git fetch origin`.
+2. **Resume check.** List the runs of this show: `git worktree list` and
    `git branch --list 'feat/show-<show-id>-*'`. For each branch, its last state line is
    `grep 'Estado: fase' <its worktree>/lightshows/shows/<show-id>/ledger.md | tail -1` (with no
    worktree, `git show <branch>:lightshows/shows/<show-id>/ledger.md | grep 'Estado: fase' | tail -1`).
@@ -163,20 +168,24 @@ After each phase: its state line in the ledger.
    resume it. On yes:
    - enter its worktree (`EnterWorktree` with `path`; with no worktree, first
      `git worktree add .claude/worktrees/<name> <branch>`) and run `uv sync`;
-   - make a new run folder (step 4) and start at the next phase the table gives, skipping the
+   - make a new run folder (step 5) and start at the next phase the table gives, skipping the
      rest of this phase;
    - rebuild what the old run folder held only when a phase needs it (`brief.txt`, `main/`,
-     the copies). After a `fase 7` line with fixes, the fixes are in the round's commit message
-     (`git log -1 --format=%B`).
-2. **Classify** the request: `show novo`, `retrabalho da noite`, or `retrabalho de unidades`
+     the copies);
+   - after a `fase 6` line, the critics' reports went with the old run folder: run that
+     critique again with the same scope and write the same state line. A rerun does not count
+     as a full pass;
+   - after a `fase 7` line with fixes, read the routed findings with
+     `git log -1 --grep 'Record round' --format=%B`.
+3. **Classify** the request: `show novo`, `retrabalho da noite`, or `retrabalho de unidades`
    (name the units). In doubt, ask the owner one question.
-3. **Worktree.** Create one with `EnterWorktree` (CLAUDE.md allows it without asking; it
+4. **Worktree.** Create one with `EnterWorktree` (CLAUDE.md allows it without asking; it
    branches from `origin/main`). The branch is `feat/show-<show-id>-<topic>` (`<topic>`: one or
    two kebab words): if `git branch --show-current` prints another name, run
    `git branch -m feat/show-<show-id>-<topic>`. Then `uv sync`.
-4. **Run folder:** `mkdir -p <run>/briefs <run>/reports`, the stamp from
+5. **Run folder:** `mkdir -p <run>/briefs <run>/reports`, the stamp from
    `date '+%Y-%m-%d-%H%M'`.
-5. **Ledger entry:** the `## ` heading (today, a pt-BR title), `Pedido:` in the owner's words,
+6. **Ledger entry:** the `## ` heading (today, a pt-BR title), `Pedido:` in the owner's words,
    `Tipo:` with the branch and the run's stamp, and `Estimativa:` of the dispatches: 1 reader +
    units × up to 3 rounds + 5 critics × up to 2 full passes (plus re-reviews) + comparisons. If
    the owner set a cap, plan within it and write what you give up.
@@ -184,15 +193,18 @@ After each phase: its state line in the ledger.
 ### 1. Inputs
 
 1. `uv run scripts/nextrack_show.py brief <set> > <run>/brief.txt`, then read it whole.
-2. Its `missing` section must not name a track of the run. These deterministic tools may fix
-   it when the folders they read are configured; then run `brief` again:
+2. Its `missing` section must not name a track of the run. These deterministic tools fix it
+   when the folders they read are configured; then run `brief` again:
    - **no `mix`:** `uv run scripts/nextrack_map.py upgrade "<Artist — Title>"` (needs
      `NEXTRACK_SOUNDSWITCH_PROJECT` and `NEXTRACK_AUDIO_ROOT`);
-   - **no map:** `uv sync --group analysis`, then
-     `uv run scripts/nextrack_map.py analyze "<Artist — Title>"` (needs those two and
+   - **no map, or an invalid one:** `uv sync --group analysis`, then
+     `uv run scripts/nextrack_map.py analyze "<Artist — Title>"`, which redoes an invalid map
+     (`--force` when it does not parse; needs those two and `NEXTRACK_REKORDBOX_DIR`);
+   - **a hot cue set in rekordbox but missing from the map:**
+     `uv run scripts/nextrack_map.py cues "<Artist — Title>"` (the analysis group and
      `NEXTRACK_REKORDBOX_DIR`).
-   An invalid map, a folder that is not configured, or a missing hot cue `B` or `G` that a
-   bridge needs is an **owner task**: stop and report it in pt-BR.
+   A folder that is not configured, or a hot cue `B` or `G` that a bridge needs and rekordbox
+   does not have, is an **owner task**: stop and report it in pt-BR.
 3. Never compute a music fact any other way: the maps and the views are the facts.
 
 ### 2. Concept or diagnosis
@@ -200,10 +212,11 @@ After each phase: its state line in the ledger.
 **Concept** (`show novo`, `retrabalho da noite`):
 
 1. Write three distinct concepts (story, palette, arc, signatures; a few lines each), each with
-   how typical it is: a stock idea for this music, or an unusual one. Choose one, and record the
-   choice and why as a `### Decisões` item.
-2. Write `lightshows/shows/<show-id>/show.yml`: `set`, `plan`, `story`, `palette`, `looks`,
-   `identity`, `bridge`, `handover`, `rules`, `advice` (the manual's "`show.yml`").
+   a rough likelihood (for example "~60% of directors would propose this"). Choose one, and
+   record the choice and why as a `### Decisões` item.
+2. Write `lightshows/shows/<show-id>/show.yml`: `show_version` (required: `1`), `set`, `plan`,
+   `story`, `palette`, `looks`, `gesture_defaults`, `identity`, `bridge`, `handover`, `rules`,
+   `advice` (the manual's "`show.yml`").
 3. Write the light plan `lightshows/sets/<show-id>.md` in pt-BR with its `## Cartões`.
 4. For a new show, write a skeleton per set track (`<map slug>.yml`: `track` copied from the
    map, `story` from its card, `cues: []`, and the handover look its card's `Entrega` names) so
@@ -214,17 +227,18 @@ After each phase: its state line in the ledger.
 1. Read `uv run scripts/nextrack_show.py report <show-id> --section advice,findings`, then the
    sections the request touches.
 2. Write in the ledger `Diagnóstico:` (the problem), `Unidades:` (tracks, or mixes
-   `<saída> → <entrada>`) and `Contrato:`, the **preservation contract**: the facts that must
-   not change in `compare --keep` terms (for example `--keep arrivals,moments`), plus prose
-   for what `--keep` cannot say (an advice that must not get worse).
-3. Copy main's show for the contract:
-   `mkdir -p <run>/main && git archive origin/main lightshows/shows/<show-id> | tar -x -C <run>/main`.
+   `<saída> → <entrada>`, each at `0/3`) and `Contrato:`, the **preservation contract**: the
+   facts that must not change in `compare --keep` terms (for example `--keep arrivals,moments`),
+   plus prose for what `--keep` cannot say (an advice that must not get worse).
+3. Copy the starting show for the contract, from the branch point (stable across resumes):
+   `mkdir -p <run>/main && git archive $(git merge-base HEAD origin/main) lightshows/shows/<show-id> | tar -x -C <run>/main`.
 4. Make the `show.yml` changes the request needs yourself (as `bridge.bars: 16`): `show.yml`
    is the director's file.
 
 **Cards** (`## Cartões` in the light plan, pt-BR). In a new show or a rework of the night,
 one per track; in a rework of units, one per track the run touches, where it is missing (a plan
-written before the team, as Hï Ibiza's, has none). One `### <n>. <Artist — Title>` per track:
+written before the team, as Hï Ibiza's, has none). Cards are per track: a mix is covered by the
+outgoing track's `Entrega` line. One `### <n>. <Artist — Title>` per track:
 
 ```markdown
 ### <n>. <Artist — Title>
@@ -245,12 +259,15 @@ Run it whenever the concept or the cards changed; otherwise the state line says
 `leitura a frio, dispensada`.
 
 1. Fill `templates/reader.md` (`{{show}}` = `lightshows/shows/<show-id>`; `{{scope}}` =
-   `whole night`, or the units) into `<run>/briefs/reader.md` and dispatch `show-reader`.
+   `whole night`, the units, or the revised cards) into `<run>/briefs/reader.md` and dispatch
+   `show-reader`.
 2. Answer every question in the plan, the cards or `show.yml` before any unit is designed;
    never in a reply: designers read files, not this conversation.
 3. `uv run scripts/nextrack_show.py build <show-id>` and fix every `show-source` finding in
-   `show.yml` (a skeleton's rule findings wait for the designers). Commit the plan
-   (`Plan <topic> for <show-id>`).
+   `show.yml` (a skeleton's rule findings wait for the designers). If `build` refuses a
+   hand-written choreography (`refused <path>: not generated by a show`), `--adopt` is the
+   owner's call: stop and ask.
+4. Commit the plan: `git add lightshows`, subject `Plan <topic> for <show-id>`.
 
 ### 4. Design (round r)
 
@@ -269,7 +286,8 @@ Run it whenever the concept or the cards changed; otherwise the state line says
    files of its `{{files}}` (any other change sends the unit back). Then copy them,
    `cp <run>/work/<unit>/<file>.yml lightshows/shows/<show-id>/`, and
    `uv run scripts/nextrack_show.py build <show-id>`.
-5. Next batch, until every unit of the round is merged.
+5. Next batch, until every unit of the round is merged. Then add 1 to each designed unit in
+   `Unidades:` and write the state line.
 6. **Missing words:** `grep -h '^missing gesture:' <run>/reports/designer-*-r<r>.md`. For each,
    between batches (it edits the code every build runs): fill `templates/engineer.md`
    (`{{effect}}` = the line verbatim) and dispatch `gesture-engineer`; then review its diff
@@ -280,16 +298,20 @@ Run it whenever the concept or the cards changed; otherwise the state line says
 ### 5. Gates
 
 `uv run scripts/nextrack_show.py build <show-id>` exits 0 with no `show-source` or `show-rules`
-finding (advice is fine).
+finding (advice is fine). The gates repair inside the round: a bounce is not a design round.
 
-- A finding in one unit's files: that unit goes back to its designer with the findings verbatim
-  in `{{constraints}}`. It counts as one of its rounds.
+- A finding in one unit's files: that unit goes back to its designer once, with the findings
+  verbatim in `{{constraints}}` (brief `designer-<unit>-r<r>-gate.md`, report likewise). **At
+  most one bounce per unit per round.**
 - A finding two units make together (a budget count across tracks): decide which one changes,
-  record the decision, and send that one back.
+  record the decision, and bounce that one.
+- Still failing after its bounce: restore the unit's last green version (its files at `HEAD`,
+  by [the restore rule](#restoring-a-unit)), write a `### Decisões` ruling, and put the problem
+  in `### Para depois`.
 
 ### 6. Critique
 
-1. Fill `templates/critic.md` once per lens into `<run>/briefs/critic-<lens>-p<pass>.md`
+1. Fill `templates/critic.md` once per lens into `<run>/briefs/critic-<lens>-r<r>.md`
    (`{{show}}` = `lightshows/shows/<show-id>`), and dispatch the five `show-critic` agents in
    one message.
 2. **`{{scope}}`:**
@@ -297,9 +319,10 @@ finding (advice is fine).
    - a rework of units: the units, their neighbours, and the night-level facts the change can
      move, read with
      `uv run scripts/nextrack_show.py compare <run>/main/lightshows/shows/<show-id> lightshows/shows/<show-id>`;
-   - later: only the open findings (unit and evidence line) and the changed units with their
-     neighbours, to the lenses that have something there. That is a **re-review**, not a full
-     pass.
+   - later rounds: only the open findings (unit and evidence line) and the changed units with
+     their neighbours, to the lenses that have something there. That is a **re-review**, not a
+     full pass.
+   - A second full pass runs only after an upstream change to the concept or to several cards.
 3. Never put the request, the ledger, a designer's report or your reasoning in a critic's brief.
 4. **Scope discipline.** A finding outside the request's scope that this run did not cause is
    not fixed in this run: it goes to `### Para depois` as a proposal for the owner's backlog,
@@ -315,10 +338,13 @@ Read every critic's report and route every finding:
 | `menor` | `### Para depois` |
 | outside the scope, not caused by this run | `### Para depois`, with its evidence |
 | `grave` or `moderado` in scope | **fix**: back to the unit's designer, the finding verbatim, one change per finding; or **decision**: a ruling in `### Decisões` with its reason and its cost if wrong |
+| `moderado` in scope, on a unit with no rounds left | a ruling in `### Decisões`, or `### Para depois` |
+| `grave` on a unit with no rounds left | [Stopping and self-healing](#stopping-and-self-healing) |
 
 Then update `Rodadas:`, write the state line (`consolidação, rodada <r>: <k> correções`) and
-commit the round: `git add lightshows`, subject `Record round <r> of <topic> in <show-id>`, body
-one line per fix (unit, lens, severity, evidence). With fixes, start round r+1 at phase 4 within
+commit the round: `git add lightshows`, subject `Record round <r> of <topic> in <show-id>`. The
+body holds each routed finding verbatim (unit, lens, severity, evidence, problem, direction):
+a resumed run reads them back from there. With fixes, start round r+1 at phase 4 within
 [the limits](#stopping-and-self-healing); with none, go to phase 8.
 
 ### 8. Selection
@@ -339,9 +365,17 @@ scope), compare them blind. Otherwise the state line says `seleção, dispensada
 
 2. Fill `templates/judge.md` into `<run>/briefs/judge-<unit>.md` and dispatch `show-critic`.
 3. Pick, and record which version won and why as a `### Decisões` item. An undecided verdict is
-   your call: say so in the decision. If an earlier version wins,
-   `git checkout <its commit> -- lightshows/shows/<show-id>/<file>.yml` for the unit's files,
-   then build and pass the gates again.
+   your call: say so in the decision. If an earlier version of a unit wins, restore it by the
+   rule below, then build and pass the gates again.
+
+#### Restoring a unit
+
+A track file in the middle of the set holds two mixes: its opening belongs to one, its handover
+to the next. So restoring a unit's files can undo a neighbour's work. Restore from `<commit>`
+with `git checkout <commit> -- <its files>` only when `git diff <commit> HEAD -- <its files>`
+(after a failed gate, `git diff HEAD -- <its files>`) touches only that unit's sections: a
+mix's outgoing handover and incoming opening, or a track unit's file. Otherwise select at the
+night level, or re-dispatch the unit with the version to restore quoted as its constraint.
 
 ### 9. Delivery
 
@@ -351,10 +385,11 @@ Follow [Delivery](#delivery).
 
 **The budget:**
 
-- A unit gets **at most 3 design rounds**: its first design, each fix round and each gate bounce
-  count.
-- The night gets **at most 2 full critique passes** (five lenses over the whole scope);
-  re-reviews of open findings and changed units do not count.
+- A unit gets **at most 3 design rounds**: the rounds of the night in which it is designed
+  (the `Unidades:` count). A gate bounce repairs inside its round and does not count.
+- The night gets **at most 2 full critique passes** (five lenses over the whole scope); the
+  second only after an upstream change to the concept or to several cards. Re-reviews of open
+  findings and changed units, and a critique rerun on a resume, do not count.
 - The owner's cap, when the request sets one.
 
 **Self-healing:**
@@ -362,11 +397,11 @@ Follow [Delivery](#delivery).
 - **`menor` findings never enter the loop**: they go to `Para depois`.
 - A `grave` finding goes back to the unit's designer with its evidence.
 - **A `grave` that comes back in a unit's third round means the cause is upstream.** Revise the
-  unit's card (or the concept) once, record it as a decision, cold-read the revised card, and
-  redesign the unit once more.
-- **Still `grave` after that: stop on it.** No more rounds for it. It goes in `### Para depois`
-  as `Problema aberto: ...` with its evidence, and in the report to the owner. Never patch it
-  round after round.
+  unit's card (or the concept) once, record it as a decision, cold-read the revised card
+  (`leitura a frio, rodada <r>`), and redesign the unit once more in round r (`3/3+1`).
+- **Still `grave` after that: stop on it.** No more rounds for it. Write a `### Decisões` item
+  that rules it open, put it in `### Para depois` as `Problema aberto: ...` with its evidence,
+  and name it in the report to the owner. Never patch it round after round.
 
 **The stop is yours.** Go to selection and delivery when every `grave` in scope is fixed or
 ruled and the gates are green, or when the budget is spent. If the session runs short (usage
@@ -377,8 +412,9 @@ selection, not necessarily the last.
 
 ## Delivery
 
-1. **The ledger, complete:** `Rodadas: <r> · versões: v1, ..., v<r> (escolhida: v<x>)`, every
-   decision, every later item and open problem. The book reads it, so it comes first.
+1. **The ledger, complete:** `Rodadas: <r> · versões: v1, ..., v<r> (escolhida: v<x>)`,
+   `Unidades:`, every decision, every later item and open problem. The book reads it, so it
+   comes first.
 2. **The gates**, with their real output:
 
    ```bash
@@ -387,13 +423,14 @@ selection, not necessarily the last.
    uv run pytest
    ```
 
-3. **On a rework, the contract holds** (the `--keep` list is the ledger's `Contrato:`):
+3. **On a rework, the contract holds:**
 
    ```bash
-   uv run scripts/nextrack_show.py compare <run>/main/lightshows/shows/<show-id> lightshows/shows/<show-id> --keep arrivals,moments
+   uv run scripts/nextrack_show.py compare <run>/main/lightshows/shows/<show-id> lightshows/shows/<show-id> --keep <the Contrato's list>
    ```
 
-   Exit 1 means the story moved: route it as a fix within the budget, or stop on it.
+   For example `--keep arrivals,moments`. Exit 1 means the story moved: route it as a fix
+   within the budget, or stop on it.
 4. **The book:** `uv run scripts/nextrack_show.py book <show-id> -o <run>/book.html`. When the
    Artifact tool is available, publish the file as a private Artifact (do what the tool asks
    before a publish: load a skill, read the file); otherwise give the file's path (on WSL also
@@ -426,7 +463,7 @@ You fill every placeholder; the agents fill none.
 | `{{files}}` | designer | one bullet per file it may change, with the part (`only the handover`); never `show.yml` |
 | `{{card}}` | designer | the unit's cards, verbatim from `## Cartões` (both for a mix) |
 | `{{neighbours}}` | designer | the neighbours' cards, and their handover and bridge lines from `report <show-id> --track "<Artist — Title>"` |
-| `{{constraints}}` | designer | verbatim: the contract, the rules and budget lines that bind the unit, the round (`rodada 2 de 3`) and, in a fix round, each finding |
+| `{{constraints}}` | designer | verbatim: the contract, the rules and budget lines that bind the unit, the round (`rodada 2 de 3`) and, in a fix round or a gate bounce, each finding |
 | `{{request}}` | designer | the owner's request, in their words; never in a critic's brief |
 | `{{lens}}` | critic | one lens id: `monotonia`, `drops`, `energia-da-musica`, `arco-do-set`, `briefing` |
 | `{{variant_a}}`, `{{variant_b}}` | judge | `<run>/blind/a/lightshows/shows/<show-id>` and `<run>/blind/b/lightshows/shows/<show-id>` |
@@ -462,7 +499,6 @@ The protocol project 3 runs (this skill ships it, not the harness):
 | "The finding is obviously right, line or not" | No evidence, no finding: drop it and say so in the ledger. |
 | "A quick gesture in `show_gestures.py` saves a round" | `gesture-engineer`, test first, then a code review, then the designers. |
 | "Two designers can share a file this once" | One file, one designer per batch. `show.yml` is yours. |
-| "I'll touch up the generated choreography" | Never: change the show and build. |
-| "The owner will want it pushed, or in SoundSwitch" | The run stops at the branch: never push, PR, merge or `--apply`. |
+| "Restoring the old file brings the unit back" | A middle track file holds two mixes: follow the restore rule. |
 | "The last version is the best" | Selection picks, blind, in both orders. |
 | "I'll remember where I was" | The state line after every phase; the ledger is the memory. |
