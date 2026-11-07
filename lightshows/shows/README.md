@@ -544,7 +544,8 @@ decided by the compiler
 ```
 
 The sample is cut to the section lines; the real report also opens with the night summary and
-the strips and adds the peaks and the hit checks: see [The critic's views](#the-critics-views).
+the strips and adds the peaks, the hit checks and six analyses (follows, drops, builds, variety,
+arc, identity): see [The critic's views](#the-critics-views).
 Each section line is `clock bars name | source | layers | role and moment | music`, with colours by
 palette name; the source is `look <name>`, `look (inline)`, `gesture <name>`, `bridge <look>`,
 `handover <look>` or `echo <look>`. Then the budget tally, the arrivals, the `advice` section
@@ -576,10 +577,14 @@ means fixing the data, not loosening the rule.
 
 `report` is the night read for a critic, and `zoom` is one moment under a magnifying glass.
 Both are built from the compiled show and the musical maps (and `room.yml` to name aims). The
-clock also reads the set's block tracklists for tempos, and the zoom reads the rig; they read
-nothing else. Every number below comes from a function in
-[`scripts/show_views.py`](../../scripts/show_views.py) or
-[`scripts/show_zoom.py`](../../scripts/show_zoom.py) whose docstring states its formula.
+clock also reads the set's block tracklists for tempos and the owner's energy labels, the light
+measures and the zoom read the rig, and the identity reads the set's `arc`; they read nothing
+else. Every number below comes from a function in
+[`scripts/show_views.py`](../../scripts/show_views.py),
+[`scripts/show_energy.py`](../../scripts/show_energy.py),
+[`scripts/show_analysis.py`](../../scripts/show_analysis.py) or
+[`scripts/show_zoom.py`](../../scripts/show_zoom.py) whose docstring states its formula; the
+report's text is [`scripts/show_report.py`](../../scripts/show_report.py)'s.
 
 ### Clock
 
@@ -605,30 +610,77 @@ outgoing track runs at its end tempo, and the next track starts at the previous 
 
 ### Levels
 
-- **Music level**, one digit 0-9 per bar: the highest of the map's `kick`, `bass` and `other`
-  bar digits (`voices.<voice>.bars`). Vocals are shown apart.
-- **Light level**, an index 0-9 and not a measurement:
-  `round(9 x (0.4 x movers + 0.4 x matrix + 0.2 x hue))`, rounded half up, each layer's value
-  being 0-1:
+Every bar of a track's sounding window gets digits 0-9: the music's energy, the light's
+energy and the light's two parts. They are measurements with stated formulas, normalised to
+the track or the night, never lux or decibels.
 
-| layer | value |
+**Normalisation.** A feature `x` is read as `x^ = clip01((x - p5) / (p95 - p5))`, the 5th and
+95th percentiles taken over a **scope**: the track's leg bars (the *track scope*) or every
+track's leg bars (the *night scope*). When `p95 - p5` is below `1e-9` every `x^` is 0.5. A digit
+is `round(9 x ...)`, halves rounded up.
+
+**Music energy** `E_music(b) = round(9 x (0.4 L^ + 0.2 C^ + 0.2 D^ + 0.2 V^))`, from four
+features of bar `b`:
+
+| feature | read from |
 |---|---|
-| `movers` | `off` 0; `hold`, `sweep`: `level` (default 0.85); `pingpong`, `blink`: 0.5 flat (the compiler lights them at full, so their `level` does not count); `uv`: 0.3 |
-| `matrix` | `off` 0; per draw the lit share of the colour cells: `solid` 1, `fill-up` 0.6, `rows-up`/`rows-down` 1/6, `columns` 1/8, `centre-out` 0.25, `arrow-up` 0.15, `zigzag` 1/48; x 0.5 with `pingpong`; then x 0.6 (draws pulse and decay) |
-| `hue` | `dark`, `off` 0; `pulse` 0.5; `bright` 0.85 |
+| `L` loudness | the map's `mix.loudness` digit ([the mix block](../README.md#musical-maps)) |
+| `C` brightness | the map's `mix.brightness` digit (the share of power above 4 kHz) |
+| `D` onset density | the bar's 1/16 steps with a `kick` or `perc` onset of strength 3 or more, over 16 |
+| `V` texture | the voices (vocals, kick, perc, bass, other) whose bar digit is 6 or more, 0-5 |
 
-`white`, `strobe` and `uv` layers do not enter the level; they show as accents. A section
-whose movers, matrix or hue is `auto` (or unset, or outside the table) has **no level**: it
-prints `~`, which means unknown: the autoscript decides. `~` has the same meaning in the
-strips, the peaks, the hit checks and the zoom lanes.
+The strips, the peaks and `follows` use the track scope; the label check (`arc`) the night
+scope. A map without `mix` (version 1) uses the **interim** formula
+`round(9 x (0.5 D^ + 0.5 V^))`, and every view that uses it names the track `<title> (interim)`.
+The section lines keep the voices (`k9 b7 v0 p8 o7`) apart.
+
+**The light** is sampled the way `zoom` samples it (`show_zoom.sample_light`): the compiler's
+own generators, one sample per 1/16 step, 2 ms after the step's start, for each fixture group of
+the rig. A step no section holds reads unknown everywhere (the autoscript plays); a strobe that
+is `auto` is unknown, one that is `off` or not lit at that instant is off; a Vorlane's coverage
+(the lit share of its colour cells) is unknown when any colour cell is `auto`. A bar is
+**unknown** (`~`) when any of its 16 samples has an unknown mover, Vorlane or lustre. Otherwise
+each group has a level 0-1 at every step (an unknown white, strobe or coverage counts 0):
+
+| group | level at a step | weight |
+|---|---|---|
+| movers | the mean of the movers' levels | 0.35 |
+| Vorlanes | the mean over the Vorlanes of level x coverage | 0.35 |
+| lustre | the hue's level | 0.15 |
+| white | the white strip's level | 0.10 |
+| strobe | 1 when a strobe window is lit, else 0 | 0.05 |
+
+- **Brightness** `B` is the weighted sum of each group's mean level over the bar's 16 steps.
+- **Activity** `A` is the weighted sum of each group's rises, over 16. A rise is a step whose
+  level is 0.05 or more after a step below it (the first step compares with the bar before's
+  last sample), so a strobe pulse is a rise. For the Vorlanes a step counts the share of their
+  colour cells newly lit there (a column of eight lighting up is 1/8), averaged over the
+  Vorlanes: the highest cell would hide a sweep of single columns.
+- **`E_light(b) = round(9 x (0.5 B^ + 0.5 A^))`**, with `B` and `A` normalised over the night's
+  known leg bars. The strips also print `bright` (`round(9 x B^)`) and `activity`
+  (`round(9 x A^)`) apart: a drop that is dimmer but much faster is a legitimate design, and the
+  critic must see it. The weights are a design call, stated here.
+- **Change events** `X(b)`: how many of nine dimensions change value at bar `b` against bar
+  `b - 1` of the same track (0 at the window's first bar): `movers.move`, `movers.rate`,
+  `movers.colour`, `aim`, `matrix.draw`, `matrix.rate`, `matrix.colour`, `hue.state` and
+  `hue.colour`. With `look` and `gesture` in front, the eleven values are the section's
+  **signature**: two sections with the same signature look the same to the critic.
+
+An unknown bar is left out of every statistic and counted in the summary's `light unknown`
+share. `~` has the same meaning in the strips, the peaks, the hit checks and the zoom lanes.
 
 ### What `report` prints, in order
 
-Real excerpts of `report hi-ibiza-pulso`, cut to width.
+Real excerpts of `report hi-ibiza-pulso`, cut to width. Its sections, in this order, are
+`summary`, `tracks`, `peaks`, `hits`, `follows`, `drops`, `builds`, `variety`, `arc`, `identity`,
+`budget`, `arrivals`, `advice`, `decided` and `findings`. Each starts with a header line (`peaks`,
+`follows`, ...), most with a line naming their columns, then one line per item.
 
-**The night summary** (`night 44:09`): the time per look, the time per colour of each zone
-(movers, matrix, hue), the aims, how much of the night each zone is lit, the centre dark, the
-total dark, and the events (`white-accent 5 (0:02)`: count and time). States (looks, colours, aims, zones, dark) are summed over legs; events are counted over sounding windows.
+**The night summary** (`summary`, `night 44:09`): the time per look, the time per colour of each
+zone (movers, matrix, hue), the aims, how much of the night each zone is lit, the centre dark,
+the total dark, the events (`white-accent 5 (0:02)`: count and time) and the time whose light
+is unknown. States (looks, colours, aims, zones, dark) are summed over legs; events are counted
+over sounding windows.
 
 ```
 night 44:09
@@ -637,16 +689,20 @@ night 44:09
   zones lit: movers 43:22 (98%), matrix 37:19 (85%), hue 35:27 (80%)
   total dark: 0:26 in 6 section(s)
   events: white-accent 5 (0:02), white-flash 1 (0:09), strobe 5 (0:05), uv 0 (0:00)
+  light unknown: 0:00 (0%), the autoscript decides
 ```
 
-**The legend**, then per track a **header** (bars, `B`, `G`, when it enters, when its arrival
-lands) and the **strips**: one digit per bar, 64 bars to a row, the music level above the
-light level, each row labelled with its first bar:
+**The tracks** (`tracks`): the legend, which names the measures and points here, then per track
+a **header** (bars, `B`, `G`, when it enters, when its arrival lands, `(interim)` for a map
+without `mix`) and the four **strips**: one digit per bar, 64 bars to a row, `music` (E_music),
+`light` (E_light), `bright` and `activity`, each row labelled with its first bar:
 
 ```
 1. &ME, Black Coffee — The Rapture Pt.III · 209 bars · G 169 · enters 0:00 · arrival 145 at 4:48
-  music    1 |9999999999999999999999999999999999999999999999999999999999999999|
-  light    1 |0000000011111111222222222222222244444444444444444444444444444444|
+  music       1 |5556665566656555666665566666666666666666666566646676676776767767|
+  light       1 |0000000021111111322222222222222244444444444444445555555555555555|
+  bright      1 |0000000022222222555555555555555588888888888888888888888888888888|
+  activity    1 |0000000020000000100000000000000000000000000000001111111111111111|
 ```
 
 Then the section lines, each with its **clock** (`0:16`, the set time of its first bar) and,
@@ -657,28 +713,166 @@ kick, bass, vocals, perc and other over the section's bars):
   0:16 9-16 primeiro-feixe | look (inline) | movers pingpong every=8bar position=centro-da-pista ... | music: groove 9-16, k9 b7 v0 p8 o7
 ```
 
-**The peaks**: one row per map drop inside a sounding window, by clock: the drop against the
-two bars before it (`+5.8 dB`; a drop after silence reads huge), the music level, the light
-level before and at the drop (`0>3`), the accents there and the moment. "Light before" at a
-track's `B` is the previous track's last section of its leg. A bridge's or an echo's copied
-moment is never shown as the moment of its drop.
+**The peaks** (`peaks`): one row per map drop inside a sounding window, by clock: the drop
+against the two bars before it (`+22.0 dB`; a drop after silence reads huge), E_music at the drop
+(track scope), E_light of the bar before and of the drop (`0>8`), the accents there and the
+moment. On a track's `B` the bar before is the previous track's last leg bar. A bridge's or an
+echo's copied moment is never shown as the moment of its drop.
 
 ```
-  4:48 · The Rapture Pt.III 145 · +5.8 dB · music 9 · light 0>3 · accents white · moment abertura
+  32:18 · Too Cool To Be Careless 49 · +22.0 dB · music 7 · light 0>8 · accents white,strobe · moment virada
 ```
 
-**The hit checks**: one row per arrival and per moment (the first section of a cue or handover
-with a `moment`; never a bridge or an echo): the strength of the kick onset on the first 1/16
-step (`kick 8`; `.` none), the light before and at the hit, the accents on its first beat,
+**The hit checks** (`hits`): one row per arrival and per moment (the first section of a cue or
+handover with a `moment`; never a bridge or an echo): the strength of the kick onset on the first
+1/16 step (`kick 9`; `.` none), E_light before and at the hit, the accents on its first beat,
 and, when the section before is total dark, the voices over those dark bars:
 
 ```
-  32:18 · Too Cool To Be Careless 49 · moment virada · kick 9 · light 0>5 · accents white,strobe · dark before: 48-48 k0 b0 v9 p1 o0
+  32:18 · Too Cool To Be Careless 49 · moment virada · kick 9 · light 0>8 · accents white,strobe · dark before: 48-48 k0 b0 v9 p1 o0
+```
+
+**follows**, one line per track, over the leg's bars with a known light:
+
+- `rho`: the Spearman correlation (of average ranks; `-` below 3 bars or for a constant side) of
+  E_music (track scope) and E_light.
+- `agree`: the map's section starts `s` with `leg first + 4 <= s <= leg last - 3` are the
+  boundaries; at each, `dm` is the mean E_music over `s..s+3` minus over `s-4..s-1`, and `dl` the
+  same for E_light. Among the boundaries where the music moves (`|dm| >= 2`), the share where the
+  light moves the same way by 1 or more.
+- `lag`: the shift in -8..8 bars that best correlates the music with the light shifted (Pearson;
+  a tie goes to the smaller shift; `-` below 16 known bars); `+` means the light is late, and a
+  lag beyond 1 is flagged.
+- `missed`: the boundaries where the music moves and the light moves less than 1, with `dm` and
+  `dl`. `unmotivated`: where the light moves 3 or more and the music less than 1 (for
+  information). `unknown`: the share of the leg whose light is unknown.
+
+```
+  The Akan · rho 0.50 · agree 50% · lag 0 · missed 105 (music +4.5, light +0.8) · unmotivated - · unknown 0%
+```
+
+**drops**, every sounding map drop `d` in rank order of its **salience**
+`S = 0.4 L^ + 0.3 bass + 0.2 D^ + 0.1 main`:
+
+- `loud`: the mean `mix.loudness` over `d..d+3` minus over `d-8..d-1` (a version 1 map: E_music);
+- `bass`: the bass's return, `max(0, bass digit at d - lowest bass digit over d-8..d-1) / 9`;
+- `density`: the same rise as `loud` on the onset density;
+- `main`: the track's drop with the largest loudness rise, or its last drop;
+- `L^` and `D^` divide by the night's largest rise (0 when none rises).
+
+Its light **response** is `0.5 clip01(contrast / 4) + 0.25 changes / 9 + 0.25 fresh`:
+
+- `contrast`: the mean E_light over `d..d+3` minus over the 2 bars before (the previous track's
+  at a leg's first bar);
+- `changes`: `X(d)`;
+- `fresh`: the share of the drop section's nine dimension values that no section sounding in
+  the 10 minutes before has.
+
+`agreement` is the Spearman of salience and response over the drops above the median salience.
+
+```
+  rank 1 · 39:30 · PICK UP THE PHONE (feat. Nate Dogg) (Extended) 137 · salience 0.90 (loud +5.0, bass 1.00, density +0.70, main) · response 0.64 (contrast +5.5, changes 5, fresh 0.00)
+  rank 2 · 7:12 · The Akan 105 · salience 0.84 (loud +6.0, bass 1.00, density +0.18, main) · response 0.22 (contrast +0.0, changes 7, fresh 0.11)
+  agreement: rho -0.05 of salience and response over the drops above the median salience
+```
+
+**builds**, each map `build` of 4 bars or more and the last 4-16 bars of a `break` that a `drop`
+follows: the slope per bar (least squares) of the music's tension (the mean of the loudness,
+brightness and onset density normalised over the leg; a version 1 map: the density alone), the
+slopes of the light's activity and brightness digits, and how the light goes **into** the drop
+`d`. It is `dip` when E_light at `d - 1` is at least 1 under its mean over `d-9..d-2`; else `ramp`
+when the build's last 4 E_light never fall and end above its first; else `flat`. It is `unknown`
+when the autoscript plays a bar the test needs.
+
+```
+  6:56 · The Akan 97-104 · music +0.075 · activity +0.11 · brightness +1.36 · into ramp
+```
+
+**variety**, over the legs' time:
+
+- **static runs**: the five longest stretches of one signature, across a leg boundary too (then
+  both tracks are named: `Dançarina 21 – Voa Voa 8`), with the map sections under them.
+- **per minute**: one digit per minute `m` of the night, the entropy of the signatures' time
+  shares over `[60 m - 120 s, 60 m + 120 s)`, `-sum(p log2 p) / log2(k)` for `k` signatures
+  (0 for one), as `round(9 x H)`.
+- **dominant**: per dimension, the value (not `auto`) with the largest share (a value of several
+  words, such as a section's aims, shares its time among them), `(declared)` when a signature
+  of the identity names it.
+- **similarity**: the cosine of two neighbouring tracks' shares of every dimension value.
+- **drop templates**: the distinct pairs (signature before the drop, signature at it) against
+  the number of drops.
+- **phrase lines**: the share of the bars with a change event that start a map section or fall
+  on a 4-bar line from one.
+- **uses**: per track, the looks, colours per zone, aims and gestures its legs use, and its
+  number of distinct drop templates: the record the designers read.
+
+```
+  5:36 · The Akan 57-96 · 1:20 · groove
+  per minute, 0-9, the entropy of the signatures over 4 minutes: |988887877878878888877888888887788877787888888|
+  dominant movers.colour: azul-gelo 86%
+  similarity The Akan / What To Do (&ME Remix) 0.97
+  drop templates: 32 distinct of 35 drops
+  phrase lines: 78% of the light's changes start a map section or fall on a 4-bar line from one
+```
+
+**arc**, the night against the owner's energy (each track's `eN` from its block line, else the
+pool's): per track the mean and the 90th percentile of E_light over its leg, the mean activity
+digit, the share of its leg with a warm colour (movers or lustre within 30 degrees of red) and
+its rare resources (strobe, white, UV and total-dark counts, gesture calls). Then the checks,
+each `-` when nothing is listed:
+
+- `rho`: the Spearman of the owner's energy and the light mean, and of the energy and the p90.
+- `headroom`: the highest p90 before the first track at the night's top energy, over the
+  night's highest p90.
+- `staircase`: a track whose p90 beats every earlier p90 while its energy is below an earlier
+  one.
+- `step`: neighbours whose light mean jumps by 2 or more at the same energy (`jump`), or moves
+  less than 1 while the energy rises (`flat`).
+- `no breather`: a drop of the top quarter by salience with no bar at or below the night's median
+  E_light within 3:00 after it.
+- `label`: a track whose rank by owner energy and by measured E_music (night scope) differ by
+  three or more: a question for the owner, never a fix.
+
+```
+  5:36 · The Akan · e6 · light 3.8, p90 4.0 · activity 0.7 · warm 90% · rare -
+  rho 0.00 (mean) and 0.13 (p90): the owner's energy against the light per track
+  headroom 0.89: the highest p90 before the first track at the night's top energy, over the night's highest
+  step jump: Say What -> Baianá (Pablo Fierro Edit): energy e7 -> e7, light mean 2.9 -> 5.2
+  label: The Akan: owner energy e6 ranks 13.5, measured music ranks 1: check the label
+```
+
+**identity**: the arc (the identity's `arc`, else the set's front-matter `arc`, else `none`),
+then each declared [signature](#identity): the share of the night its sections hold against its
+`share` bounds (`in range`, `below min` or `above max`) with its intent, and one line per
+occurrence (its clock, bars and length). Then, per dimension, the most present value no
+signature declares.
+
+```
+  arc: single-peak (the set's)
+  signatures: none declared
+  undeclared movers.colour: azul-gelo 86%
 ```
 
 Then the budget tally, the arrivals, the **advice** (`show-advice` lines), "decided by the
 compiler" (bridges, default ends, aim fallbacks, a handover cut by `bridge.bars`, echoes) and
-the findings. `report` exits 1 on findings; advice never does.
+the findings. `report` exits 1 when it printed a finding; advice never does.
+
+**Filters.** `--section a,b` prints only those sections, in the order above; an unknown name is a
+usage error that lists them. `--track "<Artist — Title>"` (the track as its file names, as
+`zoom` takes it; an unknown one is a usage error that lists the tracks) prints a slice for one
+designer:
+
+- the legend, then the previous track's handover (and echo) lines under `N. <track> · handover`;
+- the track's header, strips and section lines;
+- the next track's bridge lines under `N. <track> · bridge`;
+- in every other section, the lines that name the track: its peaks and hit rows, its follows
+  and builds lines, its drops, the variety and arc lines that name it, the identity occurrences
+  in it, the budget lines that count it, its arrival, the advice and findings of its file and
+  the compiler's decisions about it.
+
+A section with no such line is left out, and so is the summary. A slice of Hï Ibiza is 5 000 to
+10 000 characters. The two combine: `--track X --section follows,drops`. The exit status
+follows what is printed: 1 only when a finding is among the printed lines.
 
 ### `zoom`
 
@@ -723,16 +917,18 @@ light
 
 ### Reading the report as a critic
 
-What is **fact**: the clock and durations, what each layer does in each section, the levels
-(computed from the table above), the voices and drops in the maps, which hits land on a kick,
-the budget counts, the advice that does not hold. What is **left to judgment**: whether a
-light level of 3 under a drop of 9 is the right restraint, whether a dark bar before a drop is
-tension or a hole, whether two arrivals look alike, whether an aim fits the figure the music
-draws. The light level is an index with a stated formula, never lux; a `~` is a gap in what
-the tool can know, not a defect. Read the strips for the shape of the night, the peaks and hit
-checks for the moments that must land, the `zoom` for the 1/16 steps of one, and `render` for
-what the room sees. A number that looks wrong is a question about the formula, which is in
-this section, before it is a question about the show.
+What is **fact**: the clock and durations, what each layer does in each section, the energy
+digits (measured with the formulas in [Levels](#levels)), the voices and drops in the maps,
+which hits land on a kick, the analyses' numbers, the budget counts, the advice that does not
+hold. What is **left to judgment**: whether a light of 3 under a drop of 9 is the right
+restraint, whether a dark bar before a drop is tension or a hole, whether a low `rho` is a
+missed cue or a counterpoint, whether two arrivals look alike, whether an aim fits the figure
+the music draws. The digits are relative (to the track or the night), never lux or decibels; a
+`~` is a gap in what the tool can know, not a defect. Read the strips for the shape of the
+night, `follows` and `arc` for how the light tracks the music and the plan, the peaks, the hit
+checks and `drops` for the moments that must land, `variety` for repetition, the `zoom` for the
+1/16 steps of one moment, and `render` for what the room sees. A number that looks wrong is a
+question about the formula, which is in this section, before it is a question about the show.
 
 ## UV (designed, not compiled)
 
