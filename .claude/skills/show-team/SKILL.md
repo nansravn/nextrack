@@ -67,7 +67,9 @@ skill and the owner's go.
 
 ## The run folder and the ledger
 
-**The run folder** holds what is bulky and never committed:
+**The run folder** holds what is bulky and never committed. Keep shell commands plain (no
+`$(...)` around git, no shell variables in paths): a worktree session may refuse compound
+commands.
 
 ```
 <scratch>/show-team/<show-id>/<YYYY-MM-DD-HHMM>/
@@ -231,14 +233,17 @@ After each phase: its state line in the ledger.
    facts that must not change in `compare --keep` terms (for example `--keep arrivals,moments`),
    plus prose for what `--keep` cannot say (an advice that must not get worse).
 3. Copy the starting show for the contract, from the branch point (stable across resumes):
-   `mkdir -p <run>/main && git archive $(git merge-base HEAD origin/main) lightshows/shows/<show-id> | tar -x -C <run>/main`.
+   run `git merge-base HEAD origin/main` and note the SHA it prints; then `mkdir -p <run>/main`,
+   then `git archive <that sha> lightshows/shows/<show-id> | tar -x -C <run>/main`.
 4. Make the `show.yml` changes the request needs yourself (as `bridge.bars: 16`): `show.yml`
    is the director's file.
 
 **Cards** (`## Cartões` in the light plan, pt-BR). In a new show or a rework of the night,
 one per track; in a rework of units, one per track the run touches, where it is missing (a plan
 written before the team, as Hï Ibiza's, has none). Cards are per track: a mix is covered by the
-outgoing track's `Entrega` line. One `### <n>. <Artist — Title>` per track:
+outgoing track's `Entrega` line. Every bar a card names comes from
+`uv run scripts/nextrack_show.py report <show-id> --track "<Artist — Title>"` or
+`uv run scripts/nextrack_map.py show "<Artist — Title>"`, never from memory. One `### <n>. <Artist — Title>` per track:
 
 ```markdown
 ### <n>. <Artist — Title>
@@ -320,8 +325,9 @@ finding (advice is fine). The gates repair inside the round: a bounce is not a d
      move, read with
      `uv run scripts/nextrack_show.py compare <run>/main/lightshows/shows/<show-id> lightshows/shows/<show-id>`;
    - later rounds: only the open findings (unit and evidence line) and the changed units with
-     their neighbours, to the lenses that have something there. That is a **re-review**, not a
-     full pass.
+     their neighbours, to the lenses that have an open finding, plus any lens whose ground the fix
+     changes (when in doubt, the lens of each routed finding), not all five. That is a
+     **re-review**, not a full pass.
    - A second full pass runs only after an upstream change to the concept or to several cards.
 3. Never put the request, the ledger, a designer's report or your reasoning in a critic's brief.
 4. **Scope discipline.** A finding outside the request's scope that this run did not cause is
