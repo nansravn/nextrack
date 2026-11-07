@@ -155,7 +155,9 @@ copy those values into `grid`, unless the owner plays another version of the tra
 
 Approving the choreography is not a go. Apply only when the owner says, in this session,
 to write it into SoundSwitch. A go covers one track's choreography as it stands: ask again
-for the next track, and again after any change to the YAML.
+for the next track, and again after any change to the YAML. A `PreToolUse` hook
+(`.claude/hooks/guard_soundswitch.py`) also asks the owner to confirm any `--apply`
+command, but its click does not replace the owner's go in the session.
 
 1. Ask the owner to close SoundSwitch.
 2. Dry run: `uv run scripts/nextrack_lights.py apply lightshows/tracks/<slug>.yml`; show
