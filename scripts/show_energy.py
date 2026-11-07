@@ -31,9 +31,9 @@ level at every step (None counts 0):
     strobe    1 when a strobe window is lit, else 0
 `brightness` B is `sum(LIGHT_WEIGHTS x group mean level over the steps)`. A group's rise is a
 step whose level is >= `RISE_LEVEL` (0.05) after a step below it (the first step compares
-with the previous bar's last sample, `before`; with none, or an unknown one such as the
-autoscript's, it counts no rise; at a leg's first bar `before` is the previous track's last
-sample of its leg, what plays in the room then), and `activity`
+with the previous bar's last sample, `before` for the first bar; with none, or an unknown one
+such as the autoscript's, it counts no rise; at a leg's first bar `before` is the previous
+track's last sample of its leg, what plays in the room then), and `activity`
 A is `sum(LIGHT_WEIGHTS x group rises) / 16`. `E_light = round(9 x (0.5 x B_hat + 0.5 x A_hat))`
 with B and A normalised over the night's known leg bars. `TrackEnergy.brightness` and
 `.activity` are the night-normalised digits `round(9 x B_hat)` and `round(9 x A_hat)`.
@@ -198,7 +198,8 @@ def _newly_lit(before: tuple, now: tuple) -> float | None:
 
 def light_bars(samples: list[show_zoom.StepLight], before: show_zoom.StepLight | None = None) -> list[BarLight]:
     """One `BarLight` per 16 samples (module docstring). `before` is the sample before the
-    first one (the previous bar's last), against which the first step's rise is judged."""
+    first one (the previous bar's last), against which the first step's rise is judged. A step
+    after an unknown sample (`before`, or the last sample of an unknown bar) counts no rise."""
     out = []
     known = before is not None and not _unknown(before)
     previous = _levels(before) if known else None
@@ -224,8 +225,10 @@ def light_bars(samples: list[show_zoom.StepLight], before: show_zoom.StepLight |
                     last = lv[g]
                 a += w * rises / STEPS
             out.append(BarLight(b, a))
-        previous = levels[-1]
-        last_cells = chunk[-1].cells
+        if _unknown(chunk[-1]):          # an unknown last sample: the next bar's first step is no rise
+            previous, last_cells = None, ()
+        else:
+            previous, last_cells = levels[-1], chunk[-1].cells
     return out
 
 
