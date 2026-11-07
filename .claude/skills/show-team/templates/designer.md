@@ -50,7 +50,8 @@ Use `zoom` for the key moments and `nextrack_map.py show` for the music.
 2. Choose against the card and the usage record, and say why in two sentences.
 3. Apply it in your copy and build:
    `uv run scripts/nextrack_show.py build {{show}} --out {{show}}/out`
-4. Read the result with `report --track` and fix the findings that are yours.
+4. Read the result with `report --track` and fix the findings that are yours. You have at most
+   3 design rounds per unit; the director tells you when a round is a fix.
 
 If you need a gesture that does not exist, write a `missing gesture: <effect in words>` line
 in your report; do not write code.
