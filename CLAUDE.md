@@ -41,7 +41,7 @@ Install uv once if it is missing: `curl -LsSf https://astral.sh/uv/install.sh | 
 | Library tool | `uv run scripts/nextrack_tags.py <cmd>` |
 | Set up the musical map tools (optional, heavy, not in CI) | `uv sync --group analysis` |
 | Musical maps and set timeline | `uv run scripts/nextrack_map.py <cmd>` |
-| Shows: build the choreographies, report the night, zoom into a moment, list the vocabulary | `uv run scripts/nextrack_show.py <cmd>` |
+| Shows: build the choreographies, report the night, zoom into a moment, brief a set, compare shows, write the book, list the vocabulary | `uv run scripts/nextrack_show.py <cmd>` |
 
 `pyproject.toml` exists, so setup is `uv sync`. Do not use poetry or pip; the
 system Python is externally managed.
@@ -57,7 +57,7 @@ Library tool (`audit`, `clean-names`, `fix-tags`, `pull-bpm`; see
 - `pull-bpm --apply` edits the `bpm`/`key` lines of `tracks/*.yml` in place.
   Review it with `git diff tracks`.
 
-Map tool (`analyze`, `cues`, `show`, `timeline`; see
+Map tool (`analyze`, `cues`, `show`, `timeline`, `upgrade`; see
 [scripts/README.md](scripts/README.md#nextrack_mappy)):
 
 - `lightshows/maps/*.yml` are generated: never edit them by hand, redo them with
@@ -65,9 +65,9 @@ Map tool (`analyze`, `cues`, `show`, `timeline`; see
 - It only reads audio, rekordbox and the SoundSwitch project. Folders come from
   `--project`/`NEXTRACK_SOUNDSWITCH_PROJECT`, `--root`/`NEXTRACK_AUDIO_ROOT` and
   `--rekordbox`/`NEXTRACK_REKORDBOX_DIR`. rekordbox's database is read from a copy.
-- `analyze`, `cues` and `timeline` need `uv sync --group analysis` (not in CI).
+- `upgrade` redoes old maps with the newer measures (`mix`). `analyze`, `cues`, `timeline` and `upgrade` need `uv sync --group analysis` (not in CI).
 
-Show tool (`build`, `report`, `zoom`, `vocab`; see
+Show tool (`build`, `report`, `zoom`, `brief`, `compare`, `book`, `vocab`; see
 [scripts/README.md](scripts/README.md#nextrack_showpy) and
 [lightshows/shows/README.md](lightshows/shows/README.md), the manual of the show language):
 
@@ -76,9 +76,13 @@ Show tool (`build`, `report`, `zoom`, `vocab`; see
 - `build` refuses hand-written files without `--adopt` and files of another show always. A
   show folder outside `lightshows/shows/` builds only with `--out DIR`. `report` exits 1
   when it printed a finding. `zoom` shows a moment at 1/16 of a beat (music over the light
-  `build` writes); `advice:` goals never fail anything.
+  `build` writes); `advice:` goals never fail anything. `report --track T --section a,b` cuts
+  the night to a track or to sections. `brief <set>` prints a set's music for the director
+  (needs no show). `compare <a> <b> [--keep ...]` prints the facts of two shows side by side.
+  `book <show> -o FILE` writes the night as one HTML page.
 - It needs no audio, rekordbox or SoundSwitch, and writes only
-  `lightshows/tracks/` of `--repo` or the `--out` folder.
+  `lightshows/tracks/` of `--repo` or the `--out` folder, plus the `-o` file of `book`
+  (keep it outside the repo).
 
 ## Change checklists
 

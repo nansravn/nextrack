@@ -7,6 +7,18 @@ story: >-
   na Rapture, e termina acelerado, a 132 no Dirty Cash. Quanto mais a noite anda, mais rápido e
   mais vermelho o coração bate.
 
+identity:
+  arc: single-peak
+  signatures:
+    - name: azul-espaco
+      intent: 'O azul é o espaço da noite: os feixes das movings moram nele.'
+      is: {movers.colour: [azul-gelo, azul-profundo]}
+      share: {min: 0.7}
+    - name: coracao
+      intent: 'O vermelho é o coração, no lustre, no centro da sala.'
+      is: {hue.colour: [carmim, vermelho]}
+      share: {min: 0.6}
+
 palette:
   azul-profundo: '#0A2CFF'
   azul-gelo: '#3A6BFF'
@@ -78,3 +90,12 @@ rules:
 # Meta de projeto: a ponte é ágil, 16 compassos (nunca mais de 32).
 advice:
   bridges: {max: 16}
+  signatures: true
+  static-run: {max_seconds: 120}
+  neighbours-differ: {max_similarity: 0.85}
+  distinct-drops: {top: 0.25}
+  drop-contrast: {top: 0.25, min_change: 2}
+  main-drop: true
+  follows-track: {min_rho: 0.3, max_lag: 1}
+  follows-set: {min_rho: 0.5, max_headroom: 0.8}
+  phrase-aligned: {min_share: 0.9}

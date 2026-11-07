@@ -30,7 +30,8 @@ parameters, and the show's palette and looks, always in step with the code.
 3. **Build:** `uv run scripts/nextrack_show.py build <show-id>`. Findings come as
    `path:line: rule-id: message` and name the value and the fix.
 4. **Read the night:** `uv run scripts/nextrack_show.py report <show-id>`: every section, what
-   produced it, the music under it, the budget tally. Critique it as a whole.
+   produced it, the music under it, the budget tally. Critique it as a whole; cut it with
+   `report <show-id> --track "<Artist — Title>"` or `--section a,b`, and look closer with `zoom`.
 5. **See a track:** `uv run scripts/nextrack_lights.py render "<Artist — Title>" --choreo lightshows/tracks/<slug>.yml -o <scratch>/sim.html`
    (needs the SoundSwitch project; the language does not).
 6. Repeat from 2. **Never edit `lightshows/tracks/<slug>.yml` of a show**: it starts with the
@@ -1126,7 +1127,8 @@ header and the formatting change, the data must not. Only then run `build <id> -
 
 ## Writing a show, start to finish
 
-1. Pick the set (`sets/<set>.md`) and make sure every track has a map. `nextrack_map.py show`
+1. Read `uv run scripts/nextrack_show.py brief <set>` first: the set's clock, energy, drops
+   and target arc. Pick the set (`sets/<set>.md`) and make sure every track has a map. `nextrack_map.py show`
    each track; note its drops, breaks, and hot cues `B` and `G` (the numbered sections: see
    [the loop](#the-loop), step 1).
 2. Write `show.yml`: `story`, `palette`, a few `looks`, `bridge` and `handover` (if the night
@@ -1139,3 +1141,4 @@ header and the formatting change, the data must not. Only then run `build <id> -
    arrivals, what repeats.
 5. `render` the tracks that matter; iterate.
 6. `uv run scripts/check_repo.py` and `uv run pytest` before calling it done.
+7. Last, `book <show> -o <scratch>/book.html` writes the book of the night for the owner.
