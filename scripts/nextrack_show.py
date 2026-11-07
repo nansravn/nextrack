@@ -15,6 +15,9 @@ Subcommands:
           compile, and with --frames the Vorlanes' 8x7 cells (needs no SoundSwitch project;
           rule findings are the report's: it counts them on stderr and exits 1 only on source
           findings)
+  brief   a set's music for the director: clock, energy per track, drops ranked, target arc,
+          label questions, what is missing (SET is a set path or the stem of sets/<stem>.md;
+          it needs no show)
   vocab   the anchors, the layer words and keys, the gestures and the rules; with a show, its
           palette and looks
 
@@ -34,6 +37,7 @@ from pathlib import Path
 import check_repo
 import lightshow
 import show_analysis
+import show_brief
 import show_energy
 import show_gestures
 import show_language
@@ -786,6 +790,23 @@ def _vocab(args) -> int:
     return 0
 
 
+# ------------------------------------------------------------------- brief --
+
+
+def _brief(args) -> int:
+    root = Path(args.repo).resolve()
+    rel = args.set if args.set.endswith(".md") or "/" in args.set else f"sets/{args.set}.md"
+    path = (root / rel).resolve()
+    if not path.is_file() or root not in path.parents:
+        return _usage(f"{args.set!r} is not a set: no file {rel} under {root.name}/")
+    repo = check_repo.load_repo(root)
+    try:
+        print(show_brief.render_brief(repo, path.relative_to(root).as_posix()), end="")
+    except (OSError, UnicodeDecodeError) as e:
+        return _usage(f"cannot read {rel}: {e}")
+    return 0
+
+
 # -------------------------------------------------------------------- main --
 
 
@@ -818,8 +839,12 @@ def main(argv: list[str] | None = None) -> int:
     zoom.add_argument("--after", type=int, default=1, help="bars after the target (default 1)")
     zoom.add_argument("--frames", metavar="B.b,...", help="also both Vorlanes' 8x7 cells at these beats")
     add("vocab", "anchors, layer words, gestures and rules (and a show's palette and looks)", show_required=False)
+    brief = sub.add_parser("brief", help="a set's music for the director: clock, energy, drops, arc (needs no show)")
+    brief.add_argument("set", help="a repo-relative set path, or the stem of sets/<stem>.md")
+    brief.add_argument("--repo", type=Path, default=DEFAULT_REPO,
+                       help="repo root (default: the repo that holds this script)")
     args = parser.parse_args(argv)
-    return {"build": _build, "report": _report, "zoom": _zoom, "vocab": _vocab}[args.command](args)
+    return {"build": _build, "report": _report, "zoom": _zoom, "vocab": _vocab, "brief": _brief}[args.command](args)
 
 
 if __name__ == "__main__":

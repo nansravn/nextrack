@@ -941,6 +941,33 @@ checks and `drops` for the moments that must land, `variety` for repetition, the
 1/16 steps of one moment, and `render` for what the room sees. A number that looks wrong is a
 question about the formula, which is in this section, before it is a question about the show.
 
+## `brief`
+
+`uv run scripts/nextrack_show.py brief <set>` (a path, or the stem of `sets/<stem>.md`) prints
+the music of a set before any show exists, for the person who designs it. The text is generated
+from the set, its blocks, the pool and the maps; the same inputs give the same bytes. Headers,
+in order:
+
+- `night`: the length (the set clock's total), the set's `arc`, the blocks with their
+  `function` and `energy`, the tempo ramp (first start to last end, and the extremes).
+- `tracks`: per track, `enters` (the start of its leg on the set clock), the leg's minutes and
+  bars, `B`, `G`, the mix window (bars from `G` to the map's last bar), the played tempo, the
+  owner's energy (`eN` of the tracklist line, else the pool's `energy`), the night-normalised
+  `E_music` mean and 90th percentile over the leg's bars (see [Levels](#levels); `(interim)`
+  for a map without `mix`), the vocal presence (the share of leg bars whose vocals digit is 6
+  or more), and a strip of one letter per leg bar, the letters of `nextrack_map.py show`
+  (`i` intro, `g` groove, `b` break, `u` build, `d` drop, `o` outro).
+- `drops`: every drop in a sounding window, ranked by the salience of `drops` in the report
+  (`S = 0.4 L^ + 0.3 bass_return + 0.2 D^ + 0.1 main`, from the maps alone; a tie goes to the
+  earlier on the clock), with its clock, bar and `main` mark.
+- `target`: the owner's energy per minute, one character each (1-9, `X` is 10): the tracks'
+  energies at their legs' starts joined by straight lines, flat at the ends, read at the middle
+  of each minute and rounded half up.
+- `labels`: the label check's questions, as in `arc`: owner energy rank against measured
+  `E_music` rank, three places or more apart. Questions for the owner, never a fix.
+- `missing`: a track with no map or an invalid one (the clock leaves it out), a map without
+  `mix`, a track with no hot cue `B` (not the first) or `G` (not the last).
+
 ## UV (designed, not compiled)
 
 UV makes people and the room glow (white clothes, UV-reactive decorations); it barely shows in
