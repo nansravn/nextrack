@@ -18,14 +18,16 @@ fixture roles hold together? A departure is fine if it is deliberate and named a
 uv run scripts/nextrack_show.py report <show> --section identity,budget,arrivals
 ```
 
-Then read the show's story and identity files in the show folder, and the light plan's cards:
-`lightshows/sets/<set>.md`, section `## Cartões`. Judge from these files and the report alone.
+Then read the show's `show.yml` (story and identity), and the light plan's cards:
+`lightshows/sets/<set>.md`, section `## Cartões`. Judge from these files and the report alone. If the light plan has no `## Cartões` section
+(a plan written before the team), judge fidelity against the plan's prose chapters and say in
+your report that there were no cards.
 
 ## Questions
 
 1. Does each declared signature (`identity`) hold its `share`: `in range`, or `below min` /
    `above max`? Does each occurrence fall where its intent says?
-2. Is there an undeclared dominant value (`undeclared movers.colour: azul-gelo 86%`) that the
+2. Is there an undeclared dominant value (an `undeclared <dimension>: <value> <share>%` line in `identity`) that the
    story does not mention? A palette that drifts from the story is a finding.
 3. Card by card: does each track's light do what its card says (look, colour, mood, the
    moment it promises)? Name the card line and the report line side by side.
@@ -59,8 +61,8 @@ line. Example:
 - lente: briefing
 - severidade: moderado
 - unidade: a noite
-- evidência: "undeclared movers.colour: azul-gelo 86%"; a história pede "calor que cresce"
-- problema: os movers ficam em azul-gelo quase a noite toda e a identidade não declara isso:
+- evidência: "undeclared movers.colour: <value> <share>%" (illustrative); a história pede "calor que cresce"
+- problema: os movers ficam numa só cor quase a noite toda e a identidade não declara isso:
   a promessa de calor não aparece.
 - direção: olhar quais faixas da segunda metade podem virar para tons quentes, nomeando o
   momento na identidade.

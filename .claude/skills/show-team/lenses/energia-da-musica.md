@@ -14,7 +14,8 @@ leg, not one bar.
 
 ## Run
 
-`<show>` stands for the show folder named in your brief; `<track>` is `Artist — Title`.
+`<show>` stands for the show folder named in your brief; `<track>` is `Artist — Title`, taken in full from the track's header line in the `tracks`
+section (the `follows` lines print the title only).
 
 ```
 uv run scripts/nextrack_show.py report <show> --section follows,tracks

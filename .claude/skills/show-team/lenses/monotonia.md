@@ -31,7 +31,7 @@ static there.
    minutes? Is the music under each one really static (flat `music` strip, one map section),
    or does it move while the light does not?
 2. Does the per-minute entropy row dip to 0-3 for several minutes in a row? Where?
-3. Which neighbouring tracks have a `similarity` near 1 (0.9 or more)? Are they meant to be
+3. Which neighbouring tracks have a `similarity` above the show's `neighbours-differ` max (else 0.85)? Are they meant to be
    alike by the story (the identity's signatures)?
 4. Are there few distinct drop templates for many drops ("drop templates: N distinct of M")?
    A template shared by most drops means the drops are predictable.
@@ -47,25 +47,25 @@ Numbers are evidence, not taste: cite the line that made you answer.
 
 ## Severity
 
-- `grave`: a static run of several minutes under music that moves, at a top drop or across a
-  whole track; or one drop template under nearly every drop of the night; or a phrase-line
-  share well under half.
-- `moderado`: neighbours alike with no story reason; an undeclared dominant value; a static
-  run that the music itself justifies but the night does not need.
+- `grave`: a static run of 60 s or more (or the show's `static-run` `max_seconds`, when its
+  advice declares one) whose music changes section kind under it (for example `drop+break`),
+  or a run that covers one of the night's top drops.
+- `moderado`: a static run of 60 s or more under one section kind; or two neighbours whose
+  `similarity` is above the show's `neighbours-differ` `max_similarity` (else 0.85).
 - `menor`: polish, such as a single repeated colour pair or an entropy dip of one minute.
 
 ## Finding format
 
 Write each finding in pt-BR with `lente`, `severidade`, `unidade`, `evidência`, `problema` and
-`direção`, as the critic agent file defines. Example:
+`direção`, as the critic agent file defines. Example (illustrative; the numbers are from a real report):
 
 ```
 - lente: monotonia
 - severidade: grave
-- unidade: The Akan + What To Do (&ME Remix)
-- evidência: "similarity The Akan / What To Do (&ME Remix) 0.97"; "5:36 · The Akan 57-96 · 1:20 · groove" (variety, static runs)
-- problema: duas faixas vizinhas têm quase a mesma luz e uma corrida estática de 1:20 passa
-  por uma música que muda de seção.
-- direção: olhar quais dimensões a segunda faixa poderia trocar (cor dos movers, aim, gesto)
-  sem sair da identidade.
+- unidade: PICK UP THE PHONE (feat. Nate Dogg) (Extended)
+- evidência: "36:05 · PICK UP THE PHONE (feat. Nate Dogg) (Extended) 27-68 · 1:18 · drop+break" (variety, static runs)
+- problema: a mesma luz fica 1:18 parada enquanto a música passa de drop para break: a luz
+  não acompanha a mudança de seção.
+- direção: olhar onde o break começa e que dimensão da luz poderia trocar ali, sem sair da
+  identidade.
 ```
