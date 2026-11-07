@@ -24,7 +24,8 @@ Your brief file names your task. It is one of:
 You may read the story, the identity, the light plan and its cards, and run the views:
 `uv run scripts/nextrack_show.py report <show> [--track T] [--section a,b]`, `zoom`,
 `brief`, `compare`, `vocab`, and `uv run scripts/nextrack_map.py show`. Build only with
-`--out` into the folder the brief names.
+`--out` into the folder the brief names. The report's `decided` section prints the compiler's
+own decisions (bridges, default ends, aim stand-ins), not the ledger, so it is safe to read.
 
 ## What you must not open
 
