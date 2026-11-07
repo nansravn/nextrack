@@ -1,6 +1,7 @@
 """The show rules: occurrences, the rules, their parameter checks, advice and `evaluate_show`."""
 import dataclasses
 
+import show_analysis as sa
 from show_rules import ADVICE, EFFECT_KEYS, RULES, evaluate_show, occurrences, run_rules
 from showdata import FILE_1, FILE_2, TRACK_1, TRACK_2, show_map, two_track_show
 
@@ -448,8 +449,8 @@ def test_advice_runs_rules_without_failing():
 def test_advice_parameters_are_checked():
     assert source_findings(*show(advice={"bridgez": {}})) == [
         (SHOW_PATH, 51, "show-source",
-         "advice.bridgez: unknown rule 'bridgez'; rules: arrivals, bridges, budget, exclusive, matrix-not-cloned, "
-         "movers-aim, total-dark; did you mean 'bridges'?")]
+         "advice.bridgez: unknown rule 'bridgez'; rules: arrivals, bridges, budget, distinct-drops, exclusive, matrix-not-cloned, "
+         "movers-aim, neighbours-differ, phrase-aligned, signatures, static-run, total-dark; did you mean 'bridges'?")]
     found = source_findings(*show({"bridges": {"max": 16}}, advice={"bridges": {"max": 40}, "budget": {"nada": {}}}))
     assert found == [
         (SHOW_PATH, 51, "show-source", "advice.bridges: max 40 is not a whole number of bars from 1 to 32"),
@@ -473,8 +474,8 @@ def test_advice_parameters_are_checked():
 def test_unknown_rule_id_and_bad_params():
     assert source_findings(*show({"budjet": True})) == [
         (SHOW_PATH, 40, "show-source",
-         "rules.budjet: unknown rule 'budjet'; rules: arrivals, bridges, budget, exclusive, matrix-not-cloned, "
-         "movers-aim, total-dark; did you mean 'budget'?")]
+         "rules.budjet: unknown rule 'budjet'; rules: arrivals, bridges, budget, distinct-drops, exclusive, matrix-not-cloned, "
+         "movers-aim, neighbours-differ, phrase-aligned, signatures, static-run, total-dark; did you mean 'budget'?")]
     found = source_findings(*show({
         "total-dark": {"only": ["breu"]},
         "arrivals": {"draw_differs": "sim"},
@@ -508,12 +509,178 @@ def test_unknown_rule_id_and_bad_params():
 
 
 def test_every_rule_documents_itself():
-    assert sorted(RULES) == ["arrivals", "bridges", "budget", "exclusive", "matrix-not-cloned", "movers-aim",
+    assert sorted(RULES) == ["arrivals", "bridges", "budget", "distinct-drops", "exclusive", "matrix-not-cloned",
+                             "movers-aim", "neighbours-differ", "phrase-aligned", "signatures", "static-run",
                              "total-dark"]
     for name, rule in RULES.items():
         assert rule.name == name and rule.doc and rule.params and "\n" not in rule.params
         assert callable(rule.check) and callable(rule.fn)
     assert EFFECT_KEYS == ("white-accent", "white-flash", "strobe", "uv")
+
+
+# ------------------------------------------------- identity and monotony --
+
+
+def analysed(rules=None, advice=None, patch=None, signatures=()):
+    """The base show compiled (with `signatures` declared at show.yml lines 61, 62, ...), its
+    cached analysis changed by `patch(analysis, compiled)`, then its rules (or its advice) run:
+    `(compiled, [(path, line, message)])`."""
+    src, inp = show(rules, advice=advice)
+    if signatures:
+        src.show["identity"] = {"__line__": 60, "signatures": [
+            {"__line__": 61 + i, "intent": "Uma assinatura.", **sig} for i, sig in enumerate(signatures)]}
+    compiled = evaluate_show(src, inp)[0]
+    assert compiled is not None
+    analysis = sa.analyse(compiled)
+    if patch is not None:
+        patch(analysis, compiled)
+    return compiled, [(f.path, f.line, f.message) for f in run_rules(compiled, "advice" if advice else "rules")]
+
+
+def no_light(analysis, compiled):
+    for te in analysis.energy:
+        te.light = [None] * len(te.light)
+
+
+AZUL = {"name": "azul", "is": {"movers.colour": ["azul"]}}
+VERMELHO = {"name": "vermelho", "is": {"movers.colour": ["vermelho"]}}
+
+
+def test_signatures_pass_inside_the_promised_share():
+    assert analysed({"signatures": True}, signatures=[{**AZUL, "share": {"min": 0.0, "max": 1.0}}])[1] == []
+
+
+def test_signatures_report_a_share_outside_its_bounds():
+    compiled, found = analysed({"signatures": True}, signatures=[{**AZUL, "share": {"min": 0.99}},
+                                                                 {**VERMELHO, "share": {"max": 0.05}}])
+    shares = {c.name: c.share for c in sa.analyse(compiled).identity.signatures}
+    assert shares["azul"] < 0.99 and shares["vermelho"] > 0.05
+    assert found == [
+        (SHOW_PATH, 61, f"signatures: azul holds {round(shares['azul'] * 100)}% of the night, min 99%"),
+        (SHOW_PATH, 62, f"signatures: vermelho holds {round(shares['vermelho'] * 100)}% of the night, max 5%"),
+    ]
+
+
+def test_signatures_cannot_check_without_a_declaration_or_a_light():
+    assert analysed({"signatures": True})[1] == [
+        (SHOW_PATH, RULES_LINE, "signatures: cannot check: the show declares no identity signatures")]
+    found = analysed({"signatures": True}, signatures=[{**AZUL, "share": {"min": 0.5}}], patch=no_light)[1]
+    assert found == [(SHOW_PATH, RULES_LINE, "signatures: cannot check: no light is known on any bar of the night")]
+
+
+def test_static_run_measures_the_long_runs():
+    def patch(a, compiled):
+        a.variety.static_runs = [sa.Run(0, TRACK_1, (9, 16), 128.0, "groove+drop"),
+                                 sa.Run(1, TRACK_2, (5, 8), 119.0, "intro")]
+    compiled, found = analysed({"static-run": {"max_seconds": 120}}, patch=patch)
+    arrival = compiled.tracks[0].sections[0].origin
+    assert found == [(arrival.path, arrival.line,
+                      "static-run: Dançarina 9-16 holds one light for 2:08, max 2:00 (music: groove, drop)")]
+    assert analysed({"static-run": {"max_seconds": 130}}, patch=patch)[1] == []
+
+
+def test_static_run_cannot_check_without_a_light():
+    found = analysed({"static-run": {"max_seconds": 60}}, patch=no_light)[1]
+    assert found == [(SHOW_PATH, RULES_LINE + 1, "static-run: cannot check: no light is known on any bar of "
+                                                 "the night")]
+
+
+def test_neighbours_differ_points_at_the_arrival_of_the_second_track():
+    def patch(a, compiled):
+        a.variety.similarity = [(0, 0.91)]
+    compiled, found = analysed({"neighbours-differ": {"max_similarity": 0.85}}, patch=patch)
+    arrival = next(s for s in compiled.tracks[1].sections if s.origin.role == "arrival").origin
+    assert found == [(arrival.path, arrival.line,
+                      "neighbours-differ: Voa Voa (Ao Vivo) looks like Dançarina (similarity 0.91, max 0.85)")]
+    assert analysed({"neighbours-differ": {"max_similarity": 0.91}}, patch=patch)[1] == []
+
+
+def test_neighbours_differ_falls_back_to_the_first_section_and_cannot_check_without_pairs():
+    def patch(a, compiled):
+        a.variety.similarity = [(0, 0.9)]
+        for section in compiled.tracks[1].sections:
+            section.origin = dataclasses.replace(section.origin, role=None)
+    compiled, found = analysed({"neighbours-differ": {"max_similarity": 0.5}}, patch=patch)
+    first = compiled.tracks[1].sections[0].origin
+    assert [(p, ln) for p, ln, _ in found] == [(first.path, first.line)]
+
+    def none(a, compiled):
+        a.variety.similarity = []
+    found = analysed({"neighbours-differ": {"max_similarity": 0.5}}, patch=none)[1]
+    assert found == [(SHOW_PATH, RULES_LINE + 1, "neighbours-differ: cannot check: fewer than two consecutive "
+                                                 "tracks have a known light")]
+
+
+def test_distinct_drops_compares_the_top_drops_in_clock_order():
+    def patch(a, compiled):
+        a.drops[3].template = a.drops[2].template        # Voa Voa 21 (rank 4) and Voa Voa 9 (rank 3)
+    compiled, found = analysed({"distinct-drops": {"top": 4}}, patch=patch)
+    final = compiled.tracks[1].sections[-1].origin
+    assert found == [(final.path, final.line, "distinct-drops: Voa Voa (Ao Vivo) 21 (top drop 4) repeats the light "
+                                              "of Voa Voa (Ao Vivo) 9 (top drop 3)")]
+    assert analysed({"distinct-drops": {"top": 2}}, patch=patch)[1] == []          # ranks 1 and 2 differ
+    assert analysed({"distinct-drops": {"top": 0.5}}, patch=patch)[1] == []        # ceil(0.5 x 4) = 2
+    assert len(analysed({"distinct-drops": {"top": 1.0}}, patch=patch)[1]) == 1
+
+
+def test_distinct_drops_cannot_check_without_drops():
+    def patch(a, compiled):
+        a.drops = []
+    found = analysed({"distinct-drops": {"top": 3}}, patch=patch)[1]
+    assert found == [(SHOW_PATH, RULES_LINE + 1, "distinct-drops: cannot check: the night has no drops")]
+
+
+def set_changes(first, second=()):
+    def patch(a, compiled):
+        for te, bars in zip(a.energy, (first, second)):
+            te.changes = [1 if te.first + i in bars else 0 for i in range(len(te.changes))]
+    return patch
+
+
+def test_phrase_aligned_lists_the_changes_off_the_lines():
+    patch = set_changes((9, 10, 13, 15))      # a section starts at 9: 9 and 13 are on its 4-bar lines
+    found = analysed({"phrase-aligned": {"min_share": 0.9}}, patch=patch)[1]
+    assert found == [(SHOW_PATH, RULES_LINE + 1, "phrase-aligned: 50% of the light's changes are on phrase lines, "
+                                                 "min 90%; off the lines: Dançarina 10, Dançarina 15")]
+    assert analysed({"phrase-aligned": {"min_share": 0.5}}, patch=patch)[1] == []
+
+
+def test_phrase_aligned_lists_at_most_five_and_reads_advice_lines():
+    patch = set_changes((9, 10, 11, 12, 14, 15, 18))
+    found = analysed(advice={"phrase-aligned": {"min_share": 1}}, patch=patch)[1]
+    assert found == [(SHOW_PATH, ADVICE_LINE + 1,
+                      "phrase-aligned: 14% of the light's changes are on phrase lines, min 100%; off the lines: "
+                      "Dançarina 10, Dançarina 11, Dançarina 12, Dançarina 14, Dançarina 15, and 1 more")]
+
+
+def test_phrase_aligned_cannot_check_without_changes():
+    found = analysed({"phrase-aligned": {"min_share": 0.5}}, patch=set_changes(()))[1]
+    assert found == [(SHOW_PATH, RULES_LINE + 1, "phrase-aligned: cannot check: the light never changes on a "
+                                                 "known bar")]
+
+
+def test_identity_and_monotony_parameters():
+    assert source_findings(*show({"signatures": {"a": 1}})) == [
+        (SHOW_PATH, 41, "show-source", "rules.signatures: {'a': 1} is not true: signatures has no parameters; "
+                                       "remove it from rules to not run it")]
+    for bad in (29, 601, True, "60", 60.0):
+        assert source_findings(*show({"static-run": {"max_seconds": bad}}))[0][3].startswith(
+            "rules.static-run: max_seconds")
+    assert source_findings(*show({"static-run": {}})) == [(SHOW_PATH, 41, "show-source",
+                                                          "rules.static-run: missing key max_seconds")]
+    assert source_findings(*show({"static-run": 60})) == [
+        (SHOW_PATH, 40, "show-source", "rules.static-run: 60 is not a mapping {max_seconds: 30-600}")]
+    for bad in (-0.1, 1.5, True, "0.5"):
+        assert source_findings(*show({"neighbours-differ": {"max_similarity": bad}}))[0][3].startswith(
+            "rules.neighbours-differ: max_similarity")
+        assert source_findings(*show({"phrase-aligned": {"min_share": bad}}))[0][3].startswith(
+            "rules.phrase-aligned: min_share")
+    for bad in (0, -1, 1.5, 0.0, True, "3"):
+        assert source_findings(*show({"distinct-drops": {"top": bad}}))[0][3].startswith("rules.distinct-drops: top")
+    for ok in (1, 4, 0.25, 1.0):
+        assert evaluate_show(*show({"distinct-drops": {"top": ok}}))[0] is not None
+    assert evaluate_show(*show({"static-run": {"max_seconds": 30}, "neighbours-differ": {"max_similarity": 1},
+                                "phrase-aligned": {"min_share": 0}}))[0] is not None
 
 
 # ---------------------------------------------------------------- evaluate --
