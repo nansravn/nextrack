@@ -164,3 +164,28 @@ def test_valid_rig_is_none_without_a_rig(mini_repo):
     import check_repo
 
     assert check_repo.valid_rig(check_repo.load_repo(mini_repo.root)) is None
+
+
+def test_block_range_energy_interpolates_by_position():
+    import check_repo
+
+    front = {"energy": [4, 8]}
+    assert [check_repo.block_range_energy(front, k, 3) for k in range(3)] == [4, 6, 8]
+    assert check_repo.block_range_energy(front, 0, 1) == 4
+    assert check_repo.block_range_energy({"energy": "x"}, 0, 2) is None
+    assert check_repo.block_range_energy(None, 0, 2) is None
+
+
+def test_show_energies_fall_back_to_the_block_range(mini_repo):
+    import check_repo
+    from showdata import TRACK_1 as NAME_1, TRACK_2 as NAME_2
+
+    put_show(mini_repo)
+    mini_repo.edit("blocks/alpha-festa.md", "Dançarina        · e8  abre", "Dançarina · 8A · 120")
+    mini_repo.edit("blocks/alpha-festa.md", "Voa Voa    · e7", "Voa Voa · 8A · 120")
+    mini_repo.edit("tracks/alpha.yml", "  energy: 8\n", "")
+    mini_repo.edit("tracks/alpha.yml", "  energy: 7\n", "")
+    repo = check_repo.load_repo(mini_repo.root)
+    source = next(s for s in repo.shows if s.folder == SHOW)
+    # the block says energy: [7, 8]: the first track 7, the last 8
+    assert check_repo.show_energies(repo, source) == {NAME_1: 7, NAME_2: 8}

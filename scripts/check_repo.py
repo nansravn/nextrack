@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import codecs
+import math
 import os
 import re
 import sys
@@ -1474,13 +1475,44 @@ def show_tempos(repo: Repo, source: show_language.ShowSource) -> dict[str, tuple
     return out
 
 
+def block_range_energy(front: object, position: int, count: int) -> int | None:
+    """The energy a block's `energy: [a, b]` gives its track at `position` (0-based) among the
+    block's `count` tracks: linear from `a` (first) to `b` (last), rounded half up; `a` when the
+    block has one track. None when the block has no such range of two integers (1-10)."""
+    value = front.get("energy") if isinstance(front, dict) else None
+    if not (isinstance(value, list) and len(value) == 2
+            and all(isinstance(x, int) and not isinstance(x, bool) for x in value)):
+        return None
+    a, b = value
+    return a if count < 2 else math.floor(a + (b - a) * position / (count - 1) + 0.5 + 1e-9)
+
+
+def set_block_energies(repo: Repo, set_text: str) -> list[tuple[str, str, int | None, int | None]]:
+    """`(artist, title, eN, block range energy)` for every tracklist line of the set's blocks, in
+    order. `eN` is the line's own (`set_timeline.block_energies`); the range energy is
+    `block_range_energy` for the line's position in its block. A block that does not exist is
+    skipped."""
+    import set_timeline  # deferred: set_timeline imports this module
+
+    by_path = {b.path: b for b in repo.blocks}
+    out = []
+    for block_id in set_block_ids(set_text):
+        block = by_path.get(f"blocks/{block_id}.md")
+        if block is None:
+            continue
+        lines = set_timeline.block_energies(block.text)
+        for k, (artist, title, own) in enumerate(lines):
+            out.append((artist, title, own, block_range_energy(block.front, k, len(lines))))
+    return out
+
+
 def show_energies(repo: Repo, source: show_language.ShowSource) -> dict[str, int]:
     """The energy (1-10) of each show track, `{"Artist — Title" of its track file: energy}`: the
     `eN` of the first tracklist line of the set's blocks that is `same_track` as the track file's
-    `track` (`set_timeline.block_energies`), else the `energy` of its pool entry. A track with
-    neither is left out. Nothing raises: an unreadable or missing set only skips the block lines."""
-    import set_timeline  # deferred: set_timeline imports this module
-
+    `track` (`set_timeline.block_energies`), else the `energy` of its pool entry, else the block's
+    `energy: [a, b]` interpolated by the line's position among the block's tracks
+    (`block_range_energy`). A track with none is left out. Nothing raises: an unreadable or
+    missing set only skips the block lines."""
     rel = source.show.get("set") if isinstance(source.show, dict) else None
     played = []
     if isinstance(rel, str) and (repo.root / rel).is_file():
@@ -1488,26 +1520,30 @@ def show_energies(repo: Repo, source: show_language.ShowSource) -> dict[str, int
             text = read_text(repo.root / rel)
         except (UnicodeDecodeError, OSError):
             text = ""
-        by_path = {b.path: b for b in repo.blocks}
-        for block_id in set_block_ids(text):
-            block = by_path.get(f"blocks/{block_id}.md")
-            if block is not None:
-                played += set_timeline.block_energies(block.text)
+        played = set_block_energies(repo, text)
     out = {}
     for data in source.track_files.values():
         track = data.get("track") if isinstance(data, dict) else None
         if not isinstance(track, str) or " — " not in track:
             continue
         artist, title = track.split(" — ", 1)
-        energy = next((e for a, t, e in played if e is not None and same_track(artist, title, a, t)), None)
+        matches = [(own, ranged) for a, t, own, ranged in played if same_track(artist, title, a, t)]
+        energy = next((own for own, _ in matches if own is not None), None)
         if energy is None:
-            energy = next((e["energy"] for pool in repo.pools for e in pool.entries
-                           if isinstance(e.get("energy"), int) and not isinstance(e.get("energy"), bool)
-                           and isinstance(e.get("artist"), str) and isinstance(e.get("title"), str)
-                           and same_track(artist, title, e["artist"], e["title"])), None)
+            energy = pool_energy(repo, artist, title)
+        if energy is None:
+            energy = next((r for _, r in matches if r is not None), None)
         if energy is not None:
             out[track] = energy
     return out
+
+
+def pool_energy(repo: Repo, artist: str, title: str) -> int | None:
+    """The `energy` of the first pool entry that is `same_track` as `Artist — Title`, or None."""
+    return next((e["energy"] for pool in repo.pools for e in pool.entries
+                 if isinstance(e.get("energy"), int) and not isinstance(e.get("energy"), bool)
+                 and isinstance(e.get("artist"), str) and isinstance(e.get("title"), str)
+                 and same_track(artist, title, e["artist"], e["title"])), None)
 
 
 def show_results(repo: Repo) -> list:

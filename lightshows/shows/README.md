@@ -960,9 +960,14 @@ in order:
 - `drops`: every drop in a sounding window, ranked by the salience of `drops` in the report
   (`S = 0.4 L^ + 0.3 bass_return + 0.2 D^ + 0.1 main`, from the maps alone; a tie goes to the
   earlier on the clock), with its clock, bar and `main` mark.
-- `target`: the owner's energy per minute, one character each (1-9, `X` is 10): the tracks'
-  energies at their legs' starts joined by straight lines, flat at the ends, read at the middle
-  of each minute and rounded half up.
+- `target`: the owner's energy per minute, one character each (1-9, `X` is 10). A track's
+  energy is its tracklist `eN`, else its pool `energy`, else its block's `energy: [a, b]`
+  interpolated linearly by the track's position among the block's tracks (first track `a`, last
+  track `b`, rounded half up); the report's `arc` reads the same energies. The block's
+  `function` and the set's `arc` are context printed under `night`, with no formula: they
+  describe the shape the owner's labels encode. The tempo ramp places the legs on the clock; the
+  strip joins the energies at the legs' starts by straight lines, flat at the ends, read at the
+  middle of each minute and rounded half up.
 - `labels`: the label check's questions, as in `arc`: owner energy rank against measured
   `E_music` rank, three places or more apart. Questions for the owner, never a fix.
 - `missing`: a track with no map or an invalid one (the clock leaves it out), a map without
