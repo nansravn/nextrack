@@ -65,7 +65,9 @@ Map tool (`analyze`, `cues`, `show`, `timeline`, `upgrade`; see
 - It only reads audio, rekordbox and the SoundSwitch project. Folders come from
   `--project`/`NEXTRACK_SOUNDSWITCH_PROJECT`, `--root`/`NEXTRACK_AUDIO_ROOT` and
   `--rekordbox`/`NEXTRACK_REKORDBOX_DIR`. rekordbox's database is read from a copy.
-- `upgrade` redoes old maps with the newer measures (`mix`). `analyze`, `cues`, `timeline` and `upgrade` need `uv sync --group analysis` (not in CI).
+- `upgrade` adds the version 2 `mix` block to old maps and changes nothing
+  else. `analyze`, `cues` and `timeline` need `uv sync --group analysis` (not
+  in CI); `upgrade` needs it only with `--playlist`, which reads rekordbox.
 
 Show tool (`build`, `report`, `zoom`, `brief`, `compare`, `book`, `vocab`; see
 [scripts/README.md](scripts/README.md#nextrack_showpy) and

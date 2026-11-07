@@ -1143,10 +1143,10 @@ header and the formatting change, the data must not. Only then run `build <id> -
 
 ## Writing a show, start to finish
 
-1. Read `uv run scripts/nextrack_show.py brief <set>` first: the set's clock, energy, drops
-   and target arc. Pick the set (`sets/<set>.md`) and make sure every track has a map. `nextrack_map.py show`
-   each track; note its drops, breaks, and hot cues `B` and `G` (the numbered sections: see
-   [the loop](#the-loop), step 1).
+1. Pick the set (`sets/<set>.md`), then read its `uv run scripts/nextrack_show.py brief <set>`:
+   the set's clock, energy, drops and target arc. Make sure every track has a map.
+   `nextrack_map.py show` each track; note its drops, breaks, and hot cues `B` and `G` (the
+   numbered sections: see [the loop](#the-loop), step 1).
 2. Write `show.yml`: `story`, `palette`, a few `looks`, `bridge` and `handover` (if the night
    flows through bridges), and `rules` last.
 3. Write one track file per track, named `<map slug>.yml`, `track` copied from the map. Start
