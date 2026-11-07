@@ -31,7 +31,9 @@ level at every step (None counts 0):
     strobe    1 when a strobe window is lit, else 0
 `brightness` B is `sum(LIGHT_WEIGHTS x group mean level over the steps)`. A group's rise is a
 step whose level is >= `RISE_LEVEL` (0.05) after a step below it (the first step compares
-with the previous bar's last sample, `before`; with none, it counts no rise), and `activity`
+with the previous bar's last sample, `before`; with none, or an unknown one such as the
+autoscript's, it counts no rise; at a leg's first bar `before` is the previous track's last
+sample of its leg, what plays in the room then), and `activity`
 A is `sum(LIGHT_WEIGHTS x group rises) / 16`. `E_light = round(9 x (0.5 x B_hat + 0.5 x A_hat))`
 with B and A normalised over the night's known leg bars. `TrackEnergy.brightness` and
 `.activity` are the night-normalised digits `round(9 x B_hat)` and `round(9 x A_hat)`.
@@ -198,8 +200,9 @@ def light_bars(samples: list[show_zoom.StepLight], before: show_zoom.StepLight |
     """One `BarLight` per 16 samples (module docstring). `before` is the sample before the
     first one (the previous bar's last), against which the first step's rise is judged."""
     out = []
-    previous = _levels(before) if before is not None else None
-    last_cells = before.cells if before is not None else ()
+    known = before is not None and not _unknown(before)
+    previous = _levels(before) if known else None
+    last_cells = before.cells if known else ()
     for i in range(0, len(samples) - STEPS + 1, STEPS):
         chunk = samples[i:i + STEPS]
         levels = [_levels(s) for s in chunk]
@@ -318,13 +321,18 @@ def night_energy(show: CompiledShow, clock: show_views.ShowClock) -> list[TrackE
         return show.cache["energy"]
     names = show_views._palette_names(show)
     music_all, light_all, windows = [], [], []
-    for track, tc in zip(show.tracks, clock.tracks):
+    for i, (track, tc) in enumerate(zip(show.tracks, clock.tracks)):
         mb = music_bars(track.map)
         first, last = max(tc.sounding[0], 1), min(tc.sounding[1], len(mb))
         samples = show_zoom.sample_light(track, max(first - 1, 1), last, show.rig, show.room) if last >= first else []
         before = None
         if first > 1 and samples:
             before, samples = samples[STEPS - 1], samples[STEPS:]
+        prev_tc = clock.tracks[i - 1] if i > 0 else None
+        if prev_tc is not None and first <= tc.leg[0] and 1 <= prev_tc.leg[1] <= len(music_all[i - 1]):
+            # a leg's first bar: what plays just before is the previous track's last leg bar
+            before = show_zoom.sample_light(show.tracks[i - 1], prev_tc.leg[1], prev_tc.leg[1],
+                                            show.rig, show.room)[-1]
         music_all.append(mb)
         light_all.append(light_bars(samples, before))
         windows.append((first, last))
