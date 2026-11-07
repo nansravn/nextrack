@@ -757,6 +757,178 @@ def phrase_aligned(show: CompiledShow, params: dict) -> list[ShowFinding]:
                                              f"min {_percent(params['min_share'])}; off the lines: {listed}{more}")]
 
 
+# ------------------------------------------------ drops and energy rules --
+
+
+def _count(n: int, noun: str) -> str:
+    return f"{n} {noun}" if n == 1 else f"{n} {noun}s"
+
+
+def _check_drop_contrast(params: object, show: dict) -> list[str]:
+    shape = "{top: count or fraction, min_change: 1-9}"
+    if not isinstance(params, dict):
+        return [f"{_shown(params)} is not a mapping {shape}"]
+    out = [f"missing key {key}" for key in ("top", "min_change") if key not in params]
+    top = params.get("top")
+    if "top" in params and not ((_is_int(top) and top >= 1) or (isinstance(top, float) and 0 < top <= 1)):
+        out.append(f"top {_shown(top)} is not a whole number from 1 or a fraction above 0 up to 1")
+    change = params.get("min_change")
+    if "min_change" in params and not (_is_int(change) and 1 <= change <= 9):
+        out.append(f"min_change {_shown(change)} is not a whole number from 1 to 9")
+    return out + _unexpected(params, ("top", "min_change"))
+
+
+def _check_any_of(shape: str, keys: dict[str, tuple[Callable[[object], bool], str]]) -> Callable[[object, dict], list[str]]:
+    """A `check` for a mapping of optional keys (`keys`: name -> (valid, what it must be)), at least
+    one of them given."""
+    def check(params: object, show: dict) -> list[str]:
+        if not isinstance(params, dict):
+            return [f"{_shown(params)} is not a mapping {shape}"]
+        given = [k for k in keys if k in params]
+        out = [] if given else [f"give at least one of {', '.join(keys)}"]
+        out += [f"{k} {_shown(params[k])} is not {keys[k][1]}" for k in given if not keys[k][0](params[k])]
+        return out + _unexpected(params, tuple(keys))
+    return check
+
+
+def _rho_ok(value: object) -> bool:
+    return _is_number(value) and -1 <= value <= 1
+
+
+_check_follows_track = _check_any_of("{min_rho?: -1..1, max_lag?: 0-8}", {
+    "min_rho": (_rho_ok, "a number from -1 to 1"),
+    "max_lag": (lambda v: _is_int(v) and 0 <= v <= 8, "a whole number of bars from 0 to 8")})
+_check_follows_set = _check_any_of("{min_rho?: -1..1, max_headroom?: 0-1}", {
+    "min_rho": (_rho_ok, "a number from -1 to 1"),
+    "max_headroom": (lambda v: _is_number(v) and 0 <= v <= 1, "a number from 0 to 1")})
+
+
+@show_rule("drop-contrast", params="{top: count or fraction, min_change: 1-9}", check=_check_drop_contrast)
+def drop_contrast(show: CompiledShow, params: dict) -> list[ShowFinding]:
+    """The top drops change the light.
+
+    Among the `top` drops by salience (`show_analysis.top`: a count, or a fraction of the night's
+    drops), a drop whose light `contrast` (mean E_light over d..d+3 minus over d-2..d-1) is not
+    positive, or unknown, or whose `change` (`X(d)`, how many of the nine dimensions change at
+    the drop) is below `min_change`. The finding points at the drop's section. With no drops it
+    says it cannot check."""
+    from show_analysis import analyse, top
+
+    rows = analyse(show).drops
+    if not rows:
+        return [_at_rule(show, "drop-contrast", "cannot check: the night has no drops")]
+    out = []
+    for drop in sorted(top(rows, params["top"]), key=lambda d: d.clock_s):
+        if drop.contrast is not None and drop.contrast > 0 and drop.change >= params["min_change"]:
+            continue
+        contrast = "no known contrast" if drop.contrast is None else f"contrast {drop.contrast:.1f}"
+        out.append(_found(show, "drop-contrast", drop.holder,
+                          f"{_title(drop.track)} {drop.bar} (top drop {drop.rank}) has {contrast} and "
+                          f"{_count(drop.change, 'change')}, min {params['min_change']}"))
+    return out
+
+
+@show_rule("main-drop", params="true", check=_check_true)
+def main_drop(show: CompiledShow, params: object) -> list[ShowFinding]:
+    """A track's main drop is answered at least as well as its earlier drops.
+
+    A main drop (`Drop.main`) whose `response` is lower than the best `response` of the earlier
+    drops of the same track (bars before it; a drop with no response is left out). The finding
+    points at the main drop's section and names the best earlier one. With no drops, or no main
+    drop with a response, it says it cannot check."""
+    from show_analysis import analyse
+
+    rows = analyse(show).drops
+    if not rows:
+        return [_at_rule(show, "main-drop", "cannot check: the night has no drops")]
+    mains = [d for d in sorted(rows, key=lambda d: d.clock_s) if d.main and d.response is not None]
+    if not mains:
+        return [_at_rule(show, "main-drop", "cannot check: no main drop has a known response")]
+    out = []
+    for main in mains:
+        earlier = [d for d in rows if d.index == main.index and d.bar < main.bar and d.response is not None]
+        if not earlier:
+            continue
+        best = max(sorted(earlier, key=lambda d: d.bar), key=lambda d: d.response)
+        if main.response < best.response - 1e-9:
+            out.append(_found(show, "main-drop", main.holder,
+                              f"{_title(main.track)}'s main drop {main.bar} answers {main.response:.2f}, "
+                              f"below its drop {best.bar} ({best.response:.2f})"))
+    return out
+
+
+@show_rule("follows-track", params="{min_rho?: -1..1, max_lag?: 0-8}", check=_check_follows_track)
+def follows_track(show: CompiledShow, params: dict) -> list[ShowFinding]:
+    """The light follows each track's music.
+
+    Per track (`show_analysis.follows`): `rho` (Spearman of E_music and E_light over the leg's
+    known bars) below `min_rho`, or the `lag` in bars (the shift of the light that best matches
+    the music; positive is late) beyond `max_lag` in either direction. The finding lists the
+    failed measures and the track's missed boundaries (a music change of 2 or more that the
+    light does not answer), and points at the section of the first missed boundary, else the
+    track's first section. A track whose asked measure is unknown (no known light, or under 16
+    known bars for the lag) is reported as "cannot check" at the rule's line."""
+    from show_analysis import analyse
+    from show_energy import _section_at
+
+    out = []
+    for row in analyse(show).follows:
+        track = show.tracks[row.index]
+        asked = [(name, value) for name, key, value in (("rho", "min_rho", row.rho), ("lag", "max_lag", row.lag))
+                 if key in params]
+        unknown = [name for name, value in asked if value is None]
+        if unknown:
+            out.append(_at_rule(show, "follows-track", f"cannot check {_title(row.track)}: no known "
+                                                       f"{' or '.join(unknown)} (the light is unknown or too short)"))
+        parts = []
+        if "min_rho" in params and row.rho is not None and row.rho < params["min_rho"]:
+            parts.append(f"rho {row.rho:.2f}, min {params['min_rho']:.2f}")
+        if "max_lag" in params and row.lag is not None and abs(row.lag) > params["max_lag"]:
+            parts.append(f"lag {_count(row.lag, 'bar')}, max {params['max_lag']}")
+        if not parts:
+            continue
+        if row.missed:
+            parts.append("missed boundaries " + ", ".join(str(b.bar) for b in row.missed))
+        section = _section_at(track, row.missed[0].bar) if row.missed else None
+        if section is None:
+            section = next((s for s in track.sections if s.origin.kind != "echo"), None)
+        out.append(_found(show, "follows-track", section, f"{_title(row.track)}: {'; '.join(parts)}"))
+    return out
+
+
+@show_rule("follows-set", params="{min_rho?: -1..1, max_headroom?: 0-1}", check=_check_follows_set)
+def follows_set(show: CompiledShow, params: dict) -> list[ShowFinding]:
+    """The light climbs with the night's energy and keeps room to climb.
+
+    From `show_analysis.arc`: `rho` (Spearman of the owner's energy digit and the light's mean
+    energy per track) below `min_rho`, or the `headroom` (the max p90 of the light before the first
+    track at the night's top energy, over the night's max p90) above `max_headroom`. The finding
+    points at the rule's line. A measure that is unknown (fewer than 3 tracks with an energy and
+    a known light for `rho`; no track with an energy and a p90 for `headroom`) is reported as
+    "cannot check"."""
+    from show_analysis import analyse
+
+    arc = analyse(show).arc
+    out = []
+    parts = []
+    if "min_rho" in params:
+        if arc.rho is None:
+            out.append(_at_rule(show, "follows-set", "cannot check rho: fewer than 3 tracks have an owner's "
+                                                     "energy and a known light"))
+        elif arc.rho < params["min_rho"]:
+            parts.append(f"rho {arc.rho:.2f} between the owner's energy and the light per track, "
+                         f"min {params['min_rho']:.2f}")
+    if "max_headroom" in params:
+        if arc.headroom is None:
+            out.append(_at_rule(show, "follows-set", "cannot check headroom: no track has an owner's energy "
+                                                     "and a known p90"))
+        elif arc.headroom > params["max_headroom"]:
+            parts.append(f"headroom {arc.headroom:.2f}, max {params['max_headroom']:.2f}")
+    if parts:
+        out.append(_at_rule(show, "follows-set", "; ".join(parts)))
+    return out
+
+
 # --------------------------------------------------------------- the entry --
 
 
