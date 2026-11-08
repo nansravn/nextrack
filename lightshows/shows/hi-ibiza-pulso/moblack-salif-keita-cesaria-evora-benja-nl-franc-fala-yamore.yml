@@ -6,6 +6,10 @@ story: >-
 budget: >-
   Fita branca: chegada do Yamore (65.1). Sem breu e sem estrobo.
 cues:
+  - at: B + 16
+    name: capitulo-a-escrever
+    intent: 'Provisório: a ponte acaba aqui e o capítulo novo desta música ainda vai ser escrito.'
+    look: respiracao-azul
   - at: 33
     name: as-vozes
     intent: 'As vozes respondem de um lado ao outro: feixes varrendo esquerda e direita, filas subindo.'
@@ -53,4 +57,3 @@ cues:
       hue: {state: pulse, colour: carmim}
 handover:
   look: aceleracao
-  until: 120

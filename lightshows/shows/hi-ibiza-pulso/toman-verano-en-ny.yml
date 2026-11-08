@@ -5,6 +5,10 @@ story: >-
 budget: >-
   Nenhum efeito raro: depois da virada, a sala respira antes do Pick Up.
 cues:
+  - at: B + 16
+    name: capitulo-a-escrever
+    intent: 'Provisório: a ponte acaba aqui e o capítulo novo desta música ainda vai ser escrito.'
+    look: pulso-vermelho
   - at: break.1
     name: break
     intent: 'O break: um feixe para cima, Vorlanes apagadas, centro escuro.'
@@ -36,4 +40,3 @@ cues:
       hue: {state: pulse, colour: vermelho}
 handover:
   look: pulso-vermelho
-  until: end

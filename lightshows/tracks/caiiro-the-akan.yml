@@ -11,9 +11,16 @@ budget: >-
   Nenhum efeito raro: o Akan é o transe que segura a sala depois da abertura.
 base: autoscript
 sections:
-  - bars: [57, 96]
+  - bars: [57, 72]
     name: ponte
-    intent: "Ponte: a mesma luz da música anterior, copiada camada por camada, até a chegada."
+    intent: "Ponte: a mesma luz da música anterior, copiada camada por camada, por até 16 compassos."
+    movers: {move: sweep, every: "2bar", colour: "#3A6BFF", level: 0.7, positions: [Dance Floor Centre, Crossed Over]}
+    matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [73, 96]
+    name: capitulo-a-escrever
+    intent: "Provisório: a ponte acaba aqui e o capítulo novo desta música ainda vai ser escrito."
     movers: {move: sweep, every: "2bar", colour: "#3A6BFF", level: 0.7, positions: [Dance Floor Centre, Crossed Over]}
     matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
@@ -46,9 +53,37 @@ sections:
     matrix: {draw: columns, rate: "1/4", colour: "#0A2CFF", pingpong: true}
     hue: {state: pulse, colour: "#B0001E"}
 
-  - bars: [137, 192]
+  - bars: [137, 152]
     name: entrega
-    intent: "Entrega: do G até o fim, o look que a próxima música copia na ponte."
+    intent: "Entrega: do G, por até 16 compassos, o look que a próxima música copia na ponte."
     movers: {move: sweep, every: "2bar", colour: "#3A6BFF", level: 0.7, positions: [Dance Floor Centre, Crossed Over]}
     matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [153, 170]
+    name: capitulo-a-escrever
+    intent: "Provisório: a ponte acaba aqui e o capítulo novo desta música ainda vai ser escrito."
+    movers: {move: sweep, every: "2bar", colour: "#3A6BFF", level: 0.7, positions: [Dance Floor Centre, Crossed Over]}
+    matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [171, 180]
+    name: a-voz-no-escuro
+    intent: "A voz chega no escuro: contraluz, dois feixes frios cruzando."
+    movers: {move: hold, colour: "#3A6BFF", level: 0.35, position: Crossed Over}
+    matrix: "off"
+    hue: dark
+
+  - bars: [181, 184]
+    name: subida
+    intent: "As Vorlanes enchem rápido, as movings aceleram até o drop."
+    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF", position: Up, faster_from: 183, faster_every: "1/4"}
+    matrix: {draw: fill-up, rate: "1/2", colour: "#0A2CFF", mirror: true}
+    hue: dark
+
+  - bars: [185, 194]
+    name: chegada
+    intent: "A chegada: filas descendo em cascata, a melodia escorrendo pelas paredes."
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF", position: Dance Floor Centre}
+    matrix: {draw: rows-down, rate: "1/8", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}

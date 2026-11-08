@@ -6,6 +6,10 @@ story: >-
 budget: >-
   Nenhum efeito raro. O desenho `solid` alternando lados é o batimento da noite em azul.
 cues:
+  - at: B + 16
+    name: capitulo-a-escrever
+    intent: 'Provisório: a ponte acaba aqui e o capítulo novo desta música ainda vai ser escrito.'
+    look: respiracao-azul
   - at: 56
     name: chegada-o-grave
     role: arrival

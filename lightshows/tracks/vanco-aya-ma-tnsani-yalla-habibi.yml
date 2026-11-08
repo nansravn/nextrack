@@ -10,9 +10,16 @@ budget: >-
   Nenhum efeito raro.
 base: autoscript
 sections:
-  - bars: [2, 32]
+  - bars: [2, 17]
     name: ponte
-    intent: "Ponte: a mesma luz da música anterior, copiada camada por camada, até a chegada."
+    intent: "Ponte: a mesma luz da música anterior, copiada camada por camada, por até 16 compassos."
+    movers: {move: sweep, every: "2bar", colour: "#3A6BFF", level: 0.7, positions: [Dance Floor Centre, Crossed Over]}
+    matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [18, 32]
+    name: capitulo-a-escrever
+    intent: "Provisório: a ponte acaba aqui e o capítulo novo desta música ainda vai ser escrito."
     movers: {move: sweep, every: "2bar", colour: "#3A6BFF", level: 0.7, positions: [Dance Floor Centre, Crossed Over]}
     matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
@@ -38,9 +45,23 @@ sections:
     matrix: {draw: rows-down, rate: "1/8", colour: "#00B8FF", pingpong: true}
     hue: {state: pulse, colour: "#B0001E"}
 
-  - bars: [84, 108]
+  - bars: [84, 99]
     name: entrega
-    intent: "Entrega: do G até o fim, o look que a próxima música copia na ponte."
+    intent: "Entrega: do G, por até 16 compassos, o look que a próxima música copia na ponte."
     movers: {move: sweep, every: "2bar", colour: "#3A6BFF", level: 0.7, positions: [Dance Floor Centre, Crossed Over]}
     matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [100, 107]
+    name: capitulo-a-escrever
+    intent: "Provisório: a ponte acaba aqui e o capítulo novo desta música ainda vai ser escrito."
+    movers: {move: sweep, every: "2bar", colour: "#3A6BFF", level: 0.7, positions: [Dance Floor Centre, Crossed Over]}
+    matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [108, 110]
+    name: as-vozes
+    intent: "As vozes respondem de um lado ao outro: feixes varrendo esquerda e direita, filas subindo."
+    movers: {move: sweep, every: "2bar", colour: "#3A6BFF", level: 0.7, positions: [Stage Left, Stage Right]}
+    matrix: {draw: rows-up, rate: "1/4", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}

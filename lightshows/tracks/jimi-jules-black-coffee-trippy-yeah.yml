@@ -11,9 +11,16 @@ budget: >-
   Breu 2 de 5 (c. 32). Sem fita branca e sem estrobo.
 base: autoscript
 sections:
-  - bars: [5, 27]
+  - bars: [5, 20]
     name: ponte
-    intent: "Ponte: a mesma luz da música anterior, copiada camada por camada, até a chegada."
+    intent: "Ponte: a mesma luz da música anterior, copiada camada por camada, por até 16 compassos."
+    movers: {move: sweep, every: "2bar", colour: "#3A6BFF", level: 0.7, positions: [Dance Floor Centre, Crossed Over]}
+    matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [21, 27]
+    name: capitulo-a-escrever
+    intent: "Provisório: a ponte acaba aqui e o capítulo novo desta música ainda vai ser escrito."
     movers: {move: sweep, every: "2bar", colour: "#3A6BFF", level: 0.7, positions: [Dance Floor Centre, Crossed Over]}
     matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
@@ -74,9 +81,16 @@ sections:
     matrix: {draw: zigzag, rate: "1/16", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 
-  - bars: [101, 120]
+  - bars: [101, 116]
     name: entrega
-    intent: "Entrega: do G até o fim, o look que a próxima música copia na ponte."
+    intent: "Entrega: do G, por até 16 compassos, o look que a próxima música copia na ponte."
     movers: {move: sweep, every: "2bar", colour: "#3A6BFF", level: 0.7, positions: [Dance Floor Centre, Crossed Over]}
     matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [117, 122]
+    name: chegada
+    intent: "A chegada: colunas alternando NW e SW, pergunta e resposta; movings revezando."
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF", position: Dance Floor Centre}
+    matrix: {draw: columns, rate: "1/8", colour: "#0A2CFF", pingpong: true}
     hue: {state: pulse, colour: "#B0001E"}

@@ -6,6 +6,10 @@ story: >-
 budget: >-
   Contraluz 2 de 3 (c. 163-172). Sem breu: o drop do c. 177 é aberto pela subida.
 cues:
+  - at: B + 16
+    name: capitulo-a-escrever
+    intent: 'Provisório: a ponte acaba aqui e o capítulo novo desta música ainda vai ser escrito.'
+    look: respiracao-azul
   - at: 163
     name: a-voz-no-escuro
     intent: 'A voz chega no escuro: contraluz, dois feixes frios cruzando.'
@@ -34,4 +38,3 @@ cues:
       hue: {state: pulse, colour: carmim}
 handover:
   look: respiracao-azul
-  until: end

@@ -11,9 +11,16 @@ budget: >-
   Fita branca: chegada do Yamore (65.1). Sem breu e sem estrobo.
 base: autoscript
 sections:
-  - bars: [9, 32]
+  - bars: [9, 24]
     name: ponte
-    intent: "Ponte: a mesma luz da música anterior, copiada camada por camada, até a chegada."
+    intent: "Ponte: a mesma luz da música anterior, copiada camada por camada, por até 16 compassos."
+    movers: {move: sweep, every: "2bar", colour: "#3A6BFF", level: 0.7, positions: [Dance Floor Centre, Crossed Over]}
+    matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [25, 32]
+    name: capitulo-a-escrever
+    intent: "Provisório: a ponte acaba aqui e o capítulo novo desta música ainda vai ser escrito."
     movers: {move: sweep, every: "2bar", colour: "#3A6BFF", level: 0.7, positions: [Dance Floor Centre, Crossed Over]}
     matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
@@ -61,9 +68,30 @@ sections:
     matrix: {draw: rows-up, rate: "1/8", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 
-  - bars: [98, 119]
+  - bars: [98, 113]
     name: entrega
-    intent: "Entrega: do G até o fim, o look que a próxima música copia na ponte."
+    intent: "Entrega: do G, por até 16 compassos, o look que a próxima música copia na ponte."
     movers: {move: pingpong, every: "1/2", colour: "#6A1CFF", positions: [Dance Floor Centre, Crossed Over, Up]}
     matrix: {draw: rows-up, rate: "1/2", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [114, 121]
+    name: capitulo-a-escrever
+    intent: "Provisório: a ponte acaba aqui e o capítulo novo desta música ainda vai ser escrito."
+    movers: {move: pingpong, every: "1/2", colour: "#6A1CFF", positions: [Dance Floor Centre, Crossed Over, Up]}
+    matrix: {draw: rows-up, rate: "1/2", colour: "#0A2CFF", mirror: true}
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [122, 122]
+    name: espiral-1-2
+    intent: "Espiral: os lados da sala revezam, a cada compasso mais rápido, do violeta ao vermelho."
+    movers: {move: pingpong, every: "1/2", colour: "#6A1CFF", positions: [Crossed Over, Up, Dance Floor Centre]}
+    matrix: {draw: columns, rate: "1/2", colour: "#6A1CFF", pingpong: true}
+    hue: dark
+
+  - bars: [123, 123]
+    name: espiral-1-4
+    intent: "Espiral: os lados da sala revezam, a cada compasso mais rápido, do violeta ao vermelho."
+    movers: {move: pingpong, every: "1/4", colour: "#6A1CFF", positions: [Crossed Over, Up, Dance Floor Centre]}
+    matrix: {draw: columns, rate: "1/4", colour: "#6A1CFF", pingpong: true}
+    hue: dark

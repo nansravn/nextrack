@@ -68,10 +68,11 @@ gesture_defaults:
 
 bridge:
   name: ponte
-  intent: 'Ponte: a mesma luz da música anterior, copiada camada por camada, até a chegada.'
+  intent: 'Ponte: a mesma luz da música anterior, copiada camada por camada, por até 16 compassos.'
+  bars: 16
 handover:
   name: entrega
-  intent: 'Entrega: do G até o fim, o look que a próxima música copia na ponte.'
+  intent: 'Entrega: do G, por até 16 compassos, o look que a próxima música copia na ponte.'
 
 rules:
   budget:

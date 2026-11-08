@@ -8,6 +8,10 @@ budget: >-
   Estrobo no c. 57 e o rolo final (c. 113-114). Fita branca 113.1 e o `flash` nos últimos
   compassos: a única vez da noite.
 cues:
+  - at: B + 16
+    name: capitulo-a-escrever
+    intent: 'Provisório: a ponte acaba aqui e o capítulo novo desta música ainda vai ser escrito.'
+    look: pico-cant-decide
   - at: build.1
     name: subida
     intent: 'Dois compassos enchendo em vermelho, o centro escuro.'

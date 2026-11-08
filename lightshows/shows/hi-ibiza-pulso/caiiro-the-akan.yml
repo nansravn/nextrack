@@ -6,6 +6,10 @@ story: >-
 budget: >-
   Nenhum efeito raro: o Akan é o transe que segura a sala depois da abertura.
 cues:
+  - at: B + 16
+    name: capitulo-a-escrever
+    intent: 'Provisório: a ponte acaba aqui e o capítulo novo desta música ainda vai ser escrito.'
+    look: respiracao-azul
   - at: break.1
     name: break
     intent: 'Quando a Rapture sai: o centro apaga, um feixe baixo para cima, Vorlanes desligadas.'
@@ -37,4 +41,3 @@ cues:
       hue: {state: pulse, colour: carmim}
 handover:
   look: respiracao-azul
-  until: outro.1

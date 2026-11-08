@@ -37,9 +37,48 @@ e mais vermelho o coração bate.
 
 ## Ponte e chegada
 - **Ponte:** enquanto duas músicas tocam juntas, os dois scripts mostram a mesma luz. A música
-  que sai termina, do G dela até o fim, no seu **look de entrega**; a que entra começa, do B
-  dela até a chegada, com esse mesmo look, copiado camada por camada. Em qualquer compasso que o
-  SoundSwitch troque de script, a sala não vê corte.
+  que sai toca, do G dela, por no máximo 16 compassos (`bridge.bars: 16`), o seu **look de
+  entrega**; a que entra começa, do B dela, com esse mesmo look, copiado camada por camada. No
+  relógio o B da que entra cai sobre o G da que sai, então **a entrega termina onde a ponte
+  termina**: o `until` da entrega é G + (primeiro cue da que entra − B), e com o capítulo novo
+  em B + 16 é o padrão. Em qualquer compasso que o SoundSwitch troque de script, a sala não vê
+  corte.
+- **Capítulo novo e eco:** quando a mixagem dura mais que a janela, a música que entra abre,
+  logo depois da ponte, um **capítulo novo** que vai até o seu primeiro cue de antes: a luz dela
+  naquele trecho da música, nem a ponte esticada nem um corte. O compilador copia esse capítulo
+  no fim da música que sai (o **eco**), e a sala vê uma luz só até a que sai acabar. O capítulo
+  pode começar antes de B + 16, numa fronteira da música dentro da janela; aí a entrega
+  encurta junto.
+- **O capítulo novo não é uma chegada.** A chegada de cada música fica onde está. O capítulo
+  não usa o desenho nem a cor de Vorlane da chegada da própria música e não leva momento, acento
+  ou efeito raro (breu, espiral, contraluz, fita e estrobo já estão com o orçamento gasto). Cada
+  seção mira pela gramática dos feixes. As duas assinaturas da noite seguem dentro do limite:
+  movings em azul-gelo ou azul-profundo em pelo menos 70% da noite e o lustre em carmim ou
+  vermelho em pelo menos 60% (hoje 86% e 80%). Nos breaks e subidas o lustre fica `dark`, pela
+  regra 1. Prefira começar cada seção numa linha de frase do mapa (o início de uma das
+  `sections` do mapa, ou um múltiplo de 4 compassos depois dele).
+- **A luz do capítulo.** As movings ficam em azul-gelo (a assinatura `azul-espaco`) e seguem a
+  gramática dos feixes: `sweep` nos grooves, `pingpong` nos drops, `hold` nos breaks. No Move
+  elas podem seguir violeta, a cor da aceleração. As Vorlanes usam um desenho diferente do da
+  ponte que acaba (`rows-up` nas três entregas; `rows-down` ou `centre-out` nos picos entregues)
+  e do da chegada da própria faixa, na cor da fase (tabela "Papéis"); no Move, sem o violeta,
+  que é da chegada. O lustre fica em `pulse` nos grooves e drops (carmim até a Yamore, vermelho
+  do Move em diante) e `dark` nos breaks e subidas, em todas as fases. A luz do capítulo fica
+  abaixo da chegada da faixa (a linha `light` do `report`): o capítulo prepara a chegada, não
+  a antecipa.
+- **Fronteiras.** O capítulo pode ter mais de uma seção. Uma fronteira forte da música dentro
+  dele pede uma seção nova nesse compasso, com outro desenho, nível ou mira. Conta como forte
+  o início de uma das `sections` do mapa, ou um compasso que o `follows` do `report` lista em
+  "missed": Ma Tnsani 24, Pick Up 65 e Dirty Cash 39 caem dentro dos capítulos.
+- **O eco é do compilador.** Ninguém escreve o eco. Ele copia, no fim da música que sai, tudo
+  o que a que entra mostra naquele trecho: o capítulo novo e o que vier depois (a chegada, uma
+  contraluz, um breu, os passos de uma espiral), até a que sai acabar. Copia os estados, não os
+  eventos: estrobo e fita ficam só na faixa que os toca. O orçamento conta cada gesto onde ele
+  foi escrito; o eco nunca conta, e as regras de seção (`total-dark`, `movers-aim`,
+  `matrix-not-cloned`) não o leem. Quem desenha a abertura da que entra desenha também o fim da
+  que sai.
+- **Compassos.** "c. a-b" inclui os dois compassos; o `until` de um cue ou de uma entrega é o
+  primeiro compasso depois dela.
 - **Chegada:** o drop que mostra a música nova. Toda chegada troca o desenho principal e a cor
   ou o lado. A coluna "chegada" da tabela das faixas é a escolhida para a luz; onde a anterior
   ainda toca muito tempo depois do G, a chegada é o primeiro drop depois de um break da nova.
@@ -136,7 +175,7 @@ removido apareceria de verdade.
 ## Papéis
 | aparelho | papel | transe (1-9) | aceleração e virada (10-11) | pico (12-15) |
 |---|---|---|---|---|
-| lustre (Hue) | o coração | `pulse` carmim nos grooves, `dark` nos breaks e subidas | `pulse` vermelho | `pulse` vermelho; `dark` nas subidas; aceso em carmim no fim |
+| lustre (Hue) | o coração | `pulse` carmim nos grooves, `dark` nos breaks e subidas | `pulse` vermelho | `pulse` vermelho; `dark` nas subidas e nos breaks; aceso em carmim no fim |
 | movings | os feixes na neblina | `sweep` lento ou `hold` numa posição; `pingpong` nos drops | `pingpong` acelerando | `pingpong` e `blink` nos drops |
 | Vorlanes | os instrumentos | desenhos lentos e azuis; ciano nas chegadas | violeta; `solid` vermelho na virada | vermelho a 1/8 e 1/16 |
 | fita branca | pontuação | abertura e Yamore | a virada | Pick Up e o final (`flash` só no fim) |
@@ -183,7 +222,134 @@ O set dura cerca de 44 minutos.
    mesmas camadas com os mesmos valores (os acentos de um compasso só, estrobo e fita, ficam na
    faixa que sai).
 10. **Sem UV:** a noite não é de Halloween.
-11. **A ponte é ágil:** 16 compassos, nunca mais de 32. Entrega e ponte usam a mesma janela.
+11. **A ponte é ágil:** no máximo 16 compassos (`bridge.bars: 16`). Entrega e ponte usam a
+    mesma janela; o resto da mixagem é o capítulo novo da que entra, e o eco dele na que sai.
+
+## Cartões
+Um cartão por faixa. A linha `Entrega` cobre a mixagem com a faixa seguinte: o look do G e o
+que a seguinte faz no resto da mixagem. Os compassos vêm do `report` e dos mapas: "c. 73 dela"
+é um compasso da música que entra. A mixagem que leva à faixa N chama-se `mix-NN` (`mix-02` é
+Rapture → Akan; `mix-12` é TOO COOL → Verano) e é descrita no cartão da faixa N − 1.
+
+### 1. &ME, Black Coffee — The Rapture Pt.III
+- Energia: e6; a luz acorda do zero (breu, um feixe, o coração) e só passa da metade na abertura.
+- Papel no arco: Despertar. A noite nasce no breu e o coração dá o primeiro batimento.
+- Chegada: `abertura`, c. 145 (drop, +5.8 dB), depois do breu do c. 144: `centre-out`, lustre vermelho, fita branca.
+- Pico: o drop do c. 161 (+13.5 dB), `groove-final`, Vorlanes a 1/8.
+- Família de looks: `breu-inicial`, o feixe azul-gelo, `respiracao-azul`, `contraluz` (c. 113-132); Vorlanes azul-profundo; lustre carmim, vermelho só na abertura.
+- Entrega: `respiracao-azul` do G (c. 169) por 16 compassos (c. 169-184), copiada na ponte da Akan (c. 57-72 dela). A Akan abre então um capítulo novo, c. 73-96 dela: o groove cheio (kick, grave e percussão a 9; a voz aparece nos c. 77-79 e volta nos c. 94-96, antes do break do c. 97). É a Akan tomando a sala com o seu groove, azul e com o coração carmim, sem o ciano, que é da chegada do c. 105. O eco leva esse capítulo para a Rapture nos c. 185-208, e o c. 209, o último dela, copia o primeiro compasso do break da Akan (c. 97).
+
+### 2. Caiiro — The Akan
+- Energia: e6 (o mapa mede aqui a música mais forte da noite); a luz segura o transe, sem efeito raro.
+- Papel no arco: abre o Transe: azul quase o tempo todo, o vermelho só no coração.
+- Chegada: c. 105 (drop, +11.3 dB, o 2º drop da noite em saliência): `columns` ciano a 1/8, `pingpong` no centro.
+- Pico: a própria chegada, c. 105-120.
+- Família de looks: `respiracao-azul` na ponte; o groove em `sweep` azul-gelo (`groove-tribal`, c. 121-136, entre os lados); Vorlanes azul-profundo, ciano só na chegada; lustre carmim, `dark` no break (c. 97-100) e na subida (c. 101-104).
+- Entrega: `respiracao-azul` do G (c. 137) por 16 compassos (c. 137-152), copiada na ponte da What To Do (c. 129-144 dela). A What To Do abre então um capítulo novo, c. 145-162 dela: o drop sem voz (o kick cai de 8 para 7 no c. 153; a voz volta nos c. 161-162, logo antes da contraluz do c. 163). É o groove da What To Do, azul, que passa a vez à contraluz `a-voz-no-escuro` sem gastar o escuro dela. O eco leva o capítulo e o que vem depois para a Akan nos c. 153-194.
+
+### 3. Guy Gerber — What To Do (&ME Remix)
+- Energia: e6; o transe com a voz no escuro e um drop forte na chegada.
+- Papel no arco: o transe se aprofunda; a voz aparece no escuro e a chegada acende tudo.
+- Chegada: c. 177 (drop, +18.9 dB): `rows-down` azul-profundo a 1/8, `pingpong` no centro.
+- Pico: a chegada, c. 177-192.
+- Família de looks: `contraluz` (`a-voz-no-escuro`, c. 163-172), subida em `fill-up` (c. 173-176), `rows-down`, ciano no groove (c. 193-200); lustre carmim.
+- Entrega: `respiracao-azul` do G (c. 201) por 16 compassos (c. 201-216), copiada na ponte da We Dance Again (c. 21-36 dela). A We Dance Again abre então um capítulo novo, c. 37-55 dela: a voz da Nakhana sobre o kick, sem o grave desde o c. 39. É a voz sem o grave, contida, que guarda para a chegada do c. 56 o batimento do `solid`, quando o grave volta. O eco leva o capítulo e o que vem depois para a What To Do nos c. 217-257.
+
+### 4. Black Coffee, Nakhana — We Dance Again
+- Energia: e6; o kick nunca para, e a luz é a mais ativa do começo do transe.
+- Papel no arco: o batimento: o transe ganha corpo.
+- Chegada: c. 56, quando o grave entra de vez: `solid` azul-profundo com `pingpong`, os feixes parados no centro (0.8).
+- Pico: `brilho`, c. 104-120: `columns` ciano, `pingpong` a 1/2.
+- Família de looks: `solid`, `rows-up` a 1/4 (`a-voz`, c. 72-103), `columns` ciano; lustre carmim.
+- Entrega: `respiracao-azul` do G (c. 121) por 16 compassos (c. 121-136), copiada na ponte da Trippy Yeah (c. 5-20 dela). A Trippy Yeah abre então um capítulo novo e curto, c. 21-27 dela: o break (o grave sai no c. 22, o kick baixa para 4-6 e a voz entra no c. 24). É o break da Trippy, recolhido, antes da subida (c. 28-31), do breu (c. 32) e da chegada (c. 33), sem roubar o escuro do breu. O eco leva o capítulo para a We Dance Again nos c. 137-143.
+
+### 5. Jimi Jules, Black Coffee — Trippy Yeah
+- Energia: e7, a primeira da noite; a luz contrasta mais: breu e dois drops fortes.
+- Papel no arco: o transe acelera e gasta o segundo breu da noite.
+- Chegada: c. 33 (drop, +24.9 dB, o 3º da noite), depois do breu do c. 32: `zigzag` azul-profundo a 1/8.
+- Pico: `drop-2`, c. 93 (+30.1 dB): `zigzag` a 1/16.
+- Família de looks: `zigzag`, `rows-up`, ciano em `a-voz` (c. 48-63), `fill-up` nas subidas, `hold` na poça no break (c. 82-89); lustre carmim.
+- Entrega: `respiracao-azul` do G (c. 101). A ponte da Say What tem 13 compassos (c. 26-38 dela: o break dela começa no c. 39 e a chegada no c. 41), então a entrega termina junto, c. 101-113 (`until: 114`). A Say What não precisa de capítulo novo. O eco leva o break e a chegada dela para a Trippy nos c. 114-122.
+
+### 6. Rampa, Adam Port, &ME, chuala, Keinemusik — Say What
+- Energia: e7; transe vocal, dois drops.
+- Papel no arco: o transe canta.
+- Chegada: c. 41 (drop, +21.4 dB): `columns` azul-profundo com `pingpong` a 1/8.
+- Pico: `drop-2`, c. 73 (+26.2 dB, o drop principal do mapa): `columns` ciano.
+- Família de looks: `columns`, `hold` nos breaks, `fill-up` na subida; lustre carmim.
+- Entrega: `respiracao-azul` do G (c. 79) até o último compasso da música, c. 79-91 (`until: end + 1`, 13 compassos), copiada na ponte da Baianá, c. 25-37 dela: o c. 91 da Say What é o c. 37 da Baianá, o último em que as duas tocam juntas. A Baianá abre então um capítulo novo, c. 38-42 dela, na intro com a voz e as palmas, sem o grave, e o break do c. 43 (c. 43-46) fica onde está; o designer pode juntar os dois num capítulo só, c. 38-46, se a música pedir. A chegada continua no c. 47. Não há eco: a entrega cobre a Say What até o fim.
+
+### 7. Barbatuques — Baianá (Pablo Fierro Edit)
+- Energia: e7; a luz mais ativa do transe.
+- Papel no arco: o corpo: a percussão vocal acende a sala.
+- Chegada: c. 47 (drop, +16.6 dB): `centre-out` ciano a 1/8.
+- Pico: `drop-do-corpo`, c. 89-122, depois do breu do c. 88: `centre-out` a 1/16; o drop final do mapa é o do c. 134.
+- Família de looks: `centre-out`, `fill-up` no break, `breu` (c. 88); lustre carmim.
+- Entrega: `respiracao-azul` do G (c. 146) por 16 compassos (c. 146-161), copiada na ponte da Ma Tnsani (c. 2-17 dela). A Ma Tnsani abre então um capítulo novo, c. 18-32 dela: o groove até o c. 23 e, do c. 24, o break (o grave some, o kick cai para 4-5, a voz cresce de 27 a 32) que leva à chegada do c. 33. O break do c. 24 é uma fronteira forte que a luz de hoje não acompanha (o `follows` a lista em "missed"), e pede uma seção nova. O eco leva o capítulo e o começo da chegada da Ma Tnsani (c. 33-40 dela) para a Baianá nos c. 162-184, quando a Baianá já está na seção `outro` do mapa.
+
+### 8. Vanco, Aya — Ma Tnsani (Yalla Habibi)
+- Energia: e7; um respiro antes da Yamore.
+- Papel no arco: o transe oriental, mais contido.
+- Chegada: c. 33 (drop, +5.3 dB): `rows-down` azul-profundo com `pingpong` a 1/4.
+- Pico: `o-grave-volta`, c. 76-83 (`rows-down` ciano a 1/8), e o drop do G (c. 84).
+- Família de looks: `rows-down` e `rows-up`, `hold` na coluna no break cantado (c. 64-75); lustre carmim.
+- Entrega: `respiracao-azul` do G (c. 84) por 16 compassos (c. 84-99), copiada na ponte da Yamore (c. 9-24 dela). A Yamore abre então um capítulo novo, c. 25-32 dela: a segunda metade do primeiro drop (c. 17-32), as vozes cheias, antes de `as-vozes` (c. 33). O drop do c. 17, o principal do mapa (+16.1 dB), cai dentro da janela, e o capítulo pode começar nele (a ponte fica c. 9-16 e a entrega c. 84-91, `until: 92`). Mesmo assim, ele não usa o `arrow-up` nem o ciano da chegada (`yamore`, c. 65), e a luz dele fica abaixo da dela. O eco leva o capítulo e o começo de `as-vozes` (c. 33-35 dela) para a Ma Tnsani nos c. 100-110.
+
+### 9. MoBlack, Salif Keita, Cesária Evora, Benja (NL), Franc Fala — Yamore
+- Energia: e7; o fim do transe: o grave volta com as vozes.
+- Papel no arco: fecha o transe e passa a noite para a aceleração.
+- Chegada: `yamore`, c. 65: o grave volta depois de oito compassos sem ele; `arrow-up` ciano e fita branca.
+- Pico: o kick volta no c. 88 (`o-kick-volta`, `rows-up` a 1/8).
+- Família de looks: `sweep` entre os lados (`as-vozes`, c. 33-56), `fill-up` nas subidas, `arrow-up` ciano; lustre carmim, `dark` nas subidas.
+- Entrega: `aceleracao` do G (c. 98) por 16 compassos (c. 98-113), copiada na ponte do Move (c. 1-16 dele). O Move abre então um capítulo novo, c. 17-24 dele: o groove cheio com a voz, antes da espiral do c. 25 e da chegada do c. 29. É o revezamento que começa a acelerar com o pitch (o set vai de 122 a 125 no Move): as movings podem seguir violeta, mas as Vorlanes não usam o violeta, que é da chegada. O eco leva o capítulo e os dois primeiros passos da espiral do Move (c. 25-26 dele) para a Yamore nos c. 114-123; a espiral conta no orçamento só no Move.
+
+### 10. Adam Port, Stryv, Keinemusik, oRSo, Malachiii — Move
+- Energia: e7; a aceleração, 122 → 125.
+- Papel no arco: Aceleração: o revezamento acelera, o violeta entra nas Vorlanes e o coração passa a vermelho vivo.
+- Chegada: c. 29 (drop, +14.7 dB), depois da espiral (c. 25-28): `columns` violeta a 1/8, lustre vermelho.
+- Pico: a chegada, mais rápida a partir do c. 45.
+- Família de looks: `aceleracao`, a espiral, `columns` violeta; lustre vermelho.
+- Entrega: `aceleracao` do G (c. 76) até o c. 87, copiada na ponte do TOO COOL (c. 1-15 dele). Fora desta execução: a passagem já cabe na janela.
+
+### 11. PAWSA — Too Cool To Be Careless
+- Energia: e8; a virada da noite.
+- Papel no arco: Virada: espiral, breu e o primeiro estrobo; o vermelho toma a sala.
+- Chegada: c. 25 (drop, +12.0 dB): `rows-up` azul-profundo.
+- Pico: `virada`, c. 49 (+22.0 dB): breu no c. 48, estrobo, fita branca, `solid` vermelho a 1/8.
+- Família de looks: a espiral (c. 41-47), `breu`, `pulso-vermelho`; lustre vermelho.
+- Entrega: `pulso-vermelho` do G (c. 89) por 16 compassos (c. 89-104), copiada na ponte da Verano (c. 9-24 dela). A Verano abre então um capítulo novo, c. 25-41 dela: o primeiro drop segue, sem voz (o kick para no c. 40, antes do break do c. 42). É o Pico começando: a Verano assume com o seu drop, vermelho e azul dividindo a sala, sem o `zigzag` vermelho da chegada (c. 58). O eco leva o capítulo para o TOO COOL nos c. 105-118.
+
+### 12. Toman — Verano En NY
+- Energia: e8; abre o pico a 128.
+- Papel no arco: Pico: vermelho e azul dividem a sala.
+- Chegada: c. 58 (drop, +11.7 dB): `zigzag` vermelho a 1/8.
+- Pico: a chegada, c. 58-73.
+- Família de looks: `pulso-vermelho`, `zigzag`, `sweep` entre os lados no groove (c. 74-89); lustre vermelho, `dark` no break e na subida.
+- Entrega: `pulso-vermelho` do G (c. 90) por 16 compassos (c. 90-105), copiada na ponte do Pick Up (c. 27-42 dele). O Pick Up abre então um capítulo novo e longo, c. 43-68 dele: o break sem kick (c. 43-64; o grave segura e a voz do Nate Dogg entra a partir do c. 49) e o drop curto dos c. 65-68 (+17.8 dB, uma fronteira forte que a luz de hoje não acompanha e que pede uma seção nova, abaixo da chegada), antes da subida do c. 69 e da chegada do c. 73. A contraluz já está gasta: a do Pick Up é a dos c. 104-127. O eco leva o capítulo para a Verano nos c. 106-130.
+
+### 13. PAWSA, Nate Dogg — PICK UP THE PHONE (feat. Nate Dogg) (Extended)
+- Energia: e8; o maior drop da noite.
+- Papel no arco: o pico da noite.
+- Chegada: c. 73 (drop, +30.2 dB): `rows-up` vermelho com `pingpong` a 1/8.
+- Pico: `pick-up`, c. 137 (o drop nº 1 da noite em saliência): estrobo, fita branca, `blink` vermelho, Vorlanes a 1/16.
+- Família de looks: `contraluz` (c. 104-127), a espiral (c. 128-136), `pico-pick-up`; lustre vermelho.
+- Entrega: `pico-pick-up` do G (c. 137), o pico, por 16 compassos (c. 137-152), copiado na ponte do Can't Decide, que passa a ir de c. 20 a c. 35 dele. Nos c. 137-152 o drop do Pick Up segue cheio (kick e grave a 9) enquanto o Can't Decide entra com o seu drop (c. 20-27) e cai no break (c. 28-35, kick 0): a sala ouve o pico do Pick Up, então **o pico atravessa a janela inteira dos dois lados**, e o cue `break` do Can't Decide (c. 28-35) sai para a ponte ir até o c. 35. O cue `o-grave-volta` (c. 36-43) fica como está. Não há capítulo novo. O eco leva o Can't Decide do c. 36 em diante (o grave que volta, a chegada do c. 44, a subida, o breu do c. 68 e o pico do c. 69, sem o estrobo) para o Pick Up nos c. 153-193.
+
+### 14. Max Dean, Luke Dean, LOCKY — Can't Decide
+- Energia: e8; o último breu e o pico que o Dirty Cash herda.
+- Papel no arco: o pico continua, curto e intenso.
+- Chegada: c. 44 (o grave volta no c. 36): `centre-out` vermelho a 1/16.
+- Pico: `cant-decide`, c. 69 (+45.4 dB), depois do breu do c. 68: estrobo, `blink` vermelho.
+- Família de looks: `pico-pick-up` na ponte (c. 20-35), o `hold` vermelho quando o grave volta (c. 36-43), `centre-out`, `pico-cant-decide`; lustre vermelho.
+- Entrega: `pico-cant-decide` do G (c. 69), o drop com estrobo, por 16 compassos (c. 69-84), copiada na ponte do Dirty Cash (c. 17-32 dele): o Dirty Cash entra por baixo do pico. O Dirty Cash abre então um capítulo novo, c. 33-42 dele: o terceiro drop (c. 33-38) e o break (c. 39-42: o kick para e a voz entra), antes da subida do c. 43 e da chegada do c. 45. O estrobo do Dirty Cash é o dos c. 57 e 113 (orçamento gasto). O eco leva o capítulo para o Can't Decide nos c. 85-94.
+
+### 15. PAWSA, Adventures Of Stevie V — Dirty Cash (Money Talks)
+- Energia: e9; o fim do pico, a 132.
+- Papel no arco: gasta o que sobrou e termina só no coração.
+- Chegada: c. 45 (drop, +15.7 dB): `arrow-up` vermelho.
+- Pico: `dirty-cash`, c. 57 (+42.6 dB, estrobo no 1), e o `final`, c. 113-119 (rolo de estrobo, fita branca, `flash`).
+- Família de looks: `blink` vermelho, `solid`, `hold` na poça e na cabine nos cortes; lustre vermelho, carmim no fim.
+- Entrega: nenhuma; a última nota (c. 120-121) deixa só o lustre aceso, em carmim.
 
 ## O que fica para a próxima versão
 - **Espiral de verdade**, **coração com decaimento** (um "tum-tum" duplo, o pulso que some antes
