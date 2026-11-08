@@ -20,23 +20,23 @@ sections:
 
   - bars: [37, 42]
     name: voz-sem-grave
-    intent: "O grave sai e a voz da Nakhana fica sobre o kick: os feixes sobem devagar, as colunas azuis respiram a meio tempo."
-    movers: {move: sweep, every: "4bar", colour: "#3A6BFF", level: 0.55, positions: [Dance Floor Centre, Up]}
-    matrix: {draw: columns, rate: "1/2", colour: "#0A2CFF", mirror: true}
+    intent: "O grave sai e a voz da Nakhana fica sobre o kick: os feixes se revezam entre os lados da sala, devagar, e as setas azuis sobem a meio tempo."
+    movers: {move: pingpong, every: "2bar", colour: "#3A6BFF", level: 0.55, positions: [Stage Left, Stage Right]}
+    matrix: {draw: arrow-up, rate: "1/2", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 
   - bars: [43, 50]
     name: voz-contida
-    intent: "Só o kick e a voz: os feixes ficam parados no alto, a matriz se apaga e o lustre carmim segura o batimento."
-    movers: {move: hold, colour: "#3A6BFF", level: 0.5, position: Up}
-    matrix: "off"
+    intent: "Só o kick e a voz: os feixes se alternam devagar entre os lados da sala e as Vorlanes abrem do centro para fora, uma onda lenta por compasso, enquanto o lustre carmim segura o batimento."
+    movers: {move: pingpong, every: "1bar", colour: "#3A6BFF", level: 0.5, positions: [Stage Left, Stage Right]}
+    matrix: {draw: centre-out, rate: "1bar", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 
   - bars: [51, 55]
     name: voz-guarda
-    intent: "A voz sustenta e os feixes descem ao centro, contidos; a matriz volta só em linhas lentas, guardando o batimento."
-    movers: {move: sweep, every: "4bar", colour: "#3A6BFF", level: 0.6, positions: [Up, Dance Floor Centre]}
-    matrix: {draw: rows-up, rate: "1/2", colour: "#0A2CFF", mirror: true}
+    intent: "A voz sustenta e os feixes param no lado leste, contidos; as Vorlanes abrem do centro a meio tempo, guardando o batimento."
+    movers: {move: hold, colour: "#3A6BFF", level: 0.6, position: Stage Right}
+    matrix: {draw: centre-out, rate: "1/2", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 
   - bars: [56, 71]
@@ -60,23 +60,30 @@ sections:
     matrix: {draw: columns, rate: "1/4", colour: "#00B8FF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 
-  - bars: [121, 136]
+  - bars: [121, 127]
     name: entrega
     intent: "Entrega: do G, por até 16 compassos, o look que a próxima música copia na ponte."
     movers: {move: sweep, every: "2bar", colour: "#3A6BFF", level: 0.7, positions: [Dance Floor Centre, Crossed Over]}
     matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 
-  - bars: [137, 139]
-    name: break-recolhido
-    intent: "O grave sai e o kick baixa: um feixe só na coluna, baixo, e o carmim marcando o pulso; o centro apagado."
-    movers: {move: hold, colour: "#3A6BFF", level: 0.3, position: Up}
+  - bars: [128, 137]
+    name: break-baixo
+    intent: "O groove cai no break: o pulso do carmim apaga e fica um feixe só, baixo e cruzado rente ao chão; as Vorlanes descansam."
+    movers: {move: hold, colour: "#3A6BFF", level: 0.4, position: Down}
     matrix: "off"
-    hue: {state: pulse, colour: "#B0001E"}
+    hue: dark
+
+  - bars: [138, 139]
+    name: grave-sai
+    intent: "O grave sai: o feixe baixo escurece ainda mais, quase só o rastro no chão."
+    movers: {move: hold, colour: "#3A6BFF", level: 0.25, position: Down}
+    matrix: "off"
+    hue: dark
 
   - bars: [140, 143]
-    name: voz-recolhida
-    intent: "A voz entra: as Vorlanes acendem baixas, uma seta subindo devagar em azul-profundo, o feixe segue parado na coluna."
-    movers: {move: hold, colour: "#3A6BFF", level: 0.5, position: Up}
-    matrix: {draw: arrow-up, rate: "1/2", colour: "#0A2CFF", mirror: true}
-    hue: {state: pulse, colour: "#B0001E"}
+    name: voz-entra
+    intent: "A voz entra: as Vorlanes abrem do centro para fora devagar, baixas, e os feixes rastejam entre o chão e a poça, abaixo da chegada."
+    movers: {move: sweep, every: "2bar", colour: "#3A6BFF", level: 0.35, positions: [Down, Down]}
+    matrix: {draw: centre-out, rate: "1/2", colour: "#0A2CFF", mirror: true}
+    hue: dark

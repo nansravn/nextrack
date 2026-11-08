@@ -8,24 +8,24 @@ budget: >-
 cues:
   - at: 37
     name: voz-sem-grave
-    intent: 'O grave sai e a voz da Nakhana fica sobre o kick: os feixes sobem devagar, as colunas azuis respiram a meio tempo.'
+    intent: 'O grave sai e a voz da Nakhana fica sobre o kick: os feixes se revezam entre os lados da sala, devagar, e as setas azuis sobem a meio tempo.'
     look:
-      movers: {move: sweep, every: 4bar, positions: [Dance Floor Centre, Up], colour: azul-gelo, level: 0.55}
-      matrix: {draw: columns, rate: 1/2, colour: azul-profundo, mirror: true}
+      movers: {move: pingpong, every: 2bar, positions: [Stage Left, Stage Right], colour: azul-gelo, level: 0.55}
+      matrix: {draw: arrow-up, rate: 1/2, colour: azul-profundo, mirror: true}
       hue: {state: pulse, colour: carmim}
   - at: 43
     name: voz-contida
-    intent: 'Só o kick e a voz: os feixes ficam parados no alto, a matriz se apaga e o lustre carmim segura o batimento.'
+    intent: 'Só o kick e a voz: os feixes se alternam devagar entre os lados da sala e as Vorlanes abrem do centro para fora, uma onda lenta por compasso, enquanto o lustre carmim segura o batimento.'
     look:
-      movers: {move: hold, position: Up, colour: azul-gelo, level: 0.5}
-      matrix: off
+      movers: {move: pingpong, every: 1bar, positions: [Stage Left, Stage Right], colour: azul-gelo, level: 0.5}
+      matrix: {draw: centre-out, rate: 1bar, colour: azul-profundo, mirror: true}
       hue: {state: pulse, colour: carmim}
   - at: 51
     name: voz-guarda
-    intent: 'A voz sustenta e os feixes descem ao centro, contidos; a matriz volta só em linhas lentas, guardando o batimento.'
+    intent: 'A voz sustenta e os feixes param no lado leste, contidos; as Vorlanes abrem do centro a meio tempo, guardando o batimento.'
     look:
-      movers: {move: sweep, every: 4bar, positions: [Up, Dance Floor Centre], colour: azul-gelo, level: 0.6}
-      matrix: {draw: rows-up, rate: 1/2, colour: azul-profundo, mirror: true}
+      movers: {move: hold, position: Stage Right, colour: azul-gelo, level: 0.6}
+      matrix: {draw: centre-out, rate: 1/2, colour: azul-profundo, mirror: true}
       hue: {state: pulse, colour: carmim}
   - at: 56
     name: chegada-o-grave
@@ -51,3 +51,4 @@ cues:
       hue: {state: pulse, colour: carmim}
 handover:
   look: respiracao-azul
+  until: 128

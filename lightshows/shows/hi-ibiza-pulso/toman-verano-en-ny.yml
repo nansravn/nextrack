@@ -7,25 +7,25 @@ budget: >-
 cues:
   - at: B + 16
     name: o-drop-sem-voz
-    intent: 'O drop segue sem voz: colunas vermelhas alternando os dois lados da sala, feixes azuis revezando no centro, o coração em vermelho.'
+    intent: 'O drop segue sem voz: fileiras azuis descendo devagar espelhadas, feixes revezando nos lados da sala, o coração em vermelho.'
     look:
-      movers: {move: pingpong, every: 1/2, colour: azul-gelo, position: Dance Floor Centre}
-      matrix: {draw: columns, rate: 1/4, colour: vermelho, pingpong: true}
+      movers: {move: pingpong, every: 1/2, colour: azul-gelo, position: Stage Left, level: 0.8}
+      matrix: {draw: rows-down, rate: 1/2, colour: azul-profundo, mirror: true}
       hue: {state: pulse, colour: vermelho}
   - at: 33
-    name: o-azul-responde
-    intent: 'O azul responde: colunas azuis alternando os lados, feixes varrendo a pista, o coração segue vermelho.'
+    name: o-vermelho-assenta
+    intent: 'O drop segue: os feixes se juntam no centro do chão, colunas vermelhas alternando os lados, o coração em vermelho.'
     look:
-      movers: {move: sweep, every: 2bar, positions: [Crossed Over, Dance Floor Centre], colour: azul-gelo, level: 0.8}
-      matrix: {draw: columns, rate: 1/8, colour: azul-profundo, pingpong: true}
+      movers: {move: pingpong, every: 1/2, colour: azul-gelo, position: Dance Floor Centre, level: 0.8}
+      matrix: {draw: columns, rate: 1/4, colour: vermelho, pingpong: true}
       hue: {state: pulse, colour: vermelho}
   - at: 40
     name: o-kick-para
-    intent: 'O kick para: um feixe para cima, filas vermelhas subindo devagar, o coração em carmim.'
+    intent: 'O kick para: os feixes caem no chão, uma coluna azul lenta alternando os lados, o coração em vermelho.'
     look:
-      movers: {move: hold, position: Up, colour: azul-gelo, level: 0.5}
-      matrix: {draw: rows-up, rate: 1bar, colour: vermelho, mirror: true}
-      hue: {state: pulse, colour: carmim}
+      movers: {move: hold, position: Down, colour: azul-gelo, level: 0.5}
+      matrix: {draw: columns, rate: 1bar, colour: azul-profundo, pingpong: true}
+      hue: {state: pulse, colour: vermelho}
   - at: break.1
     name: break
     intent: 'O break: um feixe para cima, Vorlanes apagadas, centro escuro.'

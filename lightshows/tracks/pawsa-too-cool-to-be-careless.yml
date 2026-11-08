@@ -108,14 +108,14 @@ sections:
 
   - bars: [105, 112]
     name: o-drop-sem-voz
-    intent: "O drop segue sem voz: colunas vermelhas alternando os dois lados da sala, feixes azuis revezando no centro, o coração em vermelho."
-    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF", position: Dance Floor Centre}
-    matrix: {draw: columns, rate: "1/4", colour: "#FF0A2A", pingpong: true}
+    intent: "O drop segue sem voz: fileiras azuis descendo devagar espelhadas, feixes revezando nos lados da sala, o coração em vermelho."
+    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF", level: 0.8, position: Stage Left}
+    matrix: {draw: rows-down, rate: "1/2", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#FF0A2A"}
 
   - bars: [113, 118]
-    name: o-azul-responde
-    intent: "O azul responde: colunas azuis alternando os lados, feixes varrendo a pista, o coração segue vermelho."
-    movers: {move: sweep, every: "2bar", colour: "#3A6BFF", level: 0.8, positions: [Crossed Over, Dance Floor Centre]}
-    matrix: {draw: columns, rate: "1/8", colour: "#0A2CFF", pingpong: true}
+    name: o-vermelho-assenta
+    intent: "O drop segue: os feixes se juntam no centro do chão, colunas vermelhas alternando os lados, o coração em vermelho."
+    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF", level: 0.8, position: Dance Floor Centre}
+    matrix: {draw: columns, rate: "1/4", colour: "#FF0A2A", pingpong: true}
     hue: {state: pulse, colour: "#FF0A2A"}

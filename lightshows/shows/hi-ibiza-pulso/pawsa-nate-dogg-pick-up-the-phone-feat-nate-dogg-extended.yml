@@ -9,24 +9,31 @@ budget: >-
 cues:
   - at: B + 16
     name: o-grave-segura
-    intent: 'O break sem kick: o grave segura, um feixe frio para cima, filas vermelhas subindo devagar, o coração em carmim.'
+    intent: 'O break sem kick: o grave segura, feixes frios fixos apontados para baixo, colunas azuis lentas nas Vorlanes, o coração apagado.'
     look:
-      movers: {move: hold, position: Up, colour: azul-gelo, level: 0.5}
-      matrix: {draw: rows-up, rate: 1bar, colour: vermelho, mirror: true}
-      hue: {state: pulse, colour: carmim}
+      movers: {move: hold, position: Down, colour: azul-gelo, level: 0.5}
+      matrix: {draw: columns, rate: 1bar, colour: azul-profundo, mirror: true}
+      hue: dark
   - at: 49
     name: a-voz-do-nate
-    intent: 'A voz do Nate Dogg entra: feixes frios varrendo devagar de um lado ao outro, setas azuis em meia-luz subindo alternadas, o coração em vermelho.'
+    intent: 'A voz do Nate Dogg entra baixinha: feixes frios fixos de lado em luz fraca, colunas azuis lentas, o coração apagado.'
     look:
-      movers: {move: sweep, every: 4bar, positions: [Stage Left, Stage Right], colour: azul-gelo, level: 0.45}
-      matrix: {draw: arrow-up, rate: 1/2, colour: azul-profundo, pingpong: true}
-      hue: {state: pulse, colour: vermelho}
+      movers: {move: hold, position: Stage Left, colour: azul-gelo, level: 0.25}
+      matrix: {draw: columns, rate: 1/2, colour: azul-profundo, mirror: true}
+      hue: dark
+  - at: 57
+    name: a-voz-sobe
+    intent: 'A voz do Nate Dogg sobe: os feixes fixos clareiam apontando para cima, colunas violeta mais rápidas, o coração ainda apagado.'
+    look:
+      movers: {move: hold, position: Up, colour: azul-gelo, level: 0.45}
+      matrix: {draw: columns, rate: 1/4, colour: violeta, mirror: true}
+      hue: dark
   - at: 65
     name: o-drop-curto
-    intent: 'O drop curto: setas vermelhas subindo, alternando os lados, feixes revezando no centro, o coração em vermelho.'
+    intent: 'O drop curto: clarão violeta alternando os lados, feixes revezando cruzados, o coração em vermelho.'
     look:
-      movers: {move: pingpong, every: 1/4, colour: azul-gelo, position: Dance Floor Centre}
-      matrix: {draw: arrow-up, rate: 1/4, colour: vermelho, pingpong: true}
+      movers: {move: pingpong, every: 1/8, colour: azul-gelo, position: Crossed Over, level: 0.7}
+      matrix: {draw: solid, rate: 1/2, colour: violeta, pingpong: true}
       hue: {state: pulse, colour: vermelho}
   - at: break.3
     name: subida
@@ -56,3 +63,4 @@ handover:
   look: pico-pick-up
   moment: pick-up
   accents: [white, strobe]
+  until: 145
