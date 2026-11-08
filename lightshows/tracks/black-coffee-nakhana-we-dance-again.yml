@@ -18,11 +18,25 @@ sections:
     matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 
-  - bars: [37, 55]
-    name: capitulo-a-escrever
-    intent: "Provisório: a ponte acaba aqui e o capítulo novo desta música ainda vai ser escrito."
-    movers: {move: sweep, every: "2bar", colour: "#3A6BFF", level: 0.7, positions: [Dance Floor Centre, Crossed Over]}
-    matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
+  - bars: [37, 42]
+    name: voz-sem-grave
+    intent: "O grave sai e a voz da Nakhana fica sobre o kick: os feixes sobem devagar, as colunas azuis respiram a meio tempo."
+    movers: {move: sweep, every: "4bar", colour: "#3A6BFF", level: 0.55, positions: [Dance Floor Centre, Up]}
+    matrix: {draw: columns, rate: "1/2", colour: "#0A2CFF", mirror: true}
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [43, 50]
+    name: voz-contida
+    intent: "Só o kick e a voz: os feixes ficam parados no alto, a matriz se apaga e o lustre carmim segura o batimento."
+    movers: {move: hold, colour: "#3A6BFF", level: 0.5, position: Up}
+    matrix: "off"
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [51, 55]
+    name: voz-guarda
+    intent: "A voz sustenta e os feixes descem ao centro, contidos; a matriz volta só em linhas lentas, guardando o batimento."
+    movers: {move: sweep, every: "4bar", colour: "#3A6BFF", level: 0.6, positions: [Up, Dance Floor Centre]}
+    matrix: {draw: rows-up, rate: "1/2", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 
   - bars: [56, 71]
@@ -53,9 +67,16 @@ sections:
     matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 
-  - bars: [137, 143]
-    name: capitulo-a-escrever
-    intent: "Provisório: a ponte acaba aqui e o capítulo novo desta música ainda vai ser escrito."
-    movers: {move: sweep, every: "2bar", colour: "#3A6BFF", level: 0.7, positions: [Dance Floor Centre, Crossed Over]}
-    matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
+  - bars: [137, 139]
+    name: break-recolhido
+    intent: "O grave sai e o kick baixa: um feixe só na coluna, baixo, e o carmim marcando o pulso; o centro apagado."
+    movers: {move: hold, colour: "#3A6BFF", level: 0.3, position: Up}
+    matrix: "off"
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [140, 143]
+    name: voz-recolhida
+    intent: "A voz entra: as Vorlanes acendem baixas, uma seta subindo devagar em azul-profundo, o feixe segue parado na coluna."
+    movers: {move: hold, colour: "#3A6BFF", level: 0.5, position: Up}
+    matrix: {draw: arrow-up, rate: "1/2", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}

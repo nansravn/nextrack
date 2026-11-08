@@ -18,11 +18,18 @@ sections:
     matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 
-  - bars: [21, 27]
-    name: capitulo-a-escrever
-    intent: "Provisório: a ponte acaba aqui e o capítulo novo desta música ainda vai ser escrito."
-    movers: {move: sweep, every: "2bar", colour: "#3A6BFF", level: 0.7, positions: [Dance Floor Centre, Crossed Over]}
-    matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
+  - bars: [21, 23]
+    name: break-recolhido
+    intent: "O grave sai e o kick baixa: um feixe só na coluna, baixo, e o carmim marcando o pulso; o centro apagado."
+    movers: {move: hold, colour: "#3A6BFF", level: 0.3, position: Up}
+    matrix: "off"
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [24, 27]
+    name: voz-recolhida
+    intent: "A voz entra: as Vorlanes acendem baixas, uma seta subindo devagar em azul-profundo, o feixe segue parado na coluna."
+    movers: {move: hold, colour: "#3A6BFF", level: 0.5, position: Up}
+    matrix: {draw: arrow-up, rate: "1/2", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 
   - bars: [28, 31]
@@ -81,14 +88,21 @@ sections:
     matrix: {draw: zigzag, rate: "1/16", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 
-  - bars: [101, 116]
+  - bars: [101, 113]
     name: entrega
     intent: "Entrega: do G, por até 16 compassos, o look que a próxima música copia na ponte."
     movers: {move: sweep, every: "2bar", colour: "#3A6BFF", level: 0.7, positions: [Dance Floor Centre, Crossed Over]}
     matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 
-  - bars: [117, 122]
+  - bars: [114, 115]
+    name: break
+    intent: "Dois compassos de corte: o centro apaga, um feixe sobe."
+    movers: {move: hold, colour: "#3A6BFF", level: 0.3, position: Up}
+    matrix: "off"
+    hue: dark
+
+  - bars: [116, 122]
     name: chegada
     intent: "A chegada: colunas alternando NW e SW, pergunta e resposta; movings revezando."
     movers: {move: pingpong, every: "1/4", colour: "#3A6BFF", position: Dance Floor Centre}

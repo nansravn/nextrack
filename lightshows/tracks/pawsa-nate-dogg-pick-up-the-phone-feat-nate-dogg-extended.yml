@@ -19,11 +19,25 @@ sections:
     matrix: {draw: rows-up, rate: "1/4", colour: "#FF0A2A", mirror: true}
     hue: {state: pulse, colour: "#FF0A2A"}
 
-  - bars: [43, 68]
-    name: capitulo-a-escrever
-    intent: "Provisório: a ponte acaba aqui e o capítulo novo desta música ainda vai ser escrito."
-    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF", position: Crossed Over}
-    matrix: {draw: rows-up, rate: "1/4", colour: "#FF0A2A", mirror: true}
+  - bars: [43, 48]
+    name: o-grave-segura
+    intent: "O break sem kick: o grave segura, um feixe frio para cima, filas vermelhas subindo devagar, o coração em carmim."
+    movers: {move: hold, colour: "#3A6BFF", level: 0.5, position: Up}
+    matrix: {draw: rows-up, rate: "1bar", colour: "#FF0A2A", mirror: true}
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [49, 64]
+    name: a-voz-do-nate
+    intent: "A voz do Nate Dogg entra: feixes frios varrendo devagar de um lado ao outro, setas azuis em meia-luz subindo alternadas, o coração em vermelho."
+    movers: {move: sweep, every: "4bar", colour: "#3A6BFF", level: 0.45, positions: [Stage Left, Stage Right]}
+    matrix: {draw: arrow-up, rate: "1/2", colour: "#0A2CFF", pingpong: true}
+    hue: {state: pulse, colour: "#FF0A2A"}
+
+  - bars: [65, 68]
+    name: o-drop-curto
+    intent: "O drop curto: setas vermelhas subindo, alternando os lados, feixes revezando no centro, o coração em vermelho."
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF", position: Dance Floor Centre}
+    matrix: {draw: arrow-up, rate: "1/4", colour: "#FF0A2A", pingpong: true}
     hue: {state: pulse, colour: "#FF0A2A"}
 
   - bars: [69, 72]

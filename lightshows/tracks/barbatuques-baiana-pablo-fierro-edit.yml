@@ -11,18 +11,18 @@ budget: >-
   Breu 3 de 5 (c. 88). Sem fita branca e sem estrobo.
 base: autoscript
 sections:
-  - bars: [25, 40]
+  - bars: [25, 37]
     name: ponte
     intent: "Ponte: a mesma luz da música anterior, copiada camada por camada, por até 16 compassos."
     movers: {move: sweep, every: "2bar", colour: "#3A6BFF", level: 0.7, positions: [Dance Floor Centre, Crossed Over]}
     matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 
-  - bars: [41, 42]
-    name: capitulo-a-escrever
-    intent: "Provisório: a ponte acaba aqui e o capítulo novo desta música ainda vai ser escrito."
-    movers: {move: sweep, every: "2bar", colour: "#3A6BFF", level: 0.7, positions: [Dance Floor Centre, Crossed Over]}
-    matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
+  - bars: [38, 42]
+    name: palmas-e-voz
+    intent: "Capítulo da intro: sem o grave, a voz e as palmas; os feixes abrem pros lados e a matriz cruza em zigue-zague, mais baixo que a chegada."
+    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF", level: 0.6, positions: [Stage Left, Stage Right]}
+    matrix: {draw: zigzag, rate: "1/2", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 
   - bars: [43, 46]
@@ -81,11 +81,25 @@ sections:
     matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 
-  - bars: [162, 176]
-    name: capitulo-a-escrever
-    intent: "Provisório: a ponte acaba aqui e o capítulo novo desta música ainda vai ser escrito."
-    movers: {move: sweep, every: "2bar", colour: "#3A6BFF", level: 0.7, positions: [Dance Floor Centre, Crossed Over]}
+  - bars: [162, 167]
+    name: groove-aberto
+    intent: "O groove sem a ponte: os feixes varrem os dois lados, filas subindo a meio compasso, coração pulsando."
+    movers: {move: sweep, every: "2bar", colour: "#3A6BFF", level: 0.7, positions: [Stage Left, Stage Right]}
+    matrix: {draw: rows-up, rate: "1/2", colour: "#0A2CFF", mirror: true}
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [168, 170]
+    name: grave-some
+    intent: "O grave some e o kick cai: feixes parados nas colunas, filas subindo devagar, o coração apagado."
+    movers: {move: hold, colour: "#3A6BFF", level: 0.5, position: Up}
     matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
+    hue: dark
+
+  - bars: [171, 176]
+    name: voz-cresce
+    intent: "A voz cresce: os feixes soltam das colunas e cruzam, a matriz sobe enchendo a cada compasso, o coração volta."
+    movers: {move: sweep, every: "1bar", colour: "#3A6BFF", level: 0.6, positions: [Up, Crossed Over]}
+    matrix: {draw: fill-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 
   - bars: [177, 184]

@@ -6,10 +6,34 @@ story: >-
 budget: >-
   Nenhum efeito raro: o Akan é o transe que segura a sala depois da abertura.
 cues:
-  - at: B + 16
-    name: capitulo-a-escrever
-    intent: 'Provisório: a ponte acaba aqui e o capítulo novo desta música ainda vai ser escrito.'
-    look: respiracao-azul
+  - at: 73
+    name: groove-cheio
+    intent: 'O Akan toma a sala com o groove cheio: as movings alternam no ritmo de um compasso, as Vorlanes em zigue-zague azul e o coração carmim batendo.'
+    look:
+      movers: {move: pingpong, every: 1bar, position: Crossed Over, colour: azul-gelo, level: 0.8}
+      matrix: {draw: zigzag, rate: 1/2, colour: azul-profundo, mirror: true}
+      hue: {state: pulse, colour: carmim}
+  - at: 77
+    name: a-voz-aparece
+    intent: 'A voz entra sobre o groove: as movings baixam e se juntam no centro, as Vorlanes sobem em filas lentas.'
+    look:
+      movers: {move: hold, position: Dance Floor Centre, colour: azul-gelo, level: 0.5}
+      matrix: {draw: rows-up, rate: 1bar, colour: azul-profundo, mirror: true}
+      hue: {state: pulse, colour: carmim}
+  - at: 81
+    name: groove-cheio-volta
+    intent: 'A voz sai e o groove cheio volta: movings alternando, zigue-zague azul, coração carmim.'
+    look:
+      movers: {move: pingpong, every: 1bar, position: Crossed Over, colour: azul-gelo, level: 0.8}
+      matrix: {draw: zigzag, rate: 1/2, colour: azul-profundo, mirror: true}
+      hue: {state: pulse, colour: carmim}
+  - at: 93
+    name: a-voz-antes-do-break
+    intent: 'A voz volta antes do break: as movings se juntam no centro e as Vorlanes sobem devagar.'
+    look:
+      movers: {move: hold, position: Dance Floor Centre, colour: azul-gelo, level: 0.5}
+      matrix: {draw: rows-up, rate: 1bar, colour: azul-profundo, mirror: true}
+      hue: {state: pulse, colour: carmim}
   - at: break.1
     name: break
     intent: 'Quando a Rapture sai: o centro apaga, um feixe baixo para cima, Vorlanes desligadas.'

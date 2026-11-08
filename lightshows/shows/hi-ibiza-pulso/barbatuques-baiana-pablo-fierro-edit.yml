@@ -6,10 +6,13 @@ story: >-
 budget: >-
   Breu 3 de 5 (c. 88). Sem fita branca e sem estrobo.
 cues:
-  - at: B + 16
-    name: capitulo-a-escrever
-    intent: 'Provisório: a ponte acaba aqui e o capítulo novo desta música ainda vai ser escrito.'
-    look: respiracao-azul
+  - at: 38
+    name: palmas-e-voz
+    intent: 'Capítulo da intro: sem o grave, a voz e as palmas; os feixes abrem pros lados e a matriz cruza em zigue-zague, mais baixo que a chegada.'
+    look:
+      movers: {move: pingpong, every: 1/2, colour: azul-gelo, positions: [lado-oeste, lado-leste], level: 0.6}
+      matrix: {draw: zigzag, rate: 1/2, colour: azul-profundo, mirror: true}
+      hue: {state: pulse, colour: carmim}
   - at: 43
     name: break
     intent: 'Quatro compassos: o centro apaga e as Vorlanes enchem devagar.'
