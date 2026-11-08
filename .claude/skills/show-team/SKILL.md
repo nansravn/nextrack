@@ -254,6 +254,13 @@ After each phase: its state line in the ledger.
    then `git archive <that sha> lightshows/shows/<show-id> | tar -x -C <run>/main`.
 4. Make the `show.yml` changes the request needs yourself (as `bridge.bars: 16`): `show.yml`
    is the director's file.
+5. **Scaffold, when the change leaves `show-source` findings in track files.** `bridge.bars`
+   does, for every window longer than the bars, and then neither `build` nor `report` runs for
+   anyone until all of them are fixed. Drop each handover `until` past the window, and put a
+   provisional cue at the bar each finding names in the incoming track: `name:
+   capitulo-a-escrever`, the look of the bridge it continues (the same light as before). Record
+   the scaffold as a `### Decisões` item. The designers replace it in round 1, and before
+   delivery `grep -r capitulo-a-escrever lightshows/shows/<show-id>` prints nothing.
 
 **Cards** (`## Cartões` in the light plan, pt-BR). In a new show or a rework of the night,
 one per track; in a rework of units, one per track the run touches, where it is missing (a plan
@@ -338,6 +345,11 @@ finding (advice is fine). The gates repair inside the round: a bounce is not a d
   phase 4, step 4.
 - A finding two units make together (a budget count across tracks): decide which one changes,
   record the decision, and bounce that one.
+- **Pending presets by name.** A movers aim written as the preset of a `pending` aim (the
+  names `uv run scripts/nextrack_show.py vocab <show-id>` lists under "presets to create", such
+  as `Low Cross`) compiles with no fallback and no finding, and SoundSwitch has no such preset.
+  After every merge, grep the show's track files for those names; a hit is a gate finding for
+  its unit, bounced to write the aim id (`rasante`).
 - Still failing after its bounce: restore the unit's last green version (its files at `HEAD`,
   by [the restore rule](#restoring-a-unit)), write a `### Decisões` ruling, and put the problem
   in `### Para depois`.
@@ -506,7 +518,7 @@ You fill every placeholder; the agents fill none.
 | `{{files}}` | designer | one bullet per file it may change, with the part (`only the handover`); never `show.yml` |
 | `{{card}}` | designer | the unit's cards, verbatim from `## Cartões` (both for a mix) |
 | `{{neighbours}}` | designer | the neighbours' cards, and their handover and bridge lines from `report <show-id> --track "<Artist — Title>"` |
-| `{{constraints}}` | designer | verbatim: the contract, the rules and budget lines that bind the unit, the round (`rodada 2 de 3`) and, in a fix round or a gate bounce, each finding |
+| `{{constraints}}` | designer | verbatim: the contract, the rules and budget lines that bind the unit, the round (`rodada 2 de 3`) and, in a fix round or a gate bounce, each finding. When only part of a finding is routed to the unit, a line names that part (the rest is in `Para depois`). A handover keeps the look its card's `Entrega` names: only `until` may change |
 | `{{request}}` | designer | the owner's request, in their words; never in a critic's brief |
 | `{{lens}}` | critic | one lens id: `monotonia`, `drops`, `energia-da-musica`, `arco-do-set`, `briefing` |
 | `{{variant_a}}`, `{{variant_b}}` | judge | `<run>/blind/a/lightshows/shows/<show-id>` and `<run>/blind/b/lightshows/shows/<show-id>` |
