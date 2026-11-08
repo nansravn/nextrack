@@ -290,6 +290,9 @@ explicit `until` past that is a finding at the handover. The bridge still runs f
 bar before the first cue, and a first cue (or handover) after `B + bars` is a finding there:
 `the bridge ends at bar <B + bars - 1> (bridge.bars <n>); start a cue at or before bar <B + bars>`.
 Without `bars`, nothing changes. The [`bridges`](#show-rules) rule measures the windows.
+Adding `bars` to a show whose windows are longer turns each of them into `show-source` findings
+at once (the handover's `until`, the next track's first cue), and `build` and `report` stop
+until every one is fixed.
 
 The **echo** is made by the compiler too, never written. With `bridge.bars` the handover can
 end before its track does, while many mixes last longer than the window: the room hears both
@@ -384,7 +387,8 @@ the owner still has to create. An id that is not in the catalogue is a finding t
 close ones (`positions 'cruzdo' is not an aim of lightshows/room.yml; did you mean 'cruzado'?`),
 at the cue, or at `show.yml` when the aim came from `gesture_defaults`. An id with no valid
 `room.yml` is a finding too. A preset name is kept as written: only kebab-case values are
-read as aims.
+read as aims. So the preset of a pending aim written by its name (`Low Cross` for `rasante`) is
+not swapped and is no finding, though SoundSwitch has no such preset yet: write the aim id.
 
 A layer the look does not name stays `auto` (the autoscript). `haze` is not a layer: every
 compile holds it. The compiler validates its output with the choreography's own checker; a

@@ -57,7 +57,7 @@ e mais vermelho o coração bate.
   ou efeito raro (breu, espiral, contraluz, fita e estrobo já estão com o orçamento gasto). Cada
   seção mira pela gramática dos feixes. As duas assinaturas da noite seguem dentro do limite:
   movings em azul-gelo ou azul-profundo em pelo menos 70% da noite e o lustre em carmim ou
-  vermelho em pelo menos 60% (hoje 86% e 80%). Nos breaks e subidas o lustre fica `dark`, pela
+  vermelho em pelo menos 60% (na entrega das pontes de 16 compassos, 87% e 76%). Nos breaks e subidas o lustre fica `dark`, pela
   regra 1. Prefira começar cada seção numa linha de frase do mapa (o início de uma das
   `sections` do mapa, ou um múltiplo de 4 compassos depois dele).
 - **A luz do capítulo.** As movings ficam em azul-gelo (a assinatura `azul-espaco`) e seguem a
