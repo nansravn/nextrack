@@ -96,7 +96,7 @@ sections:
 
   - bars: [128, 130]
     name: o-drop-curto
-    intent: "O drop curto: clarão violeta alternando os lados, feixes revezando cruzados, o coração em vermelho."
-    movers: {move: pingpong, every: "1/8", colour: "#3A6BFF", level: 0.7, position: Crossed Over}
-    matrix: {draw: solid, rate: "1/2", colour: "#6A1CFF", pingpong: true}
+    intent: "O drop curto: colunas violeta rápidas nas Vorlanes, feixes cruzados revezando em ritmo médio, o coração em vermelho."
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF", level: 0.5, position: Crossed Over}
+    matrix: {draw: columns, rate: "1/4", colour: "#6A1CFF", mirror: true}
     hue: {state: pulse, colour: "#FF0A2A"}

@@ -6,8 +6,8 @@ Tipo: retrabalho de unidades (13 mixagens) · ramo: feat/show-hi-ibiza-pulso-pon
 Estimativa: 1 leitura + 13 unidades × até 3 rodadas + 5 críticos × até 2 passadas + 4 comparações = até ~54 despachos, mais revisões
 Diagnóstico: treze passagens passam de 16 compassos (23 avisos `bridges`), com entregas de 20 a 56 compassos e pontes de 18 a 42. Com `bridge.bars: 16`, o compilador corta cada entrega em 16 compassos e o eco copia, no resto da música que sai, a luz da que entra. Onze músicas que entram precisam de um capítulo novo entre o fim da ponte (B + 15) e o seu primeiro cue de hoje: Akan, What To Do, We Dance Again, Trippy Yeah, Baianá, Ma Tnsani, Yamore, Move, Verano, Pick Up e Dirty Cash. Em duas passagens (mix-06, mix-14) a ponte é mais curta que a entrega, e elas precisam alinhar a janela.
 Contrato: `compare --keep arrivals,moments` contra o show de partida (3211f74); o aviso `signatures` continua em zero (hoje azul-espaco 86% ≥ 70% e coracao 80% ≥ 60%).
-Rodadas: 2 · versões: v1, v2
-Unidades: mix-02 2/3, mix-03 2/3, mix-04 2/3, mix-05 2/3, mix-06 1/3, mix-07 1/3, mix-08 2/3, mix-09 2/3, mix-10 2/3, mix-12 2/3, mix-13 2/3, mix-14 2/3, mix-15 2/3
+Rodadas: 3 · versões: v1, v2, v3 (escolhida: v3)
+Unidades: mix-02 3/3, mix-03 2/3, mix-04 3/3, mix-05 2/3, mix-06 1/3, mix-07 1/3, mix-08 2/3, mix-09 3/3, mix-10 3/3, mix-12 3/3, mix-13 3/3, mix-14 2/3, mix-15 3/3
 
 ### Decisões
 - `bridge.bars: 16` no `show.yml`, como o dono pediu; as intenções de ponte e de entrega passam a dizer "por até 16 compassos" (custo se errado: só o texto das intenções).
@@ -32,6 +32,14 @@ Unidades: mix-02 2/3, mix-03 2/3, mix-04 2/3, mix-05 2/3, mix-06 1/3, mix-07 1/3
 - Rodada 2, quedas e saltos entre faixas vizinhas (arco-do-set, moderados: We Dance Again → Trippy 5.0 → 2.8, Baianá → Ma Tnsani 5.5 → 2.9): vêm dos capítulos mais escuros, pela regra 1 e pela regra da chegada, que pesam mais. Vão para "Para depois" (custo se errado: dois degraus de luz que descem enquanto a energia fica igual ou sobe).
 - Rodada 2, Dirty Cash c. 25 e a ponte a 9 sobre a introdução (drops, grave; energia-da-musica, moderado): a decisão da rodada 1 fica.
 - Rodada 2, mix-09 (briefing, moderado: o capítulo lê 5 por 16 compassos e o cartão dizia 4): o cartão 8 passa a fixar 4 como teto, abaixo do momento `yamore`, e o drop do c. 17 sobe acima do break, não acima da ponte.
+- Leitura a frio da rodada 3: as perguntas sobre os cartões 8, 9 e 14 foram respondidas no plano. O corte dos c. 31-32 do Dirty Cash é um feixe baixo aceso, não um breu. No drop do capítulo as movings fazem `pingpong` numa mira; no break, `hold` fora da coluna e do centro. Um break de 2 compassos fica dentro da ponte, salvo quando o cartão diz outra coisa (custo se errado: nenhum além de três frases a mais no plano).
+- Rodada 3, mix-12: a v3 abriu um grave (o capítulo da Verano lê 6 na linha `light`, contra 3 na chegada) e voltou o lustre ao carmim no Pico. A v2 dessa unidade não tinha grave, e o arquivo da Verano voltou para ela; só a abertura mudou entre as duas, então a restauração não desfaz outra mixagem (custo se errado: o capítulo da Verano segue parecido com o fim do TOO COOL, e o par fica em 0.87).
+- Rodada 3, portão: os capítulos da Akan e da We Dance Again escreviam presets pendentes pelo nome cru (`Low Cross`, `Fan Out`, `Parallel West`), que o SoundSwitch ainda não tem e que escapam do substituto. Cada um voltou uma vez ao designer, como devolução de portão, e agora usa o id da mira (`rasante`, `leque`, `varal`), que o compilador toca com o substituto configurado (custo se errado: nenhum; o substituto toca até o dono criar os presets).
+- Rodada 3, Pick Up: o break longo do mapa começa no c. 41, dentro da janela, e a ponte vai até o c. 42. O plano o chamava, por erro do diretor, de break de 2 compassos. Fica: o mix-13 não tem rodada (custo se errado: dois compassos de `pulso-vermelho` sobre o começo do break).
+- Rodada 3, o que fica sem rodada: o drop curto do Pick Up (c. 65) empata com a chegada na linha `light` (4 contra 4) e responde mais que ela (0.39 contra 0.17), mas abaixo do pico do c. 137 (briefing, moderado); a semelhança acima de 0.85 entre vizinhas do transe e do pico (monotonia, moderados); o atraso de 2 compassos da luz na Yamore (energia-da-musica, moderado). Vão para "Para depois" (custo se errado: três ajustes finos que ficam para a próxima rodada do dono).
+- Rodada 3, achados que já existiam e voltaram como graves (energia-da-musica: a chegada do Pick Up no c. 73 quase não acende; drops: o c. 25 do Dirty Cash dentro da ponte): as decisões e os "Para depois" das rodadas anteriores ficam.
+- Rodada 3, a re-revisão não chamou o arco-do-set: os achados dele estavam decididos, sem correção roteada.
+- Seleção dispensada: a v1 tem graves abertos no escopo (mix-14 e mix-08) e a v2 também (o c. 65 do Pick Up); só a v3 fica sem grave aberto no escopo.
 
 ### Para depois
 - As movings fazem a mesma coisa em 12 das 15 chegadas, evidência: "`movers pingpong every=1/4 colour=azul-gelo position=centro-da-pista`" nas chegadas de Rapture 145, Akan 105, What To Do 177, Trippy 33, Say What 41, Baianá 47, Yamore 65, Move 29, Verano 58, Pick Up 73, Can't Decide 44 e Dirty Cash 45 (briefing e monotonia, moderado; já existia; as chegadas são do contrato).
@@ -51,6 +59,10 @@ Unidades: mix-02 2/3, mix-03 2/3, mix-04 2/3, mix-05 2/3, mix-06 1/3, mix-07 1/3
 - Quedas e saltos de luz entre vizinhas: We Dance Again → Trippy 5.0 → 2.8 com a energia subindo, Baianá → Ma Tnsani 5.5 → 2.9 na mesma energia (arco-do-set, moderado); Move → TOO COOL plano, 4.6 → 4.3 (arco-do-set, menor).
 - Semelhança entre vizinhas acima de 0.85 no começo do transe, mesmo depois das correções, evidência: "similarity The Akan / What To Do (&ME Remix) 0.88" (monotonia, moderado). Com look, cores e lustre presos pela fase, a pergunta para o plano é se o transe pede um limite próprio de `neighbours-differ`.
 - Menores da rodada 2: os capítulos empatam com a chegada no número da linha `light` e brilham mais (briefing); o lustre bate nos c. 40-41 da Verano sem kick (briefing); violeta nas Vorlanes do Pick Up fora da espiral (briefing); cinco seções de capítulo fora da gramática dos feixes (briefing); a mira `rasante` está pendente e o `sweep` da Trippy fica parado na poça (monotonia); seis inícios de capítulo fora da linha de frase (monotonia); a cópia que sobrou entre a Verano (c. 40-41) e o Pick Up (c. 43-48) (monotonia); o fim do capítulo do Dirty Cash é a luz que volta depois da chegada (monotonia); o respiro do c. 32 da Ma Tnsani é acidente do `fill-up` (drops); a subida da Ma Tnsani segue plana e a luz do Move sobe 6 compassos depois da música (energia-da-musica).
+- O drop curto do Pick Up (c. 65) empata com a chegada (c. 73) na linha `light` e responde mais que ela, evidência: "c. 65 is 0.39 ... c. 73 is 0.17" (briefing, moderado; a chegada fraca já existia).
+- O PICK UP virou a faixa mais fria e mais escura da noite, evidência: "warm 69% para 49%, light 2.6 para 2.3" (briefing, moderado); vai junto com o arco da noite.
+- A luz da Yamore chega 2 compassos atrasada: o passo grande é no c. 33, não no drop principal do c. 17 (energia-da-musica, moderado; o teto 4 do cartão segura o drop).
+- Menores da rodada 3: `pingpong` no groove do capítulo da Akan (briefing); capítulos que gastam antes desenhos de chegadas futuras (briefing); violeta nas Vorlanes do Pick Up (briefing); um drop da Yamore mira a cabine com as movings a 1.0 (briefing); a chegada do Dirty Cash fica entre dois breaks iguais (briefing e monotonia); a voz contida da We Dance Again brilha tanto quanto a chegada (briefing); seis mudanças de luz a mais fora da linha de frase (monotonia); o c. 35 do Pick Up passa sem resposta dentro da ponte, e o eco da Verano (c. 106-112) apaga com o kick a 9 (energia-da-musica).
 
 ### Estado
 - Estado: fase 0 (entrada) concluída — 2026-11-08 06:59
@@ -66,3 +78,9 @@ Unidades: mix-02 2/3, mix-03 2/3, mix-04 2/3, mix-05 2/3, mix-06 1/3, mix-07 1/3
 - Estado: fase 5 (portões, rodada 2) concluída — 2026-11-08 08:20
 - Estado: fase 6 (crítica, rodada 2: revisão) concluída — 2026-11-08 08:45
 - Estado: fase 7 (consolidação, rodada 2: 7 correções) concluída — 2026-11-08 08:45
+- Estado: fase 3 (leitura a frio, rodada 3) concluída — 2026-11-08 08:49
+- Estado: fase 4 (design, rodada 3) concluída — 2026-11-08 08:57
+- Estado: fase 5 (portões, rodada 3) concluída — 2026-11-08 08:57
+- Estado: fase 6 (crítica, rodada 3: revisão) concluída — 2026-11-08 09:23
+- Estado: fase 7 (consolidação, rodada 3: 0 correções) concluída — 2026-11-08 09:23
+- Estado: fase 8 (seleção, dispensada) concluída — 2026-11-08 09:23
