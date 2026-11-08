@@ -174,7 +174,6 @@ def test_register_rises_with_pitch():
 
 
 def test_phrase_gap_shorter_than_a_beat_does_not_split():
-    g = Grid([(0, 120.0)])
     levels = "7" * 14 + "00" + "7" * 16
     reg = "5" * 14 + ".." + "5" * 16
     out = mm.phrases(levels, reg)
@@ -182,7 +181,6 @@ def test_phrase_gap_shorter_than_a_beat_does_not_split():
 
 
 def test_phrase_gap_of_a_bar_splits():
-    g = Grid([(0, 120.0)])
     levels = "8" * 16 + "0" * 16 + "4" * 16
     reg = "9" * 16 + "." * 16 + "1" * 16
     out = mm.phrases(levels, reg)
