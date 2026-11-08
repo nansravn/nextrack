@@ -6,6 +6,13 @@ story: >-
 budget: >-
   Breu 5 de 5 (c. 68). Estrobo no drop do c. 69.
 cues:
+  - at: break.1
+    name: break
+    intent: 'O break: um feixe vermelho para cima, Vorlanes apagadas, centro escuro.'
+    look:
+      movers: {move: hold, position: Up, colour: vermelho, level: 0.4}
+      matrix: off
+      hue: dark
   - at: 36
     name: o-grave-volta
     intent: 'O grave volta antes do kick: filas vermelhas subindo, um feixe parado, o coração batendo.'
@@ -36,3 +43,4 @@ handover:
   look: pico-cant-decide
   moment: cant-decide
   accents: [strobe]
+  until: 83

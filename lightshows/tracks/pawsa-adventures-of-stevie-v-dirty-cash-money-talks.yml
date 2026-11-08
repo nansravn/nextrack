@@ -13,26 +13,33 @@ budget: >-
   compassos: a única vez da noite.
 base: autoscript
 sections:
-  - bars: [17, 32]
+  - bars: [17, 30]
     name: ponte
     intent: "Ponte: a mesma luz da música anterior, copiada camada por camada, por até 16 compassos."
     movers: {move: blink, every: "1/4", colour: "#FF0A2A", position: Dance Floor Centre}
     matrix: {draw: centre-out, rate: "1/16", colour: "#FF0A2A", mirror: true}
     hue: {state: pulse, colour: "#FF0A2A"}
 
+  - bars: [31, 32]
+    name: o-corte
+    intent: "O corte: o kick para, um feixe parado na pista, Vorlanes apagadas, centro escuro."
+    movers: {move: hold, colour: "#3A6BFF", level: 0.4, position: Dance Floor Centre}
+    matrix: "off"
+    hue: dark
+
   - bars: [33, 38]
     name: terceiro-drop
-    intent: "O terceiro drop: o pico do Can't Decide sai e entram filas vermelhas descendo, as movings revezando em azul-gelo."
-    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF", position: Dance Floor Centre}
-    matrix: {draw: rows-down, rate: "1/8", colour: "#FF0A2A", mirror: true}
+    intent: "O terceiro drop sobe do corte: movings paradas na pista, filas azuis descendo bem devagar, o coração volta a bater."
+    movers: {move: hold, colour: "#3A6BFF", level: 0.4, position: Dance Floor Centre}
+    matrix: {draw: rows-down, rate: "1/2", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#FF0A2A"}
 
   - bars: [39, 42]
     name: a-voz-entra
-    intent: "O kick para e a voz entra: um feixe parado na cabine, Vorlanes apagadas, só o coração batendo em carmim."
+    intent: "O kick para e a voz entra: um feixe parado na cabine, Vorlanes apagadas, centro escuro."
     movers: {move: hold, colour: "#3A6BFF", level: 0.5, position: DJ Booth}
     matrix: "off"
-    hue: {state: pulse, colour: "#B0001E"}
+    hue: dark
 
   - bars: [43, 44]
     name: subida

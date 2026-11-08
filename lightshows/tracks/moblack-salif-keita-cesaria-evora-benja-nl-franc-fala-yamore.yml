@@ -11,25 +11,32 @@ budget: >-
   Fita branca: chegada do Yamore (65.1). Sem breu e sem estrobo.
 base: autoscript
 sections:
-  - bars: [9, 16]
+  - bars: [9, 11]
     name: ponte
     intent: "Ponte: a mesma luz da música anterior, copiada camada por camada, por até 16 compassos."
     movers: {move: sweep, every: "2bar", colour: "#3A6BFF", level: 0.7, positions: [Dance Floor Centre, Crossed Over]}
     matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 
+  - bars: [12, 16]
+    name: break-cantado
+    intent: "O break dos c. 12-16: as movings paradas no X sobre a pista, baixas, as Vorlanes enchendo devagar, o lustre apagado."
+    movers: {move: hold, colour: "#3A6BFF", level: 0.4, position: Crossed Over}
+    matrix: {draw: fill-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
+    hue: dark
+
   - bars: [17, 24]
     name: vozes-cheias
-    intent: "O drop do c. 17 entra com a luz mais baixa que a da chegada: feixes revezando entre o centro e o X, colunas de Vorlanes indo e voltando, o coração pulsando."
-    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF", level: 0.7, positions: [Dance Floor Centre, Crossed Over]}
-    matrix: {draw: columns, rate: "1/4", colour: "#0A2CFF", mirror: true}
+    intent: "O drop do c. 17 abre com tudo: os feixes revezando numa mira só, mais fortes que no break, colunas de Vorlanes rápidas, o coração pulsando."
+    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF", level: 1.0, position: Up}
+    matrix: {draw: columns, rate: "1/8", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 
   - bars: [25, 32]
     name: vozes-abrem
-    intent: "As vozes cheias abrem a sala: as movings passam para as colunas e para o X sobre a pista, as filas sobem devagar."
-    movers: {move: pingpong, every: "1bar", colour: "#3A6BFF", level: 0.65, positions: [Up, Crossed Over]}
-    matrix: {draw: rows-up, rate: "1/2", colour: "#0A2CFF", mirror: true}
+    intent: "As vozes cheias seguram a sala: os feixes revezando no X, ainda fortes, as colunas das Vorlanes seguem rápidas."
+    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF", level: 1.0, position: Crossed Over}
+    matrix: {draw: columns, rate: "1/8", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 
   - bars: [33, 56]
@@ -84,17 +91,17 @@ sections:
 
   - bars: [114, 117]
     name: groove-com-voz
-    intent: "Capítulo novo do Move: o groove cheio com a voz; as movings varrem os dois lados em violeta, as colunas azuis se revezam a 1/4 e o coração pulsa em carmim."
+    intent: "Capítulo novo do Move: o groove cheio com a voz; as movings varrem os dois lados em violeta, as Vorlanes abrem do centro para fora a 1/4, em azul, e o coração pulsa em vermelho."
     movers: {move: sweep, every: "2bar", colour: "#6A1CFF", level: 0.7, positions: [Dance Floor Centre, Crossed Over]}
-    matrix: {draw: columns, rate: "1/4", colour: "#0A2CFF", pingpong: true}
-    hue: {state: pulse, colour: "#B0001E"}
+    matrix: {draw: centre-out, rate: "1/4", colour: "#0A2CFF", pingpong: true}
+    hue: {state: pulse, colour: "#FF0A2A"}
 
   - bars: [118, 121]
     name: groove-aperta
-    intent: "O groove aperta antes da espiral: as movings passam a pingpong a 1/4 e as colunas azuis correm a 1/8, sem chegar ao violeta nas Vorlanes."
+    intent: "O groove aperta antes da espiral: as movings passam a pingpong a 1/4 e as Vorlanes abrem do centro a 1/8 em azul, sem chegar ao violeta nelas."
     movers: {move: pingpong, every: "1/4", colour: "#6A1CFF", positions: [Crossed Over, Up, Dance Floor Centre]}
-    matrix: {draw: columns, rate: "1/8", colour: "#0A2CFF", pingpong: true}
-    hue: {state: pulse, colour: "#B0001E"}
+    matrix: {draw: centre-out, rate: "1/8", colour: "#0A2CFF", pingpong: true}
+    hue: {state: pulse, colour: "#FF0A2A"}
 
   - bars: [122, 122]
     name: espiral-1-2

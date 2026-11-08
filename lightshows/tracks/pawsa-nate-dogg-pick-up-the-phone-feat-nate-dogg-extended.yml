@@ -21,23 +21,30 @@ sections:
 
   - bars: [43, 48]
     name: o-grave-segura
-    intent: "O break sem kick: o grave segura, um feixe frio para cima, filas vermelhas subindo devagar, o coração em carmim."
-    movers: {move: hold, colour: "#3A6BFF", level: 0.5, position: Up}
-    matrix: {draw: rows-up, rate: "1bar", colour: "#FF0A2A", mirror: true}
-    hue: {state: pulse, colour: "#B0001E"}
+    intent: "O break sem kick: o grave segura, feixes frios fixos apontados para baixo, colunas azuis lentas nas Vorlanes, o coração apagado."
+    movers: {move: hold, colour: "#3A6BFF", level: 0.5, position: Down}
+    matrix: {draw: columns, rate: "1bar", colour: "#0A2CFF", mirror: true}
+    hue: dark
 
-  - bars: [49, 64]
+  - bars: [49, 56]
     name: a-voz-do-nate
-    intent: "A voz do Nate Dogg entra: feixes frios varrendo devagar de um lado ao outro, setas azuis em meia-luz subindo alternadas, o coração em vermelho."
-    movers: {move: sweep, every: "4bar", colour: "#3A6BFF", level: 0.45, positions: [Stage Left, Stage Right]}
-    matrix: {draw: arrow-up, rate: "1/2", colour: "#0A2CFF", pingpong: true}
-    hue: {state: pulse, colour: "#FF0A2A"}
+    intent: "A voz do Nate Dogg entra baixinha: feixes frios fixos de lado em luz fraca, colunas azuis lentas, o coração apagado."
+    movers: {move: hold, colour: "#3A6BFF", level: 0.25, position: Stage Left}
+    matrix: {draw: columns, rate: "1/2", colour: "#0A2CFF", mirror: true}
+    hue: dark
+
+  - bars: [57, 64]
+    name: a-voz-sobe
+    intent: "A voz do Nate Dogg sobe: os feixes fixos clareiam apontando para cima, colunas violeta mais rápidas, o coração ainda apagado."
+    movers: {move: hold, colour: "#3A6BFF", level: 0.45, position: Up}
+    matrix: {draw: columns, rate: "1/4", colour: "#6A1CFF", mirror: true}
+    hue: dark
 
   - bars: [65, 68]
     name: o-drop-curto
-    intent: "O drop curto: setas vermelhas subindo, alternando os lados, feixes revezando no centro, o coração em vermelho."
-    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF", position: Dance Floor Centre}
-    matrix: {draw: arrow-up, rate: "1/4", colour: "#FF0A2A", pingpong: true}
+    intent: "O drop curto: clarão violeta alternando os lados, feixes revezando cruzados, o coração em vermelho."
+    movers: {move: pingpong, every: "1/8", colour: "#3A6BFF", level: 0.7, position: Crossed Over}
+    matrix: {draw: solid, rate: "1/2", colour: "#6A1CFF", pingpong: true}
     hue: {state: pulse, colour: "#FF0A2A"}
 
   - bars: [69, 72]
@@ -89,7 +96,7 @@ sections:
     matrix: {draw: columns, rate: "1/16", colour: "#FF0A2A", pingpong: true}
     hue: dark
 
-  - bars: [137, 152]
+  - bars: [137, 144]
     name: entrega
     intent: "Entrega: do G, por até 16 compassos, o look que a próxima música copia na ponte."
     movers: {move: blink, every: "1/4", colour: "#FF0A2A", position: Dance Floor Centre}
@@ -97,6 +104,13 @@ sections:
     white: {accent: ["137.1"]}
     strobe: {hit: ["137.1"]}
     hue: {state: pulse, colour: "#FF0A2A"}
+
+  - bars: [145, 152]
+    name: break
+    intent: "O break: um feixe vermelho para cima, Vorlanes apagadas, centro escuro."
+    movers: {move: hold, colour: "#FF0A2A", level: 0.4, position: Up}
+    matrix: "off"
+    hue: dark
 
   - bars: [153, 160]
     name: o-grave-volta

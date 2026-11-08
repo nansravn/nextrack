@@ -83,24 +83,24 @@ sections:
 
   - bars: [162, 167]
     name: groove-aberto
-    intent: "O groove sem a ponte: os feixes varrem os dois lados, filas subindo a meio compasso, coração pulsando."
-    movers: {move: sweep, every: "2bar", colour: "#3A6BFF", level: 0.7, positions: [Stage Left, Stage Right]}
-    matrix: {draw: rows-up, rate: "1/2", colour: "#0A2CFF", mirror: true}
+    intent: "O groove sem a ponte: feixes varrendo devagar entre as colunas, colunas de matriz acendendo a cada compasso, coração pulsando baixo."
+    movers: {move: sweep, every: "4bar", colour: "#3A6BFF", level: 0.45, positions: [Up, Crossed Over]}
+    matrix: {draw: columns, rate: "1bar", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 
   - bars: [168, 170]
     name: grave-some
-    intent: "O grave some e o kick cai: feixes parados nas colunas, filas subindo devagar, o coração apagado."
-    movers: {move: hold, colour: "#3A6BFF", level: 0.5, position: Up}
-    matrix: {draw: rows-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
+    intent: "O grave some e o kick cai: feixes parados nas colunas, colunas de matriz devagar, o coração apagado."
+    movers: {move: hold, colour: "#3A6BFF", level: 0.4, position: Up}
+    matrix: {draw: columns, rate: "1bar", colour: "#0A2CFF", mirror: true}
     hue: dark
 
   - bars: [171, 176]
     name: voz-cresce
-    intent: "A voz cresce: os feixes soltam das colunas e cruzam, a matriz sobe enchendo a cada compasso, o coração volta."
-    movers: {move: sweep, every: "1bar", colour: "#3A6BFF", level: 0.6, positions: [Up, Crossed Over]}
-    matrix: {draw: fill-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
-    hue: {state: pulse, colour: "#B0001E"}
+    intent: "A voz cresce: os feixes parados olham para cima, a matriz enche a cada compasso, o coração segue apagado até a chegada."
+    movers: {move: hold, colour: "#3A6BFF", level: 0.3, position: Up}
+    matrix: {draw: fill-up, rate: "2bar", colour: "#0A2CFF", mirror: true}
+    hue: dark
 
   - bars: [177, 184]
     name: chegada

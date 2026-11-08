@@ -6,20 +6,27 @@ story: >-
 budget: >-
   Breu 2 de 5 (c. 32). Sem fita branca e sem estrobo.
 cues:
-  - at: B + 16
-    name: break-recolhido
-    intent: 'O grave sai e o kick baixa: um feixe só na coluna, baixo, e o carmim marcando o pulso; o centro apagado.'
+  - at: 12
+    name: break-baixo
+    intent: 'O groove cai no break: o pulso do carmim apaga e fica um feixe só, baixo e cruzado rente ao chão; as Vorlanes descansam.'
     look:
-      movers: {move: hold, position: coluna, colour: azul-gelo, level: 0.3}
+      movers: {move: hold, position: rasante, colour: azul-gelo, level: 0.4}
       matrix: off
-      hue: {state: pulse, colour: carmim}
-  - at: 24
-    name: voz-recolhida
-    intent: 'A voz entra: as Vorlanes acendem baixas, uma seta subindo devagar em azul-profundo, o feixe segue parado na coluna.'
+      hue: dark
+  - at: 22
+    name: grave-sai
+    intent: 'O grave sai: o feixe baixo escurece ainda mais, quase só o rastro no chão.'
     look:
-      movers: {move: hold, position: coluna, colour: azul-gelo, level: 0.5}
-      matrix: {draw: arrow-up, rate: 1/2, colour: azul-profundo, mirror: true}
-      hue: {state: pulse, colour: carmim}
+      movers: {move: hold, position: rasante, colour: azul-gelo, level: 0.25}
+      matrix: off
+      hue: dark
+  - at: 24
+    name: voz-entra
+    intent: 'A voz entra: as Vorlanes abrem do centro para fora devagar, baixas, e os feixes rastejam entre o chão e a poça, abaixo da chegada.'
+    look:
+      movers: {move: sweep, every: 2bar, positions: [rasante, poca], colour: azul-gelo, level: 0.35}
+      matrix: {draw: centre-out, rate: 1/2, colour: azul-profundo, mirror: true}
+      hue: dark
   - at: 28
     name: subida
     intent: 'O We Dance Again saiu: o centro apaga e as Vorlanes enchem em quatro compassos.'

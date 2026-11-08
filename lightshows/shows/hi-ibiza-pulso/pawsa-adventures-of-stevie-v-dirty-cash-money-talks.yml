@@ -8,20 +8,27 @@ budget: >-
   Estrobo no c. 57 e o rolo final (c. 113-114). Fita branca 113.1 e o `flash` nos últimos
   compassos: a única vez da noite.
 cues:
+  - at: B + 14
+    name: o-corte
+    intent: 'O corte: o kick para, um feixe parado na pista, Vorlanes apagadas, centro escuro.'
+    look:
+      movers: {move: hold, position: Dance Floor Centre, colour: azul-gelo, level: 0.4}
+      matrix: off
+      hue: dark
   - at: B + 16
     name: terceiro-drop
-    intent: "O terceiro drop: o pico do Can't Decide sai e entram filas vermelhas descendo, as movings revezando em azul-gelo."
+    intent: 'O terceiro drop sobe do corte: movings paradas na pista, filas azuis descendo bem devagar, o coração volta a bater.'
     look:
-      movers: {move: pingpong, every: 1/4, colour: azul-gelo, position: Dance Floor Centre}
-      matrix: {draw: rows-down, rate: 1/8, colour: vermelho, mirror: true}
+      movers: {move: hold, position: Dance Floor Centre, colour: azul-gelo, level: 0.4}
+      matrix: {draw: rows-down, rate: 1/2, colour: azul-profundo, mirror: true}
       hue: {state: pulse, colour: vermelho}
   - at: break.2
     name: a-voz-entra
-    intent: 'O kick para e a voz entra: um feixe parado na cabine, Vorlanes apagadas, só o coração batendo em carmim.'
+    intent: 'O kick para e a voz entra: um feixe parado na cabine, Vorlanes apagadas, centro escuro.'
     look:
       movers: {move: hold, position: DJ Booth, colour: azul-gelo, level: 0.5}
       matrix: off
-      hue: {state: pulse, colour: carmim}
+      hue: dark
   - at: build.1
     name: subida
     intent: 'Dois compassos enchendo em vermelho, o centro escuro.'
