@@ -6,6 +6,10 @@ story: >-
 budget: >-
   Breu 2 de 5 (c. 32). Sem fita branca e sem estrobo.
 cues:
+  - at: B + 16
+    name: capitulo-a-escrever
+    intent: 'Provisório: a ponte acaba aqui e o capítulo novo desta música ainda vai ser escrito.'
+    look: respiracao-azul
   - at: 28
     name: subida
     intent: 'O We Dance Again saiu: o centro apaga e as Vorlanes enchem em quatro compassos.'
@@ -62,4 +66,3 @@ cues:
       hue: {state: pulse, colour: carmim}
 handover:
   look: respiracao-azul
-  until: outro.1

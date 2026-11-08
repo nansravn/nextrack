@@ -6,6 +6,10 @@ story: >-
 budget: >-
   Espiral 1 de 3 (c. 25-28). Sem breu, sem fita branca, sem estrobo.
 cues:
+  - at: B + 16
+    name: capitulo-a-escrever
+    intent: 'Provisório: a ponte acaba aqui e o capítulo novo desta música ainda vai ser escrito.'
+    look: aceleracao
   - at: break.1
     name: espiral
     intent: 'Espiral: os lados da sala revezam, a cada compasso mais rápido, do violeta ao vermelho.'

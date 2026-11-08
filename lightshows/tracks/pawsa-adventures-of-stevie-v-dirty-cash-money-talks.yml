@@ -13,9 +13,16 @@ budget: >-
   compassos: a única vez da noite.
 base: autoscript
 sections:
-  - bars: [17, 42]
+  - bars: [17, 32]
     name: ponte
-    intent: "Ponte: a mesma luz da música anterior, copiada camada por camada, até a chegada."
+    intent: "Ponte: a mesma luz da música anterior, copiada camada por camada, por até 16 compassos."
+    movers: {move: blink, every: "1/4", colour: "#FF0A2A", position: Dance Floor Centre}
+    matrix: {draw: centre-out, rate: "1/16", colour: "#FF0A2A", mirror: true}
+    hue: {state: pulse, colour: "#FF0A2A"}
+
+  - bars: [33, 42]
+    name: capitulo-a-escrever
+    intent: "Provisório: a ponte acaba aqui e o capítulo novo desta música ainda vai ser escrito."
     movers: {move: blink, every: "1/4", colour: "#FF0A2A", position: Dance Floor Centre}
     matrix: {draw: centre-out, rate: "1/16", colour: "#FF0A2A", mirror: true}
     hue: {state: pulse, colour: "#FF0A2A"}

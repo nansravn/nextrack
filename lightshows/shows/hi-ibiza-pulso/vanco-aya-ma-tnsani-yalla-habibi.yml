@@ -5,6 +5,10 @@ story: >-
 budget: >-
   Nenhum efeito raro.
 cues:
+  - at: B + 16
+    name: capitulo-a-escrever
+    intent: 'Provisório: a ponte acaba aqui e o capítulo novo desta música ainda vai ser escrito.'
+    look: respiracao-azul
   - at: drop.1
     name: chegada
     role: arrival
@@ -29,4 +33,3 @@ cues:
       hue: {state: pulse, colour: carmim}
 handover:
   look: respiracao-azul
-  until: 109

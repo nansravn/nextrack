@@ -11,9 +11,16 @@ budget: >-
   Espiral 1 de 3 (c. 25-28). Sem breu, sem fita branca, sem estrobo.
 base: autoscript
 sections:
-  - bars: [1, 24]
+  - bars: [1, 16]
     name: ponte
-    intent: "Ponte: a mesma luz da música anterior, copiada camada por camada, até a chegada."
+    intent: "Ponte: a mesma luz da música anterior, copiada camada por camada, por até 16 compassos."
+    movers: {move: pingpong, every: "1/2", colour: "#6A1CFF", positions: [Dance Floor Centre, Crossed Over, Up]}
+    matrix: {draw: rows-up, rate: "1/2", colour: "#0A2CFF", mirror: true}
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [17, 24]
+    name: capitulo-a-escrever
+    intent: "Provisório: a ponte acaba aqui e o capítulo novo desta música ainda vai ser escrito."
     movers: {move: pingpong, every: "1/2", colour: "#6A1CFF", positions: [Dance Floor Centre, Crossed Over, Up]}
     matrix: {draw: rows-up, rate: "1/2", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
@@ -62,7 +69,14 @@ sections:
 
   - bars: [76, 87]
     name: entrega
-    intent: "Entrega: do G até o fim, o look que a próxima música copia na ponte."
+    intent: "Entrega: do G, por até 16 compassos, o look que a próxima música copia na ponte."
+    movers: {move: pingpong, every: "1/2", colour: "#6A1CFF", positions: [Dance Floor Centre, Crossed Over, Up]}
+    matrix: {draw: rows-up, rate: "1/2", colour: "#0A2CFF", mirror: true}
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [88, 89]
+    name: ponte
+    intent: "Ponte: a mesma luz da música anterior, copiada camada por camada, por até 16 compassos."
     movers: {move: pingpong, every: "1/2", colour: "#6A1CFF", positions: [Dance Floor Centre, Crossed Over, Up]}
     matrix: {draw: rows-up, rate: "1/2", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}

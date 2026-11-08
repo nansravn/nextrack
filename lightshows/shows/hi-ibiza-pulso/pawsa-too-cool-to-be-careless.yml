@@ -64,4 +64,3 @@ cues:
       hue: {state: pulse, colour: vermelho}
 handover:
   look: pulso-vermelho
-  until: outro.1

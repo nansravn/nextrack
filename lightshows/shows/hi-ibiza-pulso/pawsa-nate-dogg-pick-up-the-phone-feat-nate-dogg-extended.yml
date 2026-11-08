@@ -7,6 +7,10 @@ budget: >-
   Contraluz 3 de 3 (c. 104-127). Espiral 3 de 3 (c. 128-136). Estrobo e fita branca no drop
   final (137.1).
 cues:
+  - at: B + 16
+    name: capitulo-a-escrever
+    intent: 'Provisório: a ponte acaba aqui e o capítulo novo desta música ainda vai ser escrito.'
+    look: pulso-vermelho
   - at: break.3
     name: subida
     intent: 'Quatro compassos enchendo em vermelho, as movings acelerando.'
@@ -35,4 +39,3 @@ handover:
   look: pico-pick-up
   moment: pick-up
   accents: [white, strobe]
-  until: outro.1

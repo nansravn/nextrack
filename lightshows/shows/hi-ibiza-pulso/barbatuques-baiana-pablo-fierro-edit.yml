@@ -6,6 +6,10 @@ story: >-
 budget: >-
   Breu 3 de 5 (c. 88). Sem fita branca e sem estrobo.
 cues:
+  - at: B + 16
+    name: capitulo-a-escrever
+    intent: 'Provisório: a ponte acaba aqui e o capítulo novo desta música ainda vai ser escrito.'
+    look: respiracao-azul
   - at: 43
     name: break
     intent: 'Quatro compassos: o centro apaga e as Vorlanes enchem devagar.'
@@ -55,4 +59,3 @@ cues:
       hue: {state: pulse, colour: carmim}
 handover:
   look: respiracao-azul
-  until: 183

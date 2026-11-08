@@ -12,9 +12,16 @@ budget: >-
   final (137.1).
 base: autoscript
 sections:
-  - bars: [27, 68]
+  - bars: [27, 42]
     name: ponte
-    intent: "Ponte: a mesma luz da música anterior, copiada camada por camada, até a chegada."
+    intent: "Ponte: a mesma luz da música anterior, copiada camada por camada, por até 16 compassos."
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF", position: Crossed Over}
+    matrix: {draw: rows-up, rate: "1/4", colour: "#FF0A2A", mirror: true}
+    hue: {state: pulse, colour: "#FF0A2A"}
+
+  - bars: [43, 68]
+    name: capitulo-a-escrever
+    intent: "Provisório: a ponte acaba aqui e o capítulo novo desta música ainda vai ser escrito."
     movers: {move: pingpong, every: "1/4", colour: "#3A6BFF", position: Crossed Over}
     matrix: {draw: rows-up, rate: "1/4", colour: "#FF0A2A", mirror: true}
     hue: {state: pulse, colour: "#FF0A2A"}
@@ -68,11 +75,46 @@ sections:
     matrix: {draw: columns, rate: "1/16", colour: "#FF0A2A", pingpong: true}
     hue: dark
 
-  - bars: [137, 184]
+  - bars: [137, 152]
     name: entrega
-    intent: "Entrega: do G até o fim, o look que a próxima música copia na ponte."
+    intent: "Entrega: do G, por até 16 compassos, o look que a próxima música copia na ponte."
     movers: {move: blink, every: "1/4", colour: "#FF0A2A", position: Dance Floor Centre}
     matrix: {draw: rows-down, rate: "1/16", colour: "#FF0A2A", mirror: true}
     white: {accent: ["137.1"]}
     strobe: {hit: ["137.1"]}
+    hue: {state: pulse, colour: "#FF0A2A"}
+
+  - bars: [153, 160]
+    name: o-grave-volta
+    intent: "O grave volta antes do kick: filas vermelhas subindo, um feixe parado, o coração batendo."
+    movers: {move: hold, colour: "#FF0A2A", level: 0.6, position: Dance Floor Centre}
+    matrix: {draw: rows-up, rate: "1/4", colour: "#FF0A2A", mirror: true}
+    hue: {state: pulse, colour: "#FF0A2A"}
+
+  - bars: [161, 176]
+    name: chegada
+    intent: "A chegada com o kick: o centro das Vorlanes abre em vermelho a 1/16; movings revezando."
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF", position: Dance Floor Centre}
+    matrix: {draw: centre-out, rate: "1/16", colour: "#FF0A2A", mirror: true}
+    hue: {state: pulse, colour: "#FF0A2A"}
+
+  - bars: [177, 184]
+    name: subida
+    intent: "Oito compassos enchendo em vermelho, as movings acelerando até 1/8."
+    movers: {move: pingpong, every: "1/2", colour: "#3A6BFF", position: Up, faster_from: 183, faster_every: "1/8"}
+    matrix: {draw: fill-up, rate: "1bar", colour: "#FF0A2A", mirror: true}
+    hue: dark
+
+  - bars: [185, 185]
+    name: breu
+    intent: "O último breu da noite."
+    movers: "off"
+    matrix: "off"
+    hue: dark
+
+  - bars: [186, 193]
+    name: entrega
+    intent: "Entrega: do G, por até 16 compassos, o look que a próxima música copia na ponte."
+    movers: {move: blink, every: "1/4", colour: "#FF0A2A", position: Dance Floor Centre}
+    matrix: {draw: centre-out, rate: "1/16", colour: "#FF0A2A", mirror: true}
     hue: {state: pulse, colour: "#FF0A2A"}
