@@ -76,23 +76,23 @@ sections:
 
   - bars: [217, 222]
     name: voz-sem-grave
-    intent: "O grave sai e a voz da Nakhana fica sobre o kick: os feixes se revezam entre os lados da sala, devagar, e as setas azuis sobem a meio tempo."
-    movers: {move: pingpong, every: "2bar", colour: "#3A6BFF", level: 0.55, positions: [Stage Left, Stage Right]}
-    matrix: {draw: arrow-up, rate: "1/2", colour: "#0A2CFF", mirror: true}
+    intent: "O grave sai e a voz da Nakhana fica sobre o kick: os feixes varrem devagar da poça ao leque, e as Vorlanes enchem de baixo para cima a meio tempo."
+    movers: {move: sweep, every: "4bar", colour: "#3A6BFF", level: 0.55, positions: [Down, Up]}
+    matrix: {draw: fill-up, rate: "1/2", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 
   - bars: [223, 230]
     name: voz-contida
-    intent: "Só o kick e a voz: os feixes se alternam devagar entre os lados da sala e as Vorlanes abrem do centro para fora, uma onda lenta por compasso, enquanto o lustre carmim segura o batimento."
-    movers: {move: pingpong, every: "1bar", colour: "#3A6BFF", level: 0.5, positions: [Stage Left, Stage Right]}
-    matrix: {draw: centre-out, rate: "1bar", colour: "#0A2CFF", mirror: true}
+    intent: "Só o kick e a voz: os feixes se alternam entre a coluna e o varal, e as Vorlanes marcam colunas azuis, uma por compasso, enquanto o lustre carmim segura o batimento."
+    movers: {move: pingpong, every: "2bar", colour: "#3A6BFF", level: 0.5, positions: [Up, Crossed Over]}
+    matrix: {draw: columns, rate: "1bar", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 
   - bars: [231, 235]
     name: voz-guarda
-    intent: "A voz sustenta e os feixes param no lado leste, contidos; as Vorlanes abrem do centro a meio tempo, guardando o batimento."
-    movers: {move: hold, colour: "#3A6BFF", level: 0.6, position: Stage Right}
-    matrix: {draw: centre-out, rate: "1/2", colour: "#0A2CFF", mirror: true}
+    intent: "A voz sustenta e os feixes param baixos, na poça, contidos; as filas azuis descem a meio tempo, guardando o batimento."
+    movers: {move: hold, colour: "#3A6BFF", level: 0.6, position: Down}
+    matrix: {draw: rows-down, rate: "1/2", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 
   - bars: [236, 251]

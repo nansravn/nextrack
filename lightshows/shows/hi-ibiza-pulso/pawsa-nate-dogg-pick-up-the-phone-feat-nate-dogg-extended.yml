@@ -30,10 +30,10 @@ cues:
       hue: dark
   - at: 65
     name: o-drop-curto
-    intent: 'O drop curto: clarão violeta alternando os lados, feixes revezando cruzados, o coração em vermelho.'
+    intent: 'O drop curto: colunas violeta rápidas nas Vorlanes, feixes cruzados revezando em ritmo médio, o coração em vermelho.'
     look:
-      movers: {move: pingpong, every: 1/8, colour: azul-gelo, position: Crossed Over, level: 0.7}
-      matrix: {draw: solid, rate: 1/2, colour: violeta, pingpong: true}
+      movers: {move: pingpong, every: 1/4, colour: azul-gelo, position: Crossed Over, level: 0.5}
+      matrix: {draw: columns, rate: 1/4, colour: violeta, mirror: true}
       hue: {state: pulse, colour: vermelho}
   - at: break.3
     name: subida

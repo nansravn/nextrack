@@ -20,16 +20,16 @@ sections:
 
   - bars: [17, 20]
     name: groove-com-voz
-    intent: "Capítulo novo do Move: o groove cheio com a voz; as movings varrem os dois lados em violeta, as Vorlanes abrem do centro para fora a 1/4, em azul, e o coração pulsa em vermelho."
-    movers: {move: sweep, every: "2bar", colour: "#6A1CFF", level: 0.7, positions: [Dance Floor Centre, Crossed Over]}
-    matrix: {draw: centre-out, rate: "1/4", colour: "#0A2CFF", pingpong: true}
+    intent: "Capítulo novo do Move: o groove cheio com a voz; as movings varrem os dois lados em violeta, as Vorlanes abrem do centro para fora a 1 compasso, em azul, e o coração pulsa em vermelho."
+    movers: {move: sweep, every: "2bar", colour: "#6A1CFF", level: 0.7, positions: [Stage Left, Stage Right]}
+    matrix: {draw: centre-out, rate: "1bar", colour: "#0A2CFF", pingpong: true}
     hue: {state: pulse, colour: "#FF0A2A"}
 
   - bars: [21, 24]
     name: groove-aperta
-    intent: "O groove aperta antes da espiral: as movings passam a pingpong a 1/4 e as Vorlanes abrem do centro a 1/8 em azul, sem chegar ao violeta nelas."
-    movers: {move: pingpong, every: "1/4", colour: "#6A1CFF", positions: [Crossed Over, Up, Dance Floor Centre]}
-    matrix: {draw: centre-out, rate: "1/8", colour: "#0A2CFF", pingpong: true}
+    intent: "O groove aperta antes da espiral: as movings passam a pingpong a 1 compasso e as Vorlanes abrem do centro a 1 compasso em azul, sem chegar ao violeta nelas."
+    movers: {move: pingpong, every: "1bar", colour: "#6A1CFF", positions: [Crossed Over, Up, Dance Floor Centre]}
+    matrix: {draw: centre-out, rate: "1bar", colour: "#0A2CFF", pingpong: true}
     hue: {state: pulse, colour: "#FF0A2A"}
 
   - bars: [25, 25]

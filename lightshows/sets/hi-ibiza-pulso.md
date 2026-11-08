@@ -94,8 +94,8 @@ e mais vermelho o coração bate.
   - o Can't Decide: break do mapa nos c. 28-43; os cues `break` (c. 28) e `o-grave-volta`
     (c. 36), que já existem, ficam.
 
-  Os breaks de 2 compassos (Pick Up c. 33-34 e 41-42) e os que começam
-  depois da janela ficam como estão; o do Dirty Cash (c. 31-32) abre o capítulo dele, uma escolha do designer que a regra "Fronteiras" permite. Um drop dentro da janela não encurta a entrega: o c. 25 do
+  O break longo do Pick Up (c. 41-64 do mapa) começa dentro da janela, mas a ponte vai até o c. 42 e o capítulo começa no c. 43: dois compassos dele ficam na ponte, por decisão do diretor. Os breaks de 2 compassos (Pick Up c. 33-34) e os que começam
+  depois da janela ficam dentro da ponte, salvo quando o cartão diz outra coisa: o do Dirty Cash (c. 31-32) abre o capítulo dele (cartão 14). Um drop dentro da janela não encurta a entrega: o c. 25 do
   Dirty Cash fica dentro da ponte, por decisão do diretor.
 - **Compassos.** "c. a-b" inclui os dois compassos; o `until` de um cue ou de uma entrega é o
   primeiro compasso depois dela.
@@ -363,7 +363,7 @@ compasso antes da chegada); o eco cobre a parte da abertura que toca antes da qu
 - Chegada: c. 44 (o grave volta no c. 36): `centre-out` vermelho a 1/16.
 - Pico: `cant-decide`, c. 69 (+45.4 dB), depois do breu do c. 68: estrobo, `blink` vermelho.
 - Família de looks: `pico-pick-up` na ponte (c. 20-27); o cue `break` (c. 28-35: movings em `hold` vermelho na coluna a 0.4, Vorlanes `off`, lustre `dark`); `o-grave-volta` (c. 36-43: movings em `hold` vermelho no centro, `rows-up` vermelho); `centre-out`, `pico-cant-decide`; lustre vermelho nos drops, `dark` nos breaks.
-- Entrega: `pico-cant-decide` do G (c. 69), o drop com estrobo, por 14 compassos (c. 69-82, `until: 83`), copiada na ponte do Dirty Cash (c. 17-30 dele): o Dirty Cash entra por baixo do pico, e o drop do c. 25 fica dentro da ponte. A ponte acaba no break de 2 compassos do c. 31, uma fronteira do mapa que o capítulo escolheu: o corte escuro dos c. 31-32 faz o drop do c. 33 pousar. O Dirty Cash abre então um capítulo novo, c. 31-42 dele: o corte, o drop dos c. 33-38 e o break (c. 39-42: o kick para e a voz entra), antes da subida do c. 43 e da chegada do c. 45. O estrobo do Dirty Cash é o dos c. 57 e 113 (orçamento gasto). O eco leva o capítulo para o Can't Decide nos c. 83-94. O capítulo não repete a forma da abertura do Can't Decide (break com feixe parado, depois `hold` no centro com linhas nas Vorlanes).
+- Entrega: `pico-cant-decide` do G (c. 69), o drop com estrobo, por 14 compassos (c. 69-82, `until: 83`), copiada na ponte do Dirty Cash (c. 17-30 dele): o Dirty Cash entra por baixo do pico, e o drop do c. 25 fica dentro da ponte. A ponte acaba no break de 2 compassos do c. 31, uma fronteira do mapa que o capítulo escolheu: o corte dos c. 31-32 (um feixe baixo aceso, Vorlanes `off`, lustre `dark`: não é breu) faz o drop do c. 33 pousar. O Dirty Cash abre então um capítulo novo, c. 31-42 dele: o corte, o drop dos c. 33-38 e o break (c. 39-42: o kick para e a voz entra), antes da subida do c. 43 e da chegada do c. 45. O estrobo do Dirty Cash é o dos c. 57 e 113 (orçamento gasto). O eco leva o capítulo para o Can't Decide nos c. 83-94. O capítulo não repete a forma da abertura do Can't Decide (break com feixe parado, depois `hold` no centro com linhas nas Vorlanes): no drop dos c. 33-38 as movings fazem `pingpong` numa mira, não `hold` no centro; no break dos c. 39-42 o `hold` fica numa mira que não seja a coluna nem o centro.
 
 ### 15. PAWSA, Adventures Of Stevie V — Dirty Cash (Money Talks)
 - Energia: e9; o fim do pico, a 132.

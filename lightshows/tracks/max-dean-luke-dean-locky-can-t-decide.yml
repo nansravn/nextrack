@@ -63,15 +63,15 @@ sections:
 
   - bars: [83, 84]
     name: o-corte
-    intent: "O corte: o kick para, um feixe parado na pista, Vorlanes apagadas, centro escuro."
-    movers: {move: hold, colour: "#3A6BFF", level: 0.4, position: Dance Floor Centre}
+    intent: "O corte: o kick para, um feixe baixo aceso, Vorlanes apagadas, centro escuro."
+    movers: {move: hold, colour: "#3A6BFF", level: 0.3, position: Down}
     matrix: "off"
     hue: dark
 
   - bars: [85, 90]
     name: terceiro-drop
-    intent: "O terceiro drop sobe do corte: movings paradas na pista, filas azuis descendo bem devagar, o coração volta a bater."
-    movers: {move: hold, colour: "#3A6BFF", level: 0.4, position: Dance Floor Centre}
+    intent: "O terceiro drop sobe do corte: movings revezando no X sobre a pista, filas azuis descendo bem devagar, o coração volta a bater."
+    movers: {move: pingpong, every: "1/4", colour: "#3A6BFF", position: Crossed Over}
     matrix: {draw: rows-down, rate: "1/2", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#FF0A2A"}
 

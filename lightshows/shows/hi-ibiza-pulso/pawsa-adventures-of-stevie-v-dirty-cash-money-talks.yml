@@ -10,16 +10,16 @@ budget: >-
 cues:
   - at: B + 14
     name: o-corte
-    intent: 'O corte: o kick para, um feixe parado na pista, Vorlanes apagadas, centro escuro.'
+    intent: 'O corte: o kick para, um feixe baixo aceso, Vorlanes apagadas, centro escuro.'
     look:
-      movers: {move: hold, position: Dance Floor Centre, colour: azul-gelo, level: 0.4}
+      movers: {move: hold, position: Down, colour: azul-gelo, level: 0.3}
       matrix: off
       hue: dark
   - at: B + 16
     name: terceiro-drop
-    intent: 'O terceiro drop sobe do corte: movings paradas na pista, filas azuis descendo bem devagar, o coração volta a bater.'
+    intent: 'O terceiro drop sobe do corte: movings revezando no X sobre a pista, filas azuis descendo bem devagar, o coração volta a bater.'
     look:
-      movers: {move: hold, position: Dance Floor Centre, colour: azul-gelo, level: 0.4}
+      movers: {move: pingpong, every: 1/4, colour: azul-gelo, position: Crossed Over}
       matrix: {draw: rows-down, rate: 1/2, colour: azul-profundo, mirror: true}
       hue: {state: pulse, colour: vermelho}
   - at: break.2

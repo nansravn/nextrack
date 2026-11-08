@@ -8,17 +8,17 @@ budget: >-
 cues:
   - at: B + 16
     name: groove-com-voz
-    intent: 'Capítulo novo do Move: o groove cheio com a voz; as movings varrem os dois lados em violeta, as Vorlanes abrem do centro para fora a 1/4, em azul, e o coração pulsa em vermelho.'
+    intent: 'Capítulo novo do Move: o groove cheio com a voz; as movings varrem os dois lados em violeta, as Vorlanes abrem do centro para fora a 1 compasso, em azul, e o coração pulsa em vermelho.'
     look:
-      movers: {move: sweep, every: 2bar, positions: [Dance Floor Centre, Crossed Over], colour: violeta, level: 0.7}
-      matrix: {draw: centre-out, rate: 1/4, colour: azul-profundo, pingpong: true}
+      movers: {move: sweep, every: 2bar, positions: [Stage Left, Stage Right], colour: violeta, level: 0.7}
+      matrix: {draw: centre-out, rate: 1bar, colour: azul-profundo, pingpong: true}
       hue: {state: pulse, colour: vermelho}
   - at: 21
     name: groove-aperta
-    intent: 'O groove aperta antes da espiral: as movings passam a pingpong a 1/4 e as Vorlanes abrem do centro a 1/8 em azul, sem chegar ao violeta nelas.'
+    intent: 'O groove aperta antes da espiral: as movings passam a pingpong a 1 compasso e as Vorlanes abrem do centro a 1 compasso em azul, sem chegar ao violeta nelas.'
     look:
-      movers: {move: pingpong, every: 1/4, colour: violeta, positions: [Crossed Over, Up, Dance Floor Centre]}
-      matrix: {draw: centre-out, rate: 1/8, colour: azul-profundo, pingpong: true}
+      movers: {move: pingpong, every: 1bar, colour: violeta, positions: [Crossed Over, Up, Dance Floor Centre]}
+      matrix: {draw: centre-out, rate: 1bar, colour: azul-profundo, pingpong: true}
       hue: {state: pulse, colour: vermelho}
   - at: break.1
     name: espiral

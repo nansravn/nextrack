@@ -20,30 +20,30 @@ sections:
 
   - bars: [73, 76]
     name: groove-cheio
-    intent: "O Akan toma a sala com o groove cheio: as movings varrem devagar de um lado ao outro, as Vorlanes sobem em setas azuis e o coração carmim batendo."
-    movers: {move: sweep, every: "2bar", colour: "#3A6BFF", level: 0.7, positions: [Stage Left, Stage Right]}
+    intent: "O Akan toma a sala com o groove cheio: as movings alternam do alto para a cruz baixa a cada compasso, as Vorlanes sobem em setas azuis e o coração carmim batendo."
+    movers: {move: pingpong, every: "1bar", colour: "#3A6BFF", level: 0.7, positions: [Up, Down]}
     matrix: {draw: arrow-up, rate: "1/4", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 
   - bars: [77, 80]
     name: a-voz-aparece
-    intent: "A voz entra sobre o groove: as movings baixam e se juntam no centro, as Vorlanes sobem em setas lentas."
-    movers: {move: hold, colour: "#3A6BFF", level: 0.5, position: Dance Floor Centre}
-    matrix: {draw: arrow-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
+    intent: "A voz entra sobre o groove: as movings passam a alternar o alto e o centro a cada dois compassos e as setas sobem mais lentas, no mesmo nível."
+    movers: {move: pingpong, every: "2bar", colour: "#3A6BFF", level: 0.7, positions: [Up, Dance Floor Centre]}
+    matrix: {draw: arrow-up, rate: "1/2", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 
   - bars: [81, 92]
     name: groove-cheio-volta
-    intent: "A voz sai e o groove cheio volta: movings varrendo lentas de um lado ao outro, setas azuis subindo, coração carmim."
-    movers: {move: sweep, every: "4bar", colour: "#3A6BFF", level: 0.7, positions: [Stage Left, Stage Right]}
+    intent: "A voz sai e o groove cheio volta: movings alternando o alto e a cruz baixa, setas azuis subindo rápidas, coração carmim."
+    movers: {move: pingpong, every: "1bar", colour: "#3A6BFF", level: 0.7, positions: [Up, Down]}
     matrix: {draw: arrow-up, rate: "1/4", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 
   - bars: [93, 96]
     name: a-voz-antes-do-break
-    intent: "A voz volta antes do break: as movings se juntam no centro e as Vorlanes sobem em setas devagar."
-    movers: {move: hold, colour: "#3A6BFF", level: 0.5, position: Dance Floor Centre}
-    matrix: {draw: arrow-up, rate: "1bar", colour: "#0A2CFF", mirror: true}
+    intent: "A voz volta antes do break: as movings alternam o alto e o centro a cada dois compassos e as setas sobem mais lentas, no mesmo nível."
+    movers: {move: pingpong, every: "2bar", colour: "#3A6BFF", level: 0.7, positions: [Up, Dance Floor Centre]}
+    matrix: {draw: arrow-up, rate: "1/2", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 
   - bars: [97, 100]
