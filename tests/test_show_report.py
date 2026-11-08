@@ -37,7 +37,7 @@ def test_sections_are_named_in_report_order():
 
 def test_follows_prints_a_rho_line_per_track():
     a, show = analysed()
-    lines = sr.follows_lines(a, show)
+    lines = sr.select(sr.follows_items(a, show), None)
     assert lines[0] == "follows"
     for title in (TITLE_1, TITLE_2):
         line = next(l for l in lines if l.startswith(f"  {title} · "))
@@ -48,15 +48,15 @@ def test_follows_prints_a_rho_line_per_track():
 
 def test_a_v1_map_marks_the_track_interim():
     a, show = analysed(v2=False)
-    lines = sr.follows_lines(a, show)
+    lines = sr.select(sr.follows_items(a, show), None)
     assert any(l.startswith(f"  {TITLE_1} (interim) · rho ") for l in lines)
     a, show = analysed()
-    assert not any("(interim)" in l for l in sr.follows_lines(a, show))
+    assert not any("(interim)" in l for l in sr.select(sr.follows_items(a, show), None))
 
 
 def test_drops_print_rank_1_first_and_the_agreement():
     a, show = analysed()
-    lines = sr.drops_lines(a, show)
+    lines = sr.select(sr.drops_items(a, show), None)
     assert lines[0] == "drops"
     items = [l for l in lines if l.startswith("  rank ") and l[7].isdigit()]
     assert len(items) == len(a.drops) == 4
@@ -68,7 +68,7 @@ def test_drops_print_rank_1_first_and_the_agreement():
 
 def test_builds_print_each_build_and_how_the_light_goes_into_the_drop():
     a, show = analysed()
-    lines = sr.builds_lines(a, show)
+    lines = sr.select(sr.builds_items(a, show), None)
     assert lines[0] == "builds"
     line = next(l for l in lines if f"· {TITLE_1} 17-20 · " in l)
     assert " · music " in line and " · activity " in line and line.endswith(f"into {a.builds[0].into}")
@@ -78,7 +78,7 @@ def test_variety_prints_a_static_run_across_a_leg_with_both_tracks():
     def edit(src):
         src.track_files[FILE_1]["cues"][2]["look"] = "pulso"      # the last drop plays the handover's look
     a, show = analysed(edit=edit)
-    lines = sr.variety_lines(a, show)
+    lines = sr.select(sr.variety_items(a, show), None)
     assert lines[0] == "variety"
     assert any(f"· {TITLE_1} 21 – {TITLE_2} 8 · 0:16 · drop+intro" in l for l in lines)
     templates, drops = a.variety.templates
@@ -88,15 +88,15 @@ def test_variety_prints_a_static_run_across_a_leg_with_both_tracks():
 
 def test_variety_and_identity_leave_none_out():
     a, show = analysed()
-    assert any(l.startswith("  dominant look: ") for l in sr.variety_lines(a, show))
-    assert not any(l.startswith("  dominant ") and ": none " in l for l in sr.variety_lines(a, show))
-    assert any(l.startswith("  undeclared look: ") for l in sr.identity_lines(a, show))
-    assert not any(l.startswith("  undeclared gesture") for l in sr.identity_lines(a, show))
+    assert any(l.startswith("  dominant look: ") for l in sr.select(sr.variety_items(a, show), None))
+    assert not any(l.startswith("  dominant ") and ": none " in l for l in sr.select(sr.variety_items(a, show), None))
+    assert any(l.startswith("  undeclared look: ") for l in sr.select(sr.identity_items(a, show), None))
+    assert not any(l.startswith("  undeclared gesture") for l in sr.select(sr.identity_items(a, show), None))
 
 
 def test_arc_prints_a_line_per_track_and_the_checks():
     a, show = analysed()
-    lines = sr.arc_lines(a, show)
+    lines = sr.select(sr.arc_items(a, show), None)
     assert lines[0] == "arc"
     assert any(l.startswith(f"  0:00 · {TITLE_1} · e- · light ") for l in lines)     # no owner energy here
     assert any(l.startswith("  rho ") for l in lines) and any(l.startswith("  headroom ") for l in lines)
@@ -108,7 +108,7 @@ def test_identity_prints_the_declared_signatures_share():
             {"name": "azul-espaco", "intent": "O azul é o espaço.", "is": {"movers.colour": ["azul"]},
              "share": {"min": 0.9}}]}
     a, show = analysed(edit=edit)
-    lines = sr.identity_lines(a, show)
+    lines = sr.select(sr.identity_items(a, show), None)
     assert lines[0] == "identity"
     check = a.identity.signatures[0]
     line = next(l for l in lines if l.startswith("  signature azul-espaco"))
@@ -120,13 +120,13 @@ def test_identity_prints_the_declared_signatures_share():
 
 def test_identity_arc_falls_back_to_the_set():
     a, show = analysed()
-    assert sr.identity_lines(a, show)[1] == "  arc: none"
-    assert sr.identity_lines(a, show, set_arc="waves")[1] == "  arc: waves (the set's)"
+    assert sr.select(sr.identity_items(a, show), None)[1] == "  arc: none"
+    assert sr.select(sr.identity_items(a, show, set_arc="waves"), None)[1] == "  arc: waves (the set's)"
 
     def edit(src):
         src.show["identity"] = {"arc": "slow-burn", "signatures": []}
     a, show = analysed(edit=edit)
-    assert sr.identity_lines(a, show, set_arc="waves")[1] == "  arc: slow-burn (identity)"
+    assert sr.select(sr.identity_items(a, show, set_arc="waves"), None)[1] == "  arc: slow-burn (identity)"
 
 
 @pytest.mark.parametrize("name", ["follows", "drops", "builds", "variety", "arc", "identity"])
@@ -152,11 +152,11 @@ def test_an_autoscript_night_with_no_drops_prints_dashes_not_a_crash():
         src.show.pop("bridge", None)
 
     a, show = analysed(edit=edit, tweak=lambda data: data.update(drops=[]))
-    assert sr.drops_lines(a, show)[2:] == ["  no map drop sounds"]
-    assert all(" · rho - · agree - · lag - · " in l for l in sr.follows_lines(a, show)[2:])
+    assert sr.select(sr.drops_items(a, show), None)[2:] == ["  no map drop sounds"]
+    assert all(" · rho - · agree - · lag - · " in l for l in sr.select(sr.follows_items(a, show), None)[2:])
     for name in ("builds", "variety", "arc", "identity"):
-        assert getattr(sr, f"{name}_lines")(a, show)[0] == name
-    assert "  no breather: -" in sr.arc_lines(a, show)
+        assert sr.select(getattr(sr, f"{name}_items")(a, show), None)[0] == name
+    assert "  no breather: -" in sr.select(sr.arc_items(a, show), None)
     assert sr.light_unknown_s(a.clock, a.energy) == pytest.approx(a.clock.total_s)
 
 

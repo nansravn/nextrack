@@ -10,12 +10,11 @@ is named `<title> (interim)` wherever its music energy enters a number.
 
 Each `*_items` function returns `Line`s, `(text, names)`: `names` is None for the section's
 frame (its header and its column legend), else the set of track indices (set order, from 0)
-the line names, empty for a night-level line. `select` cuts a section to one track; each
-`*_lines` function returns the texts alone, header first.
+the line names, empty for a night-level line. `select` gives a section's texts, header first:
+all of them, or cut to one track.
 
-Python API: `REPORT_SECTIONS`, `Line`, `select`, `light_unknown_s`, `follows_lines`,
-`drops_lines`, `builds_lines`, `variety_lines`, `arc_lines`, `identity_lines` and their
-`*_items`.
+Python API: `REPORT_SECTIONS`, `Line`, `select`, `light_unknown_s`, `follows_items`,
+`drops_items`, `builds_items`, `variety_items`, `arc_items`, `identity_items`.
 """
 from __future__ import annotations
 
@@ -78,10 +77,6 @@ def _item(text: str, *indices: int) -> Line:
     return text, frozenset(indices)
 
 
-def _texts(lines: list[Line]) -> list[str]:
-    return [text for text, _ in lines]
-
-
 def _words(values: list[str]) -> str:
     return ", ".join(values) or "-"
 
@@ -116,10 +111,6 @@ def follows_items(a: Analysis, show: CompiledShow) -> list[Line]:
     return out
 
 
-def follows_lines(a: Analysis, show: CompiledShow) -> list[str]:
-    return _texts(follows_items(a, show))
-
-
 # ------------------------------------------------------------------ drops --
 
 
@@ -145,10 +136,6 @@ def drops_items(a: Analysis, show: CompiledShow) -> list[Line]:
     return out
 
 
-def drops_lines(a: Analysis, show: CompiledShow) -> list[str]:
-    return _texts(drops_items(a, show))
-
-
 # ----------------------------------------------------------------- builds --
 
 
@@ -166,10 +153,6 @@ def builds_items(a: Analysis, show: CompiledShow) -> list[Line]:
     if not a.builds:
         out.append(_item("  no build of 4 bars or more"))
     return out
-
-
-def builds_lines(a: Analysis, show: CompiledShow) -> list[str]:
-    return _texts(builds_items(a, show))
 
 
 # ---------------------------------------------------------------- variety --
@@ -222,10 +205,6 @@ def variety_items(a: Analysis, show: CompiledShow) -> list[Line]:
     return out
 
 
-def variety_lines(a: Analysis, show: CompiledShow) -> list[str]:
-    return _texts(variety_items(a, show))
-
-
 # -------------------------------------------------------------------- arc --
 
 
@@ -271,10 +250,6 @@ def arc_items(a: Analysis, show: CompiledShow) -> list[Line]:
     return out
 
 
-def arc_lines(a: Analysis, show: CompiledShow) -> list[str]:
-    return _texts(arc_items(a, show))
-
-
 # --------------------------------------------------------------- identity --
 
 
@@ -306,6 +281,3 @@ def identity_items(a: Analysis, show: CompiledShow, set_arc: str | None = None) 
         out.append(_item(f"  undeclared {dim}: {value} {_pct(share)}"))
     return out
 
-
-def identity_lines(a: Analysis, show: CompiledShow, set_arc: str | None = None) -> list[str]:
-    return _texts(identity_items(a, show, set_arc))

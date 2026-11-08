@@ -117,6 +117,16 @@ Show tool (`build`, `report`, `zoom`, `brief`, `compare`, `book`, `vocab`; see
   create. The owner makes that preset in SoundSwitch and then flips it to `configured`.
   `assumed: true` stays until the owner measures the room. Name the aim id in
   [lightshows/README.md](lightshows/README.md#the-room-roomyml): a test checks it.
+- **Add a music fact to the maps:** compute it in `scripts/musical_map.py` with a test on
+  synthetic audio, bump `MAP_VERSION` and teach `problems_map` the new field, let
+  `nextrack_map.py upgrade` add it to existing maps without re-running the separation, and
+  upgrade every committed map in the same change (`git diff lightshows/maps` shows only the
+  new lines). Document the field and its formula in the "Musical maps" section of
+  [lightshows/README.md](lightshows/README.md#musical-maps). Agents never compute a music
+  fact any other way.
+- **Change a measure or a view of the critic:** its formula lives in the docstring of
+  `scripts/show_energy.py` or `scripts/show_analysis.py`, and the manual's "The critic's
+  views" repeats it in the same change.
 - **Change `nextrack_tags.py`:** write or update the test first. Its tests pin
   current behavior, including the three write paths.
 - **Add a validator rule:** one function in `RULES`, tests for the passing and
