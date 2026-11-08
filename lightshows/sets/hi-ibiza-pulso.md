@@ -77,6 +77,12 @@ e mais vermelho o coração bate.
   foi escrito; o eco nunca conta, e as regras de seção (`total-dark`, `movers-aim`,
   `matrix-not-cloned`) não o leem. Quem desenha a abertura da que entra desenha também o fim da
   que sai.
+- **A janela segue a música que entra.** No relógio do set, a música que entra toca desde o B
+  dela, e as medidas da noite leem a música dela. Uma entrega não atravessa um break da que
+  entra que dure 4 compassos ou mais (uma seção `break` do mapa): a ponte acaba onde ele começa,
+  o capítulo novo começa nele, e a entrega acaba junto. Hoje isso vale para a Trippy Yeah (break
+  dos c. 12-27), a Yamore (c. 12-16) e o Can't Decide (c. 28-35). Os breaks de 2 compassos
+  (Pick Up c. 33-34 e 41-42, Dirty Cash c. 31-32) podem ficar dentro da ponte.
 - **Compassos.** "c. a-b" inclui os dois compassos; o `until` de um cue ou de uma entrega é o
   primeiro compasso depois dela.
 - **Chegada:** o drop que mostra a música nova. Toda chegada troca o desenho principal e a cor
@@ -261,7 +267,7 @@ Rapture → Akan; `mix-12` é TOO COOL → Verano) e é descrita no cartão da f
 - Chegada: c. 56, quando o grave entra de vez: `solid` azul-profundo com `pingpong`, os feixes parados no centro (0.8).
 - Pico: `brilho`, c. 104-120: `columns` ciano, `pingpong` a 1/2.
 - Família de looks: `solid`, `rows-up` a 1/4 (`a-voz`, c. 72-103), `columns` ciano; lustre carmim.
-- Entrega: `respiracao-azul` do G (c. 121) por 16 compassos (c. 121-136), copiada na ponte da Trippy Yeah (c. 5-20 dela). A Trippy Yeah abre então um capítulo novo e curto, c. 21-27 dela: o break (o grave sai no c. 22, o kick baixa para 4-6 e a voz entra no c. 24). É o break da Trippy, recolhido, antes da subida (c. 28-31), do breu (c. 32) e da chegada (c. 33), sem roubar o escuro do breu. O eco leva o capítulo para a We Dance Again nos c. 137-143.
+- Entrega: `respiracao-azul` do G (c. 121) até o fim da ponte da Trippy Yeah, c. 121-127 (`until: 128`), copiada na ponte da Trippy (c. 5-11 dela, o groove). A música da Trippy cai no break no c. 12 (c. 12-27), e a janela segue a música que entra: a Trippy abre então um capítulo novo no break, c. 12-27 dela (o grave sai no c. 22, o kick baixa para 4-6 e a voz entra no c. 24). É o break da Trippy, recolhido, antes da subida (c. 28-31), do breu (c. 32) e da chegada (c. 33), sem roubar o escuro do breu. O eco leva o capítulo para a We Dance Again nos c. 128-143.
 
 ### 5. Jimi Jules, Black Coffee — Trippy Yeah
 - Energia: e7, a primeira da noite; a luz contrasta mais: breu e dois drops fortes.
@@ -293,7 +299,7 @@ Rapture → Akan; `mix-12` é TOO COOL → Verano) e é descrita no cartão da f
 - Chegada: c. 33 (drop, +5.3 dB): `rows-down` azul-profundo com `pingpong` a 1/4.
 - Pico: `o-grave-volta`, c. 76-83 (`rows-down` ciano a 1/8), e o drop do G (c. 84).
 - Família de looks: `rows-down` e `rows-up`, `hold` na coluna no break cantado (c. 64-75); lustre carmim.
-- Entrega: `respiracao-azul` do G (c. 84) por 16 compassos (c. 84-99), copiada na ponte da Yamore (c. 9-24 dela). A Yamore abre então um capítulo novo, c. 25-32 dela: a segunda metade do primeiro drop (c. 17-32), as vozes cheias, antes de `as-vozes` (c. 33). O drop do c. 17, o principal do mapa (+16.1 dB), cai dentro da janela, e o capítulo pode começar nele (a ponte fica c. 9-16 e a entrega c. 84-91, `until: 92`). Mesmo assim, ele não usa o `arrow-up` nem o ciano da chegada (`yamore`, c. 65), e a luz dele fica abaixo da dela. O eco leva o capítulo e o começo de `as-vozes` (c. 33-35 dela) para a Ma Tnsani nos c. 100-110.
+- Entrega: `respiracao-azul` do G (c. 84) até o fim da ponte da Yamore, c. 84-86 (`until: 87`), copiada na ponte da Yamore (c. 9-11 dela, o groove). A música da Yamore cai num break nos c. 12-16, e a janela segue a música que entra: a Yamore abre então um capítulo novo no break, que leva ao primeiro drop (c. 17-32, o principal do mapa, +16.1 dB, as vozes cheias) e vai até `as-vozes` (c. 33). O drop do c. 17 sobe acima do break e da ponte, mas não usa o `arrow-up` nem o ciano da chegada (`yamore`, c. 65), e fica abaixo da luz dela. O eco leva o capítulo e o começo de `as-vozes` (c. 33-35 dela) para a Ma Tnsani nos c. 87-110.
 
 ### 9. MoBlack, Salif Keita, Cesária Evora, Benja (NL), Franc Fala — Yamore
 - Energia: e7; o fim do transe: o grave volta com as vozes.
@@ -333,14 +339,14 @@ Rapture → Akan; `mix-12` é TOO COOL → Verano) e é descrita no cartão da f
 - Chegada: c. 73 (drop, +30.2 dB): `rows-up` vermelho com `pingpong` a 1/8.
 - Pico: `pick-up`, c. 137 (o drop nº 1 da noite em saliência): estrobo, fita branca, `blink` vermelho, Vorlanes a 1/16.
 - Família de looks: `contraluz` (c. 104-127), a espiral (c. 128-136), `pico-pick-up`; lustre vermelho.
-- Entrega: `pico-pick-up` do G (c. 137), o pico, por 16 compassos (c. 137-152), copiado na ponte do Can't Decide, que passa a ir de c. 20 a c. 35 dele. Nos c. 137-152 o drop do Pick Up segue cheio (kick e grave a 9) enquanto o Can't Decide entra com o seu drop (c. 20-27) e cai no break (c. 28-35, kick 0): a sala ouve o pico do Pick Up, então **o pico atravessa a janela inteira dos dois lados**, e o cue `break` do Can't Decide (c. 28-35) sai para a ponte ir até o c. 35. O cue `o-grave-volta` (c. 36-43) fica como está. Não há capítulo novo. O eco leva o Can't Decide do c. 36 em diante (o grave que volta, a chegada do c. 44, a subida, o breu do c. 68 e o pico do c. 69, sem o estrobo) para o Pick Up nos c. 153-193.
+- Entrega: `pico-pick-up` do G (c. 137), o pico, copiado na ponte do Can't Decide (c. 20-27 dele, o drop dele). O Can't Decide cai no break no c. 28 (c. 28-35, kick 0), e a janela segue a música que entra: a entrega termina com a ponte, c. 137-144 (`until: 145`), e o cue `break` do Can't Decide (c. 28-35) fica onde sempre esteve. Não há capítulo novo. O eco leva o Can't Decide do c. 28 em diante (o break, o grave que volta no c. 36, a chegada do c. 44, a subida, o breu do c. 68 e o pico do c. 69, sem o estrobo) para o Pick Up nos c. 145-193.
 
 ### 14. Max Dean, Luke Dean, LOCKY — Can't Decide
 - Energia: e8; o último breu e o pico que o Dirty Cash herda.
 - Papel no arco: o pico continua, curto e intenso.
 - Chegada: c. 44 (o grave volta no c. 36): `centre-out` vermelho a 1/16.
 - Pico: `cant-decide`, c. 69 (+45.4 dB), depois do breu do c. 68: estrobo, `blink` vermelho.
-- Família de looks: `pico-pick-up` na ponte (c. 20-35), o `hold` vermelho quando o grave volta (c. 36-43), `centre-out`, `pico-cant-decide`; lustre vermelho.
+- Família de looks: `pico-pick-up` na ponte (c. 20-27), o `hold` vermelho no break (c. 28-35) e quando o grave volta (c. 36-43), `centre-out`, `pico-cant-decide`; lustre vermelho.
 - Entrega: `pico-cant-decide` do G (c. 69), o drop com estrobo, por 16 compassos (c. 69-84), copiada na ponte do Dirty Cash (c. 17-32 dele): o Dirty Cash entra por baixo do pico. O Dirty Cash abre então um capítulo novo, c. 33-42 dele: o terceiro drop (c. 33-38) e o break (c. 39-42: o kick para e a voz entra), antes da subida do c. 43 e da chegada do c. 45. O estrobo do Dirty Cash é o dos c. 57 e 113 (orçamento gasto). O eco leva o capítulo para o Can't Decide nos c. 85-94.
 
 ### 15. PAWSA, Adventures Of Stevie V — Dirty Cash (Money Talks)

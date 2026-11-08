@@ -6,7 +6,8 @@ Tipo: retrabalho de unidades (13 mixagens) · ramo: feat/show-hi-ibiza-pulso-pon
 Estimativa: 1 leitura + 13 unidades × até 3 rodadas + 5 críticos × até 2 passadas + 4 comparações = até ~54 despachos, mais revisões
 Diagnóstico: treze passagens passam de 16 compassos (23 avisos `bridges`), com entregas de 20 a 56 compassos e pontes de 18 a 42. Com `bridge.bars: 16`, o compilador corta cada entrega em 16 compassos e o eco copia, no resto da música que sai, a luz da que entra. Onze músicas que entram precisam de um capítulo novo entre o fim da ponte (B + 15) e o seu primeiro cue de hoje: Akan, What To Do, We Dance Again, Trippy Yeah, Baianá, Ma Tnsani, Yamore, Move, Verano, Pick Up e Dirty Cash. Em duas passagens (mix-06, mix-14) a ponte é mais curta que a entrega, e elas precisam alinhar a janela.
 Contrato: `compare --keep arrivals,moments` contra o show de partida (3211f74); o aviso `signatures` continua em zero (hoje azul-espaco 86% ≥ 70% e coracao 80% ≥ 60%).
-Unidades: mix-02 0/3, mix-03 0/3, mix-04 0/3, mix-05 0/3, mix-06 0/3, mix-07 0/3, mix-08 0/3, mix-09 0/3, mix-10 0/3, mix-12 0/3, mix-13 0/3, mix-14 0/3, mix-15 0/3
+Rodadas: 1 · versões: v1
+Unidades: mix-02 1/3, mix-03 1/3, mix-04 1/3, mix-05 1/3, mix-06 1/3, mix-07 1/3, mix-08 1/3, mix-09 1/3, mix-10 1/3, mix-12 1/3, mix-13 1/3, mix-14 1/3, mix-15 1/3
 
 ### Decisões
 - `bridge.bars: 16` no `show.yml`, como o dono pediu; as intenções de ponte e de entrega passam a dizer "por até 16 compassos" (custo se errado: só o texto das intenções).
@@ -15,11 +16,34 @@ Unidades: mix-02 0/3, mix-03 0/3, mix-04 0/3, mix-05 0/3, mix-06 0/3, mix-07 0/3
 - Leitura a frio: as 12 perguntas do leitor foram respondidas no plano de luz. O eco copia tudo o que a música que entra mostra naquele trecho, chegada, breu e espiral incluídos, sem estrobo nem fita, e nunca conta no orçamento. A luz do capítulo novo tem regra: movings azul-gelo, desenho de Vorlane diferente da ponte e da chegada, lustre `dark` nos breaks em todas as fases, abaixo da chegada. As fronteiras fortes são as `sections` do mapa e os "missed" do `follows`. Os intervalos "c. a-b" incluem os dois compassos (custo se errado: designers com três regras a mais do que o pedido dizia).
 - mix-14 (Pick Up → Can't Decide): o pico atravessa a janela inteira dos dois lados (entrega c. 137-152, ponte c. 20-35 do Can't Decide), e o cue `break` do Can't Decide (c. 28-35) sai. Nesses compassos o drop do Pick Up segue cheio enquanto o Can't Decide está no break, e a sala ouve o pico (custo se errado: o Can't Decide perde oito compassos de break antes do grave voltar no c. 36).
 - mix-07 (Say What → Baianá): a entrega vai até o último compasso da Say What (c. 79-91, `until: end + 1`), e a ponte da Baianá vai até o c. 37, o último em que as duas tocam juntas. O capítulo novo começa no c. 38 (custo se errado: nenhum além de cinco compassos de capítulo curto).
+- Rodada 1, mix-14 revista: as lentes energia-da-musica (grave) e arco-do-set mediram que o pico do Pick Up sobre o break do Can't Decide derrubou o `rho` dele de 0.75 para 0.30 ("missed 28 (music -6.8, light +0.0)"). No relógio do set, os c. 28-35 já são do Can't Decide. A entrega volta a acabar com a ponte (c. 137-144, `until: 145`), e o `break` do Can't Decide volta (custo se errado: oito compassos do pico do Pick Up a menos na sala, se o DJ segurar o Pick Up por cima).
+- Regra nova no plano, "a janela segue a música que entra": uma entrega não atravessa um break de 4 compassos ou mais da que entra, e o capítulo começa nele. Vale para a Trippy (c. 12), a Yamore (c. 12) e o Can't Decide (c. 28) (custo se errado: pontes de 3 e 7 compassos na Yamore e na Trippy, mais curtas que a mixagem pede).
+- Rodada 1, Dirty Cash c. 25 (drops, grave, "rank 6 · 41:15 · Dirty Cash (Money Talks) 25 · ... response 0.00"): fica dentro da ponte do mix-15. O drop já era mudo antes desta execução, e um respiro antes dele cairia também no drop cheio do Can't Decide (c. 74-76), a música que a sala ouve mais alto ali. O cartão diz que o Dirty Cash entra por baixo do pico (custo se errado: o 6º drop da noite segue sem resposta de luz).
+- Rodada 1, "a saída da ponte baixa a luz" (energia-da-musica, moderado): o capítulo continua abaixo da chegada, como o plano pede. A queda vem do nível dos looks de entrega, que são dos mais claros da noite e ficam fora desta execução: vai para "Para depois" (custo se errado: uma descida curta de luz na saída de sete pontes).
+- Rodada 1, mix-07: o `palmas-e-voz` (c. 38-42, `pingpong` numa intro) fica. A gramática dos feixes não fala de intro, e o achado o cita como caso menor (custo se errado: cinco compassos de alternância numa intro com pouco grave).
+- Rodada 1, roteamento: 11 unidades voltam aos designers na rodada 2 (mix-02, 03, 04, 05, 08, 09, 10, 12, 13, 14, 15), cada uma com os seus achados literais. mix-06 e mix-07 não têm achado em aberto. Nenhum achado veio sem evidência.
 
 ### Para depois
+- As movings fazem a mesma coisa em 12 das 15 chegadas, evidência: "`movers pingpong every=1/4 colour=azul-gelo position=centro-da-pista`" nas chegadas de Rapture 145, Akan 105, What To Do 177, Trippy 33, Say What 41, Baianá 47, Yamore 65, Move 29, Verano 58, Pick Up 73, Can't Decide 44 e Dirty Cash 45 (briefing e monotonia, moderado; já existia; as chegadas são do contrato).
+- O drop principal fica abaixo de um drop anterior da mesma faixa na Say What (c. 73), no Dirty Cash (c. 81) e na Baianá (c. 134), evidência: "main-drop: Say What's main drop 73 answers 0.17, below its drop 41 (0.63)" (drops, grave; já existia; fora das pontes).
+- A chegada do Pick Up (c. 73, +30.2 dB) quase não acende, evidência: "37:31 · PICK UP THE PHONE (feat. Nate Dogg) (Extended) 73 · +30.2 dB · music 8 · light 4>4" (energia-da-musica, grave; já existia: a subida dos c. 69-72 e a ponte `pulso-vermelho` empatam com a chegada).
+- O 9 de luz da noite não mora na faixa e9, evidência: "41:00 · Dirty Cash (Money Talks) · e9 · light 4.1, p90 9.0", com os 9 só na ponte e no c. 57 (arco-do-set, grave; o corpo do Dirty Cash fica fora das pontes). Pergunta ao dono junto: o plano chama o Pick Up de "o pico da noite", e o rótulo põe o topo no Dirty Cash (briefing, moderado).
+- As subidas terminam mais claras que o drop que preparam, evidência: a chegada da Akan (c. 105, o 2º drop da noite) sobe só +1.0 (drops, moderado; já existia, receita da noite).
+- O maior drop da noite, Pick Up c. 137, não tem nada novo, evidência: "fresh 0.00" (drops, moderado; já existia).
+- Saliência e resposta quase não concordam, evidência: "agreement: rho" baixo entre os drops acima da mediana (drops, moderado; já existia).
+- O drop principal da Verano (c. 9, no B) passa sem mudança, porque a ponte copia a entrega do TOO COOL (drops, moderado; já existia).
+- Os looks de entrega são dos mais claros da noite, e a luz baixa na saída de sete pontes enquanto a música fica igual ou sobe (energia-da-musica, moderado).
+- We Dance Again: a luz chega 7 compassos antes da música, evidência: "We Dance Again · rho 0.34 · agree - · lag -7 (beyond 1)" (energia-da-musica, moderado; o miolo já estava lá).
+- A luz não sobe nos degraus de energia do dono, evidência: "rho 0.07 (mean) and 0.08 (p90)"; o headroom é 0.89; a Baianá (e7) fica acima das vizinhas e7 (arco-do-set, moderado; já existia).
+- O look `aceleracao` tem lustre carmim, e os Papéis pedem vermelho nas faixas 10-11 (briefing, moderado; o look fica fora desta execução).
+- Menores: as pontes não sobem com a energia (arco-do-set); perguntas de rótulo ao dono sobre o e9 do Dirty Cash e o e6 da Akan (arco-do-set); capítulos que começam fora da linha de frase, "phrase lines: 77%" (monotonia); a mesma ponte em oito mixagens seguidas (monotonia); o lustre pulsa 81% da noite sem assinatura que o declare (monotonia); a seta (`arrow-up`) aparece cedo no Pick Up e na Trippy (briefing); o plano cita as parcelas antigas das assinaturas (briefing); a janela de 16 compassos engole drops no mix-12 e no mix-13 (drops); as Vorlanes do We Dance Again acendem nos c. 51-55 sem a música mudar (energia-da-musica); a luz do Move sobe no c. 17 quando a música cai (energia-da-musica); o eco leva a contraluz da What To Do para cima do drop cheio da Akan, que depende do teste P1 (energia-da-musica); a subida do Can't Decide (c. 28-43) ficou plana (drops), o que a correção do mix-14 desfaz.
 
 ### Estado
 - Estado: fase 0 (entrada) concluída — 2026-11-08 06:59
 - Estado: fase 1 (insumos) concluída — 2026-11-08 07:00
 - Estado: fase 2 (diagnóstico) concluída — 2026-11-08 07:08
 - Estado: fase 3 (leitura a frio) concluída — 2026-11-08 07:19
+- Estado: fase 4 (design, rodada 1) concluída — 2026-11-08 07:32
+- Estado: fase 5 (portões, rodada 1) concluída — 2026-11-08 07:32
+- Estado: fase 6 (crítica, rodada 1: passada completa 1) concluída — 2026-11-08 07:58
+- Estado: fase 7 (consolidação, rodada 1: 11 correções) concluída — 2026-11-08 07:58

@@ -8,9 +8,26 @@ budget: >-
   final (137.1).
 cues:
   - at: B + 16
-    name: capitulo-a-escrever
-    intent: 'Provisório: a ponte acaba aqui e o capítulo novo desta música ainda vai ser escrito.'
-    look: pulso-vermelho
+    name: o-grave-segura
+    intent: 'O break sem kick: o grave segura, um feixe frio para cima, filas vermelhas subindo devagar, o coração em carmim.'
+    look:
+      movers: {move: hold, position: Up, colour: azul-gelo, level: 0.5}
+      matrix: {draw: rows-up, rate: 1bar, colour: vermelho, mirror: true}
+      hue: {state: pulse, colour: carmim}
+  - at: 49
+    name: a-voz-do-nate
+    intent: 'A voz do Nate Dogg entra: feixes frios varrendo devagar de um lado ao outro, setas azuis em meia-luz subindo alternadas, o coração em vermelho.'
+    look:
+      movers: {move: sweep, every: 4bar, positions: [Stage Left, Stage Right], colour: azul-gelo, level: 0.45}
+      matrix: {draw: arrow-up, rate: 1/2, colour: azul-profundo, pingpong: true}
+      hue: {state: pulse, colour: vermelho}
+  - at: 65
+    name: o-drop-curto
+    intent: 'O drop curto: setas vermelhas subindo, alternando os lados, feixes revezando no centro, o coração em vermelho.'
+    look:
+      movers: {move: pingpong, every: 1/4, colour: azul-gelo, position: Dance Floor Centre}
+      matrix: {draw: arrow-up, rate: 1/4, colour: vermelho, pingpong: true}
+      hue: {state: pulse, colour: vermelho}
   - at: break.3
     name: subida
     intent: 'Quatro compassos enchendo em vermelho, as movings acelerando.'

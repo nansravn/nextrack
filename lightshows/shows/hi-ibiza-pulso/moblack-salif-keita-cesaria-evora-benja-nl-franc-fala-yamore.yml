@@ -6,10 +6,20 @@ story: >-
 budget: >-
   Fita branca: chegada do Yamore (65.1). Sem breu e sem estrobo.
 cues:
-  - at: B + 16
-    name: capitulo-a-escrever
-    intent: 'Provisório: a ponte acaba aqui e o capítulo novo desta música ainda vai ser escrito.'
-    look: respiracao-azul
+  - at: 17
+    name: vozes-cheias
+    intent: 'O drop do c. 17 entra com a luz mais baixa que a da chegada: feixes revezando entre o centro e o X, colunas de Vorlanes indo e voltando, o coração pulsando.'
+    look:
+      movers: {move: pingpong, every: 1/2, positions: [centro-da-pista, cruzado], colour: azul-gelo, level: 0.7}
+      matrix: {draw: columns, rate: 1/4, colour: azul-profundo, mirror: true}
+      hue: {state: pulse, colour: carmim}
+  - at: 25
+    name: vozes-abrem
+    intent: 'As vozes cheias abrem a sala: as movings passam para as colunas e para o X sobre a pista, as filas sobem devagar.'
+    look:
+      movers: {move: pingpong, every: 1bar, positions: [coluna, cruzado], colour: azul-gelo, level: 0.65}
+      matrix: {draw: rows-up, rate: 1/2, colour: azul-profundo, mirror: true}
+      hue: {state: pulse, colour: carmim}
   - at: 33
     name: as-vozes
     intent: 'As vozes respondem de um lado ao outro: feixes varrendo esquerda e direita, filas subindo.'

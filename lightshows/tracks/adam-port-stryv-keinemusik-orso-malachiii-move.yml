@@ -18,11 +18,18 @@ sections:
     matrix: {draw: rows-up, rate: "1/2", colour: "#0A2CFF", mirror: true}
     hue: {state: pulse, colour: "#B0001E"}
 
-  - bars: [17, 24]
-    name: capitulo-a-escrever
-    intent: "Provisório: a ponte acaba aqui e o capítulo novo desta música ainda vai ser escrito."
-    movers: {move: pingpong, every: "1/2", colour: "#6A1CFF", positions: [Dance Floor Centre, Crossed Over, Up]}
-    matrix: {draw: rows-up, rate: "1/2", colour: "#0A2CFF", mirror: true}
+  - bars: [17, 20]
+    name: groove-com-voz
+    intent: "Capítulo novo do Move: o groove cheio com a voz; as movings varrem os dois lados em violeta, as colunas azuis se revezam a 1/4 e o coração pulsa em carmim."
+    movers: {move: sweep, every: "2bar", colour: "#6A1CFF", level: 0.7, positions: [Dance Floor Centre, Crossed Over]}
+    matrix: {draw: columns, rate: "1/4", colour: "#0A2CFF", pingpong: true}
+    hue: {state: pulse, colour: "#B0001E"}
+
+  - bars: [21, 24]
+    name: groove-aperta
+    intent: "O groove aperta antes da espiral: as movings passam a pingpong a 1/4 e as colunas azuis correm a 1/8, sem chegar ao violeta nas Vorlanes."
+    movers: {move: pingpong, every: "1/4", colour: "#6A1CFF", positions: [Crossed Over, Up, Dance Floor Centre]}
+    matrix: {draw: columns, rate: "1/8", colour: "#0A2CFF", pingpong: true}
     hue: {state: pulse, colour: "#B0001E"}
 
   - bars: [25, 25]

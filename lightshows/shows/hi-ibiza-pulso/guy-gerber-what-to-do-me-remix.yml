@@ -7,9 +7,26 @@ budget: >-
   Contraluz 2 de 3 (c. 163-172). Sem breu: o drop do c. 177 é aberto pela subida.
 cues:
   - at: B + 16
-    name: capitulo-a-escrever
-    intent: 'Provisório: a ponte acaba aqui e o capítulo novo desta música ainda vai ser escrito.'
-    look: respiracao-azul
+    name: groove-sem-voz
+    intent: 'O groove da What To Do assume: zigue-zague azul nas Vorlanes e feixes varrendo o centro e as colunas, sem voz.'
+    look:
+      movers: {move: sweep, every: 2bar, positions: [Dance Floor Centre, Up], colour: azul-gelo, level: 0.7}
+      matrix: {draw: zigzag, rate: 1/4, colour: azul-profundo, mirror: true}
+      hue: {state: pulse, colour: carmim}
+  - at: 153
+    name: groove-recua
+    intent: 'O kick cai um degrau e a luz recua com ele: varredura mais lenta e zigue-zague a meio tempo.'
+    look:
+      movers: {move: sweep, every: 4bar, positions: [Up, Crossed Over], colour: azul-gelo, level: 0.55}
+      matrix: {draw: zigzag, rate: 1/2, colour: azul-profundo, mirror: true}
+      hue: {state: pulse, colour: carmim}
+  - at: 161
+    name: voz-volta
+    intent: 'A voz volta: os feixes param nas colunas e as Vorlanes sobem devagar, a sala se recolhe para a contraluz.'
+    look:
+      movers: {move: hold, position: Up, colour: azul-gelo, level: 0.45}
+      matrix: {draw: rows-up, rate: 1bar, colour: azul-profundo, mirror: true}
+      hue: {state: pulse, colour: carmim}
   - at: 163
     name: a-voz-no-escuro
     intent: 'A voz chega no escuro: contraluz, dois feixes frios cruzando.'

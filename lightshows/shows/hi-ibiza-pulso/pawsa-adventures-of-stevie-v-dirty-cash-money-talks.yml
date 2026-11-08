@@ -9,9 +9,19 @@ budget: >-
   compassos: a única vez da noite.
 cues:
   - at: B + 16
-    name: capitulo-a-escrever
-    intent: 'Provisório: a ponte acaba aqui e o capítulo novo desta música ainda vai ser escrito.'
-    look: pico-cant-decide
+    name: terceiro-drop
+    intent: "O terceiro drop: o pico do Can't Decide sai e entram filas vermelhas descendo, as movings revezando em azul-gelo."
+    look:
+      movers: {move: pingpong, every: 1/4, colour: azul-gelo, position: Dance Floor Centre}
+      matrix: {draw: rows-down, rate: 1/8, colour: vermelho, mirror: true}
+      hue: {state: pulse, colour: vermelho}
+  - at: break.2
+    name: a-voz-entra
+    intent: 'O kick para e a voz entra: um feixe parado na cabine, Vorlanes apagadas, só o coração batendo em carmim.'
+    look:
+      movers: {move: hold, position: DJ Booth, colour: azul-gelo, level: 0.5}
+      matrix: off
+      hue: {state: pulse, colour: carmim}
   - at: build.1
     name: subida
     intent: 'Dois compassos enchendo em vermelho, o centro escuro.'

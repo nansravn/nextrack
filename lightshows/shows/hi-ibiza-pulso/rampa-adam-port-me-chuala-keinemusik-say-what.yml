@@ -44,4 +44,4 @@ cues:
       hue: {state: pulse, colour: carmim}
 handover:
   look: respiracao-azul
-  until: end
+  until: end + 1
